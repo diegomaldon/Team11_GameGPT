@@ -19,9 +19,8 @@ npm-debug.log*
 .env.local
 .env.*.local
 
-# Generated
-openapi.json
-!api/fixtures/*.json
+# Generated — openapi.json IS committed as the frozen contract (see below).
+web/lib/api/schema.d.ts
 
 # OS / editor
 .DS_Store

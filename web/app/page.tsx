@@ -1,30 +1,25 @@
 "use client";
 
 import { useState } from "react";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-
-type Recommendation = {
-  rank: number;
-  game_id?: string | null;
-  title: string;
-  reason: string;
-  steam_appid?: number | null;
-  review_score?: number | null;
-};
-
-type RecommendResponse = {
-  query_id: string;
-  query: string;
-  recommendations: Recommendation[];
-};
+import {
+  recommend,
+  sendFeedback,
+  syncLibrary,
+} from "@/lib/api/client";
+import type { Recommendation, RecommendResponse, Vote } from "@/lib/api/types";
 
 export default function Home() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RecommendResponse | null>(null);
-  const [voted, setVoted] = useState<Record<number, "up" | "down">>({});
+  const [voted, setVoted] = useState<Record<number, Vote>>({});
+
+  // Steam library sync state.
+  const [steamId, setSteamId] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,13 +29,7 @@ export default function Home() {
     setResult(null);
     setVoted({});
     try {
-      const res = await fetch(`${API_URL}/api/recommend`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
-      });
-      if (!res.ok) throw new Error(`API returned ${res.status}`);
-      setResult(await res.json());
+      setResult(await recommend(query.trim()));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -48,23 +37,37 @@ export default function Home() {
     }
   }
 
-  async function vote(rec: Recommendation, v: "up" | "down") {
+  async function vote(rec: Recommendation, v: Vote) {
     if (!result) return;
     setVoted((prev) => ({ ...prev, [rec.rank]: v }));
     try {
-      await fetch(`${API_URL}/api/feedback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query_id: result.query_id,
-          game_id: rec.game_id ?? null,
-          title: rec.title,
-          rank: rec.rank,
-          vote: v,
-        }),
+      await sendFeedback({
+        query_id: result.query_id,
+        game_id: rec.game_id ?? null,
+        title: rec.title,
+        rank: rec.rank,
+        vote: v,
       });
     } catch {
-      // best-effort in the skeleton; leave the optimistic UI in place
+      // Best-effort in the skeleton; leave the optimistic UI in place.
+    }
+  }
+
+  async function onSync(e: React.FormEvent) {
+    e.preventDefault();
+    if (!steamId.trim()) return;
+    setSyncing(true);
+    setSyncMsg(null);
+    setSyncError(null);
+    try {
+      const res = await syncLibrary(steamId.trim());
+      setSyncMsg(
+        `Synced ${res.synced} game${res.synced === 1 ? "" : "s"} (source: ${res.source}).`,
+      );
+    } catch (err) {
+      setSyncError(err instanceof Error ? err.message : "Sync failed.");
+    } finally {
+      setSyncing(false);
     }
   }
 
@@ -99,9 +102,16 @@ export default function Home() {
       )}
 
       {loading && (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3" aria-hidden="true">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-24 animate-pulse rounded-lg bg-neutral-200" />
+            <div
+              key={i}
+              className="flex flex-col gap-3 rounded-lg border border-neutral-200 bg-white p-4"
+            >
+              <div className="h-4 w-1/3 animate-pulse rounded bg-neutral-200" />
+              <div className="h-3 w-full animate-pulse rounded bg-neutral-200" />
+              <div className="h-3 w-4/5 animate-pulse rounded bg-neutral-200" />
+            </div>
           ))}
         </div>
       )}
@@ -124,6 +134,7 @@ export default function Home() {
                   <button
                     onClick={() => vote(rec, "up")}
                     aria-label={`Thumbs up ${rec.title}`}
+                    aria-pressed={voted[rec.rank] === "up"}
                     className={`rounded-md border px-2 py-1 text-sm ${
                       voted[rec.rank] === "up"
                         ? "border-green-500 bg-green-50"
@@ -135,6 +146,7 @@ export default function Home() {
                   <button
                     onClick={() => vote(rec, "down")}
                     aria-label={`Thumbs down ${rec.title}`}
+                    aria-pressed={voted[rec.rank] === "down"}
                     className={`rounded-md border px-2 py-1 text-sm ${
                       voted[rec.rank] === "down"
                         ? "border-red-500 bg-red-50"
@@ -150,6 +162,41 @@ export default function Home() {
           ))}
         </ol>
       )}
+
+      <section className="mt-2 flex flex-col gap-2 border-t border-neutral-200 pt-6">
+        <h2 className="text-sm font-semibold">Link your Steam library</h2>
+        <p className="text-xs text-neutral-500">
+          Paste a public steamID64 to sync owned games. Synced games are dropped
+          from future recommendations.
+        </p>
+        <form onSubmit={onSync} className="flex flex-col gap-2 sm:flex-row">
+          <input
+            value={steamId}
+            onChange={(e) => setSteamId(e.target.value)}
+            placeholder="76561197960287930"
+            inputMode="numeric"
+            className="w-full flex-1 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-500"
+            aria-label="Public steamID64"
+          />
+          <button
+            type="submit"
+            disabled={syncing || !steamId.trim()}
+            className="rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-900 disabled:opacity-40"
+          >
+            {syncing ? "Syncing…" : "Sync library"}
+          </button>
+        </form>
+        {syncMsg && (
+          <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
+            {syncMsg}
+          </p>
+        )}
+        {syncError && (
+          <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+            {syncError}
+          </p>
+        )}
+      </section>
     </main>
   );
 }
