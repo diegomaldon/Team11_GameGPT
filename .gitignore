@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Node / Next
+node_modules/
+.next/
+out/
+web/lib/api/openapi.json
+npm-debug.log*
+
+# Env — never commit real secrets
+.env
+.env.local
+.env.*.local
+
+# Generated
+openapi.json
+!api/fixtures/*.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
