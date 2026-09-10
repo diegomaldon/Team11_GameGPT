@@ -1,18 +1,24 @@
-"""EmbeddingService — turns text into a 1536-dim vector.
+"""EmbeddingService — turns text into a vector.
 
-SysML block: Embedding. Wraps OpenAI text-embedding-3-small. With no API key,
-Agent B's implementation falls back to a deterministic hashed vector so the
-pipeline runs offline.
+SysML block: Embedding. Runs a local Hugging Face sentence-transformers model
+(all-MiniLM-L6-v2, 384-dim) — free, offline, no API key. If the library isn't
+installed (or `use_stub`/`EMBEDDING_STUB=1`), it falls back to a deterministic
+hashed vector so tests and the pipeline still run without torch.
+
+The model is loaded lazily and cached on the class so the ~90 MB weights load
+once per process, not per request.
 """
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import math
+import os
 
 from api.config import get_settings
 
-EMBEDDING_DIM = 1536
+EMBEDDING_DIM = 384  # all-MiniLM-L6-v2
 
 _UNSET = object()
 
@@ -20,14 +26,13 @@ _UNSET = object()
 def hashed_embedding(text: str, dim: int = EMBEDDING_DIM) -> list[float]:
     """Deterministic, L2-normalized pseudo-embedding derived from `text`.
 
-    Pure-Python and dependency-free so the pipeline (and re-seeding) is stable
-    and reproducible offline. Same text always yields the same vector.
+    Dependency-free so the pipeline (and re-seeding) is stable and reproducible
+    when the real model is unavailable. Same text always yields the same vector.
     """
     vec: list[float] = []
     counter = 0
     while len(vec) < dim:
         digest = hashlib.sha256(f"{text}#{counter}".encode("utf-8")).digest()
-        # 32-byte digest -> four 8-byte unsigned ints -> four values in [-1, 1)
         for j in range(0, 32, 8):
             if len(vec) >= dim:
                 break
@@ -43,39 +48,47 @@ def hashed_embedding(text: str, dim: int = EMBEDDING_DIM) -> list[float]:
 
 
 class EmbeddingService:
-    def __init__(self, *, api_key=_UNSET, model=_UNSET) -> None:
+    # Cache the loaded SentenceTransformer across instances in this process.
+    _shared_model = None  # type: ignore[var-annotated]
+
+    def __init__(self, model=_UNSET, *, use_stub: bool | None = None) -> None:
         settings = get_settings()
-        self._api_key = settings.openai_api_key if api_key is _UNSET else api_key
-        self._model = settings.embedding_model if model is _UNSET else model
-        self._client = None  # lazily constructed AsyncOpenAI
+        self._model_name = settings.embedding_model if model is _UNSET else model
+        if use_stub is None:
+            use_stub = os.environ.get("EMBEDDING_STUB") == "1"
+        self._force_stub = bool(use_stub)
 
     @property
     def offline(self) -> bool:
-        return not self._api_key
+        """True when the deterministic stub is used instead of the real model."""
+        return self._force_stub
 
-    def _openai(self):
-        if self._client is None:
-            from openai import AsyncOpenAI
+    def _load(self):
+        if EmbeddingService._shared_model is None:
+            from sentence_transformers import SentenceTransformer
 
-            self._client = AsyncOpenAI(api_key=self._api_key)
-        return self._client
+            EmbeddingService._shared_model = SentenceTransformer(self._model_name)
+        return EmbeddingService._shared_model
+
+    def _encode(self, texts: list[str]) -> list[list[float]]:
+        model = self._load()
+        arr = model.encode(texts, normalize_embeddings=True, convert_to_numpy=True)
+        return arr.tolist()
 
     async def embed_query(self, text: str) -> list[float]:
-        """Embed a single query string into a length-1536 vector."""
-        if self.offline:
-            return hashed_embedding(text)
+        """Embed a single query string into a length-384 vector."""
         result = await self.embed_texts([text])
         return result[0]
 
     async def embed_texts(self, texts: list[str]) -> list[list[float]]:
         """Embed a batch of documents. Order-preserving."""
-        if self.offline:
-            return [hashed_embedding(t) for t in texts]
         if not texts:
             return []
-        response = await self._openai().embeddings.create(
-            model=self._model, input=texts
-        )
-        # Sort by index so output order matches input order regardless of API.
-        ordered = sorted(response.data, key=lambda d: d.index)
-        return [list(d.embedding) for d in ordered]
+        if self._force_stub:
+            return [hashed_embedding(t) for t in texts]
+        try:
+            # encode() is CPU-bound; keep it off the event loop.
+            return await asyncio.to_thread(self._encode, texts)
+        except Exception:
+            # sentence-transformers/torch unavailable or load failed → stub.
+            return [hashed_embedding(t) for t in texts]

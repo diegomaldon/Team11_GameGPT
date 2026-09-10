@@ -100,8 +100,12 @@ ever committed.** Blank keys trigger fallbacks:
 
 | Var | Blank behavior |
 |-----|----------------|
-| `ANTHROPIC_API_KEY` | LLM ranking uses a deterministic stub |
-| `OPENAI_API_KEY` | Embeddings use a deterministic hashed vector |
+| `GEMINI_API_KEY` | LLM ranking prefers Gemini; blank falls back to Anthropic, then a stub |
+| `ANTHROPIC_API_KEY` | Fallback LLM when Gemini is unset; blank → deterministic stub |
 | `STEAM_API_KEY` | `/api/library/sync` returns seeded owned-games rows |
 | `RAWG_API_KEY` | `seed_games.py` reads the committed JSON fixture |
 | `DATABASE_URL` | required for the full slice; see `/supabase` |
+
+Embeddings run locally via Hugging Face **sentence-transformers**
+(`all-MiniLM-L6-v2`, 384-dim) — no key, works offline, downloads ~90 MB on
+first use. `.env` at the repo root is loaded automatically.

@@ -10,7 +10,7 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_keyless_fallback_produces_n_nonempty_reasons(candidates):
-    llm = LLMService(api_key=None)
+    llm = LLMService(anthropic_api_key=None, gemini_api_key=None)
     assert llm.offline is True
 
     recs = await llm.rank("a chill game for a podcast night", candidates, n=3)
@@ -28,7 +28,7 @@ async def test_keyless_fallback_produces_n_nonempty_reasons(candidates):
 
 
 async def test_reason_references_query_and_traits(candidates):
-    llm = LLMService(api_key=None)
+    llm = LLMService(anthropic_api_key=None, gemini_api_key=None)
     query = "cozy farming"
     recs = await llm.rank(query, candidates, n=1)
     reason = recs[0].reason
@@ -38,11 +38,11 @@ async def test_reason_references_query_and_traits(candidates):
 
 
 async def test_rank_handles_fewer_candidates_than_n(candidates):
-    llm = LLMService(api_key=None)
+    llm = LLMService(anthropic_api_key=None, gemini_api_key=None)
     recs = await llm.rank("anything", candidates[:2], n=3)
     assert len(recs) == 2
 
 
 async def test_rank_empty_candidates_returns_empty():
-    llm = LLMService(api_key=None)
+    llm = LLMService(anthropic_api_key=None, gemini_api_key=None)
     assert await llm.rank("anything", [], n=3) == []

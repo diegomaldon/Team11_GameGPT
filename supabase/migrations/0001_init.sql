@@ -26,7 +26,7 @@ create table if not exists games (
     developer     text,
     review_score  double precision,        -- 0..1
     steam_appid   integer unique,
-    embedding     vector(1536),            -- text-embedding-3-small
+    embedding     vector(384),             -- Hugging Face all-MiniLM-L6-v2
     created_at    timestamptz not null default now()
 );
 

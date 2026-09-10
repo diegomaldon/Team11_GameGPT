@@ -24,16 +24,16 @@ def test_hashed_embedding_is_deterministic():
 
 
 @pytest.mark.asyncio
-async def test_embed_query_offline_length_1536():
-    service = EmbeddingService(api_key=None)
+async def test_embed_query_stub_length():
+    service = EmbeddingService(use_stub=True)
     assert service.offline is True
     vec = await service.embed_query("relaxing builder")
     assert len(vec) == EMBEDDING_DIM
 
 
 @pytest.mark.asyncio
-async def test_embed_texts_offline_order_preserving():
-    service = EmbeddingService(api_key=None)
+async def test_embed_texts_stub_order_preserving():
+    service = EmbeddingService(use_stub=True)
     texts = ["one", "two", "three"]
     out = await service.embed_texts(texts)
     assert len(out) == 3

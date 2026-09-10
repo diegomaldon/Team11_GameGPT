@@ -1,9 +1,9 @@
 """Embed the `games` table's title + description + genres into the `embedding` column.
 
-Uses `EmbeddingService.embed_texts` (api/services/embedding.py) — OpenAI
-text-embedding-3-small when `OPENAI_API_KEY` is set, otherwise a
-deterministic offline hashed vector so this still runs end to end without a
-key.
+Uses `EmbeddingService.embed_texts` (api/services/embedding.py) — a local
+Hugging Face sentence-transformers model (all-MiniLM-L6-v2, 384-dim), or the
+deterministic offline hashed vector when EMBEDDING_STUB=1 / torch is absent, so
+this still runs end to end without a key.
 
 Idempotent by default: only rows where `embedding is null` are processed, so
 running this twice in a row does no redundant work the second time. Pass
@@ -82,7 +82,9 @@ async def embed_games(embed_all: bool, batch_size: int) -> tuple[int, int]:
 
     service = EmbeddingService()
     if service.offline:
-        print("embed_games: OPENAI_API_KEY is unset - using the deterministic offline hash embedding.")
+        print("embed_games: EMBEDDING_STUB set - using the deterministic offline hash embedding.")
+    else:
+        print("embed_games: embedding locally via sentence-transformers (first run downloads the model).")
 
     embedded = 0
     for start in range(0, len(rows), batch_size):

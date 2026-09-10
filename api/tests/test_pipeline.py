@@ -100,10 +100,10 @@ async def test_pipeline_uses_keyless_services_end_to_end(candidates):
     from api.services.embedding import EmbeddingService
     from api.services.llm import LLMService
 
-    embedding = EmbeddingService(api_key=None)
+    embedding = EmbeddingService(use_stub=True)
     vector_store = FakeVectorStore(candidates)
     dedup = FakeDeduplication(owned_titles=set())
-    llm = LLMService(api_key=None)
+    llm = LLMService(gemini_api_key=None, anthropic_api_key=None)
     pipeline = RAGPipeline(embedding, vector_store, dedup, llm, k=20, n=3)
 
     recs = await pipeline.recommend(DEV_USER, "relaxing game")
