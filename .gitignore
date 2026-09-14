@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Node / Next
+node_modules/
+.next/
+out/
+web/lib/api/openapi.json
+web/next-env.d.ts
+web/*.tsbuildinfo
+npm-debug.log*
+
+# Env — never commit real secrets
+.env
+.env.local
+.env.*.local
+eng.txt
+*.secret
+
+# Generated — openapi.json IS committed as the frozen contract (see below).
+web/lib/api/schema.d.ts
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
