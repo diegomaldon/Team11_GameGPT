@@ -9,6 +9,11 @@ import { defineConfig } from 'vitest/config';
  * A component test that needs a DOM should set `// @vitest-environment jsdom` per file.
  */
 export default defineConfig({
+  // tsconfig sets "jsx": "preserve" because Next does its own JSX transform at build time.
+  // Vitest goes straight through esbuild with no Next in the pipeline, so without this a
+  // .tsx test file fails at runtime with "React is not defined". `automatic` is the React
+  // 17+ transform, which is what Next itself uses.
+  esbuild: { jsx: 'automatic' },
   test: {
     environment: 'node',
     // `.next` holds compiled copies of source files; without this, every test would be
