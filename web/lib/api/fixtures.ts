@@ -51,7 +51,6 @@ export function fixtureRecommend(query: string): RecommendResponse {
 
 export function fixtureFeedback(body: FeedbackRequest): void {
   // Best-effort: just log it so the vote is observable during standalone dev.
-  // eslint-disable-next-line no-console
   console.info("[fixtures] feedback recorded", body);
 }
 

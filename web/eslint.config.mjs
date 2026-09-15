@@ -19,7 +19,7 @@ const __dirname = dirname(__filename);
 
 const compat = new FlatCompat({ baseDirectory: __dirname });
 
-export default [
+const eslintConfig = [
   {
     // Flat config has no cascade, so build output and generated files have to be excluded
     // here or `eslint .` walks straight into them.
@@ -34,3 +34,5 @@ export default [
   },
   ...compat.extends('next/core-web-vitals', 'next/typescript'),
 ];
+
+export default eslintConfig;
