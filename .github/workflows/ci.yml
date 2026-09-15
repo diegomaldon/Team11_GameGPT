@@ -30,7 +30,10 @@ permissions:
   pull-requests: write # check summaries
 
 env:
-  NODE_VERSION: '22'
+  # Matches the current Node LTS (24.x), which is what `winget install OpenJS.NodeJS.LTS`
+  # puts on a dev machine today. Keeping these in step is the point: the DoD asks for the
+  # CI commands to be runnable locally with the same result.
+  NODE_VERSION: '24'
 
 # The npm project is `web/`, not the repo root — the root holds the Python API and has no
 # package.json at all. Without this every job dies on `npm ci` before running a check.
