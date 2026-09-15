@@ -12,9 +12,11 @@ node_modules/
 .next/
 out/
 web/lib/api/openapi.json
-web/next-env.d.ts
 web/*.tsbuildinfo
 npm-debug.log*
+
+# Vitest coverage output — uploaded as a CI artifact, never committed.
+coverage/
 
 # Env — never commit real secrets
 .env

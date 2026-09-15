@@ -1,0 +1,149 @@
+name: CI
+
+# GameGPT · E1 Foundation & Delivery Pipeline
+#
+# Three parallel checks, three separate PR statuses. Reporting only — this file cannot
+# block a merge. Blocking is a repository ruleset with these three job names marked as
+# required status checks. See ACCEPTANCE_CRITERIA.md, AC2.
+
+on:
+  pull_request:
+    branches: [main]
+    # `synchronize` is the one that matters: it fires on every push to an open PR's head.
+    # Without it, CI runs once at open and never again, and the ruleset happily gates on
+    # a stale green result.
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Cancel superseded runs on the same PR. Two people pushing fixes in quick succession
+# otherwise queue up behind each other and blow the 5-minute budget on wall clock.
+# Never cancel on main — those runs are the record of what shipped.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  checks: write        # inline annotations on the diff
+  pull-requests: write # check summaries
+
+env:
+  NODE_VERSION: '22'
+
+# The npm project is `web/`, not the repo root — the root holds the Python API and has no
+# package.json at all. Without this every job dies on `npm ci` before running a check.
+# `uses:` steps ignore this, which is why setup-node needs an explicit
+# cache-dependency-path and upload-artifact needs an explicit `web/` prefix below.
+defaults:
+  run:
+    working-directory: web
+
+jobs:
+  # -------------------------------------------------------------------------
+  # Three separate jobs rather than one job with three steps, deliberately.
+  #
+  # One job means one PR status and a fail-fast: a lint error hides whatever typecheck
+  # and test would have said, so you fix one thing, push, wait, and find the next.
+  # Three jobs cost an extra `npm ci` each, but they run in parallel and the install is
+  # cached, so wall-clock is lower and you see every failure in one pass.
+  # -------------------------------------------------------------------------
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit --fund=false
+
+      - name: ESLint
+        # The compact formatter keeps the failing rule on one readable line instead of
+        # buried inside a collapsed group.
+        run: npm run lint -- --format=compact --max-warnings=0
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit --fund=false
+
+      - name: tsc --noEmit
+        # `pretty false` emits the file:line:col form GitHub parses into diff annotations.
+        run: npm run typecheck -- --pretty false
+
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit --fund=false
+
+      - name: Vitest
+        run: npm run test -- --run --reporter=default --reporter=github-actions
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          # `uses:` steps do not inherit defaults.run.working-directory, so this path is
+          # repo-relative even though the tests run in web/.
+          path: web/coverage/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # -------------------------------------------------------------------------
+  # Aggregate gate. Optional but worth having: point the ruleset at this one check
+  # instead of three, and adding a fourth job later needs no ruleset edit. `needs`
+  # succeeds when skipped, so the explicit result check is required, not decorative.
+  # -------------------------------------------------------------------------
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    needs: [lint, typecheck, test]
+    if: always()
+    steps:
+      - name: Verify every check passed
+        # No checkout in this job, so web/ does not exist here. Override the workflow
+        # default back to the workspace root or the shell has nowhere to start.
+        working-directory: .
+        run: |
+          echo "lint=${{ needs.lint.result }}"
+          echo "typecheck=${{ needs.typecheck.result }}"
+          echo "test=${{ needs.test.result }}"
+          if [ "${{ needs.lint.result }}" != "success" ] \
+          || [ "${{ needs.typecheck.result }}" != "success" ] \
+          || [ "${{ needs.test.result }}" != "success" ]; then
+            echo "::error::One or more required checks failed."
+            exit 1
+          fi
