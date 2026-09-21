@@ -54,9 +54,20 @@ def _env(name: str) -> str | None:
     return value or None
 
 
+def _cors_origins() -> list[str]:
+    # Comma-separated CORS_ORIGINS overrides the localhost default so the API can
+    # be reached from a phone on the LAN (origin http://<lan-ip>:3000) during a
+    # real-device demo. Falls back to localhost when unset.
+    raw = _env("CORS_ORIGINS")
+    if not raw:
+        return ["http://localhost:3000"]
+    return [o.strip() for o in raw.split(",") if o.strip()]
+
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings(
+        cors_origins=_cors_origins(),
         git_commit=os.environ.get("GIT_COMMIT") or _env("RENDER_GIT_COMMIT") or "dev",
         dev_user_id=os.environ.get("DEV_USER_ID", "00000000-0000-0000-0000-000000000001"),
         database_url=_env("DATABASE_URL"),

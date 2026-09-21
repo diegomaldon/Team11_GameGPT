@@ -18,7 +18,9 @@ export default defineConfig({
     environment: 'node',
     // `.next` holds compiled copies of source files; without this, every test would be
     // discovered twice once the app has been built locally.
-    exclude: ['node_modules/**', '.next/**'],
+    // e2e/** is the Playwright suite (its .spec.ts files would otherwise match
+    // Vitest's default include and blow up under the node environment).
+    exclude: ['node_modules/**', '.next/**', 'e2e/**'],
     coverage: {
       provider: 'v8',
       // Written to web/coverage/, which is what the CI upload-artifact step points at.
