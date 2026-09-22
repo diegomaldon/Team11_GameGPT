@@ -125,6 +125,37 @@ jobs:
           if-no-files-found: ignore
 
   # -------------------------------------------------------------------------
+  # The API's tests. Without this job the redaction suite that proves AC3 is
+  # documentation, not a gate: nothing stops a PR from reintroducing a
+  # raise_for_status() that writes an API key to the logs.
+  #
+  # Only the observability tests run here. The rest of api/tests pulls in
+  # sentence-transformers and torch — several minutes and ~500 MB of install,
+  # which would blow the 5-minute budget every other job is held to.
+  # -------------------------------------------------------------------------
+  api-tests:
+    name: API tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install (observability subset only — no torch)
+        # Override the workflow-level `working-directory: web`; this job runs
+        # from the repo root, where api/ lives.
+        working-directory: .
+        run: pip install fastapi httpx pydantic python-dotenv pytest pytest-asyncio
+
+      - name: Pytest — structured logging and redaction
+        working-directory: .
+        run: python -m pytest api/tests/test_observability.py -v
+
+  # -------------------------------------------------------------------------
   # Aggregate gate. Optional but worth having: point the ruleset at this one check
   # instead of three, and adding a fourth job later needs no ruleset edit. `needs`
   # succeeds when skipped, so the explicit result check is required, not decorative.
@@ -133,7 +164,7 @@ jobs:
     name: CI
     runs-on: ubuntu-latest
     timeout-minutes: 2
-    needs: [lint, typecheck, test]
+    needs: [lint, typecheck, test, api-tests]
     if: always()
     steps:
       - name: Verify every check passed
@@ -144,9 +175,11 @@ jobs:
           echo "lint=${{ needs.lint.result }}"
           echo "typecheck=${{ needs.typecheck.result }}"
           echo "test=${{ needs.test.result }}"
+          echo "api-tests=${{ needs['api-tests'].result }}"
           if [ "${{ needs.lint.result }}" != "success" ] \
           || [ "${{ needs.typecheck.result }}" != "success" ] \
-          || [ "${{ needs.test.result }}" != "success" ]; then
+          || [ "${{ needs.test.result }}" != "success" ] \
+          || [ "${{ needs['api-tests'].result }}" != "success" ]; then
             echo "::error::One or more required checks failed."
             exit 1
           fi
