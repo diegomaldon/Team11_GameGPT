@@ -6,8 +6,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth/session";
 import { safeNext } from "@/lib/auth/redirect";
 import { signInWithPassword } from "@/lib/auth/signin";
+import { startGoogleSignIn } from "@/lib/auth/oauth";
 import { Button, Field, TextInput } from "@/components/ui";
-import { Controller } from "@/components/icons";
+import { Controller, Google } from "@/components/icons";
 
 /**
  * GameGPT · E2 Identity & Account Management
@@ -27,7 +28,7 @@ function SignInForm() {
   const [password, setPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<null | "google" | "password">(null);
 
   // Validated on read, never trusted: see lib/auth/redirect.ts.
   const next = safeNext(searchParams.get("next"));
@@ -38,9 +39,23 @@ function SignInForm() {
     if (status === "authenticated") router.replace(next);
   }, [status, next, router]);
 
+  async function handleGoogle() {
+    setBusy("google");
+    setFormError(null);
+
+    const result = await startGoogleSignIn(searchParams.get("next"));
+
+    // On success the browser is already navigating to Google and nothing below matters.
+    // Only a failure comes back, and it leaves the user on this page needing the button.
+    if (result.status === "error") {
+      setFormError(result.message);
+      setBusy(null);
+    }
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    setBusy(true);
+    setBusy("password");
     setFieldErrors({});
     setFormError(null);
 
@@ -76,7 +91,7 @@ function SignInForm() {
         setFormError(result.message);
     }
 
-    setBusy(false);
+    setBusy(null);
   }
 
   return (
@@ -104,6 +119,24 @@ function SignInForm() {
             </p>
           )}
 
+          <Button
+            variant="secondary"
+            size="md"
+            loading={busy === "google"}
+            disabled={busy !== null}
+            onClick={handleGoogle}
+            className="w-full"
+          >
+            {busy !== "google" && <Google className="h-[18px] w-[18px]" />}
+            Continue with Google
+          </Button>
+
+          <div className="my-5 flex items-center gap-3 text-xs text-[var(--ink-faint)]">
+            <span className="h-px flex-1 bg-[var(--border)]" />
+            or
+            <span className="h-px flex-1 bg-[var(--border)]" />
+          </div>
+
           <form onSubmit={handleSubmit} className="flex flex-col gap-3" noValidate>
             <Field label="Email" htmlFor="email" error={fieldErrors.email?.[0]}>
               <TextInput
@@ -127,7 +160,13 @@ function SignInForm() {
               />
             </Field>
 
-            <Button type="submit" size="md" loading={busy} disabled={busy} className="w-full">
+            <Button
+              type="submit"
+              size="md"
+              loading={busy === "password"}
+              disabled={busy !== null}
+              className="w-full"
+            >
               Sign in
             </Button>
           </form>
