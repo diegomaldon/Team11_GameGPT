@@ -2,8 +2,8 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useEffect } from "react";
 import { useMock } from "@/lib/mock/store";
+import { useAuth } from "@/lib/auth/session";
 import { Avatar, cx } from "./ui";
 import { Compass, Controller, Gear, Library, LogOut } from "./icons";
 
@@ -18,25 +18,22 @@ function isActive(pathname: string, href: string) {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { state, hydrated, signOut } = useMock();
+  const { state } = useMock();
+  const { user, signOut } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
-  // Client-side auth gate for the mock: bounce to sign-in when signed out.
-  useEffect(() => {
-    if (hydrated && !state.signedIn) router.replace("/signin");
-  }, [hydrated, state.signedIn, router]);
+  // No auth gate here any more: <RequireAuth> in app/(app)/layout.tsx owns that, and this
+  // component never renders until it says the session is real.
 
-  if (!hydrated || !state.signedIn) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center text-sm text-[var(--ink-faint)]">
-        Loading…
-      </div>
-    );
-  }
+  // Display name still comes from the mock profile; only the email is real so far.
+  const displayName =
+    (user?.user_metadata?.display_name as string | undefined)?.trim() ||
+    state.profile.name;
+  const email = user?.email ?? state.profile.email;
 
-  function handleSignOut() {
-    signOut();
+  async function handleSignOut() {
+    await signOut();
     router.replace("/signin");
   }
 
@@ -76,11 +73,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="mt-2 flex items-center gap-2.5 rounded-xl border border-[var(--border)] p-2.5">
-          <Avatar name={state.profile.name} size={34} />
+          <Avatar name={displayName} size={34} />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-semibold">{state.profile.name}</p>
+            <p className="truncate text-[13px] font-semibold">{displayName}</p>
             <p className="truncate text-xs text-[var(--ink-faint)]">
-              {state.profile.email}
+              {email}
             </p>
           </div>
           <button
@@ -105,7 +102,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </span>
         </Link>
         <Link href="/settings" aria-label="Account settings">
-          <Avatar name={state.profile.name} size={32} />
+          <Avatar name={displayName} size={32} />
         </Link>
       </header>
 
