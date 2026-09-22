@@ -17,6 +17,14 @@ function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
 
+// user_metadata is provider-supplied JSON, so every field is unknown until checked.
+// Blank strings count as absent — an empty full_name should fall through, not render.
+function pickName(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed === "" ? null : trimmed;
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { state } = useMock();
   const { user, signOut } = useAuth();
@@ -26,9 +34,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // No auth gate here any more: <RequireAuth> in app/(app)/layout.tsx owns that, and this
   // component never renders until it says the session is real.
 
-  // Display name still comes from the mock profile; only the email is real so far.
+  // Same coalesce order as handle_new_user() in migration 20260922120000: our own
+  // registration form sends display_name, Google sends full_name and name. Checking only
+  // display_name meant a Google user fell through to the mock profile and the sidebar
+  // showed a fake name next to their real email.
+  const meta = user?.user_metadata as Record<string, unknown> | undefined;
   const displayName =
-    (user?.user_metadata?.display_name as string | undefined)?.trim() ||
+    pickName(meta?.display_name) ??
+    pickName(meta?.full_name) ??
+    pickName(meta?.name) ??
     state.profile.name;
   const email = user?.email ?? state.profile.email;
 
