@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GameGPT — Privacy &amp; registration</title>
+<style>
+  :root {
+    --teal: #1D9E75;
+    --orange: #C9702E;
+    --ink: #12151B;
+    --nav-bg: #0D0F14;
+    --card: #171B22;
+    --border: #232A34;
+    --border-row: #1F2530;
+    --text: #ECEEF2;
+    --text-muted: #9AA3AF;
+    --text-faint: #8890A0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--ink); color: var(--text);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    display: flex; flex-direction: column;
+  }
+ 
+  nav {
+    display: flex; align-items: center; gap: 10px; padding: 14px 28px;
+    background: var(--nav-bg); border-bottom: 1px solid var(--border);
+  }
+  .nav-mark-bar { width: 20px; height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--teal), var(--orange)); }
+  .nav-brand-text { font-size: 17px; font-weight: 700; }
+ 
+  main { flex: 1; padding: 0 28px; }
+  .page { max-width: 640px; margin: 0 auto; padding: 48px 0 64px; }
+  .page-bar { width: 56px; height: 4px; border-radius: 2px; margin-bottom: 18px; background: linear-gradient(90deg, var(--teal), var(--orange)); }
+  .eyebrow { color: var(--text-faint); font-size: 13px; margin: 0 0 8px; }
+  .title { font-size: 28px; font-weight: 700; margin: 0 0 12px; line-height: 1.25; }
+  .blurb { color: #B3B9C4; font-size: 15px; line-height: 1.6; margin: 0 0 28px; }
+ 
+  /* ---------------- Form (registration) ---------------- */
+  label.field-label { display: block; font-size: 13px; color: var(--text-muted); margin: 16px 0 6px; }
+  label.field-label:first-of-type { margin-top: 0; }
+  input[type="email"], input[type="password"] {
+    width: 100%; padding: 10px 12px; font-size: 14px; border: 1px solid #2A303B;
+    border-radius: 8px; background: var(--card); color: var(--text); font-family: inherit;
+  }
+  .field-error { color: var(--orange); font-size: 13px; margin-top: 8px; }
+ 
+  .consent-row {
+    display: flex; gap: 10px; align-items: flex-start; margin-top: 22px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
+  }
+  .consent-row input[type="checkbox"] { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--teal); cursor: pointer; }
+  .consent-row label { font-size: 13px; color: var(--text-muted); line-height: 1.5; cursor: pointer; }
+  .consent-row a { color: var(--teal); text-decoration: underline; cursor: pointer; }
+ 
+  .btn-primary {
+    background: var(--teal); color: #08120E; border: none; border-radius: 8px;
+    padding: 10px 18px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+    margin-top: 20px;
+  }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-ghost {
+    background: transparent; color: var(--text); border: 1px solid #2A303B; border-radius: 8px;
+    padding: 9px 16px; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+ 
+  /* ---------------- Privacy policy content ---------------- */
+  .policy-section { margin-bottom: 26px; }
+  .policy-section h2 { font-size: 16px; margin: 0 0 8px; }
+  .policy-section p, .policy-section li { color: var(--text-muted); font-size: 14px; line-height: 1.7; }
+  .policy-section ul { margin: 6px 0 0; padding-left: 20px; }
+  .commitment-banner {
+    background: rgba(29,158,117,0.1); border: 1px solid rgba(29,158,117,0.35);
+    border-radius: 10px; padding: 14px 16px; margin-bottom: 26px;
+  }
+  .commitment-banner p { color: var(--text); font-size: 14px; line-height: 1.6; margin: 0; }
+ 
+  /* ---------------- Settings-style rows ---------------- */
+  .settings-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 0; border-bottom: 1px solid var(--border);
+  }
+  .settings-label { font-size: 15px; margin: 0 0 4px; font-weight: 600; }
+  .muted { color: var(--text-faint); font-size: 13px; }
+  .ack-pill {
+    display: inline-block; margin-top: 10px; font-size: 12px; color: var(--teal);
+    background: rgba(29,158,117,0.14); padding: 4px 10px; border-radius: 999px;
+  }
+ 
+  /* ---------------- Footer ---------------- */
+  footer {
+    border-top: 1px solid var(--border); padding: 18px 28px; text-align: center;
+  }
+  footer button {
+    background: none; border: none; color: var(--text-faint); font-size: 13px;
+    cursor: pointer; text-decoration: underline; font-family: inherit;
+  }
+</style>
+</head>
+<body>
+ 
+  <nav>
+    <span class="nav-mark-bar"></span>
+    <span class="nav-brand-text">GameGPT</span>
+  </nav>
+ 
+  <main id="main"></main>
+ 
+  <footer>
+    <button data-nav="policy">Privacy Policy</button>
+  </footer>
+ 
+  <script>
+  /**
+   * Privacy policy screen + registration consent (REQ041).
+   * Standalone demo: routes for register / policy / settings, a mock
+   * `user` record, and a real timestamp written on consent. Swap
+   * `saveUser()` for a real backend call in production.
+   */
+ 
+  const user = {
+    displayName: null,
+    email: null,
+    privacyAcknowledgedAt: null, // ISO timestamp, set on consent
+  };
+ 
+  // ---------------------------------------------------------------------
+  // Routing
+  // ---------------------------------------------------------------------
+  function parseHash() {
+    const raw = window.location.hash.replace(/^#\/?/, "").split("?")[0];
+    return raw || "register";
+  }
+  function navigate(path) {
+    window.location.hash = "#/" + path;
+  }
+  window.addEventListener("hashchange", render);
+ 
+  function pageShell(eyebrow, title, blurb, bodyHtml) {
+    return `
+      <div class="page">
+        <div class="page-bar"></div>
+        ${eyebrow ? `<p class="eyebrow">${eyebrow}</p>` : ""}
+        <h1 class="title">${title}</h1>
+        ${blurb ? `<p class="blurb">${blurb}</p>` : ""}
+        ${bodyHtml || ""}
+      </div>`;
+  }
+ 
+  function attachNavButtons(root) {
+    root.querySelectorAll("[data-nav]").forEach((el) => {
+      el.addEventListener("click", () => navigate(el.dataset.nav));
+    });
+  }
+ 
+  // Policy text, centralized so the full page and any future preview
+  // read from the same source.
+  function policyBodyHtml() {
+    return `
+      <div class="commitment-banner">
+        <p><strong>Our commitment:</strong> your individual data is never sold or shared with
+        third parties. Your credentials and personal information stay with GameGPT.</p>
+      </div>
+ 
+      <div class="policy-section">
+        <h2>What we collect</h2>
+        <ul>
+          <li>Account details you provide at registration (email, display name)</li>
+          <li>Library data from any platform accounts you link (owned titles, playtime)</li>
+          <li>Your search queries and the recommendations you receive</li>
+          <li>Feedback you give on recommendations (thumbs up/down, comments)</li>
+        </ul>
+      </div>
+ 
+      <div class="policy-section">
+        <h2>Why we collect it</h2>
+        <p>
+          Library and playtime data let us avoid recommending games you already own and build
+          your "Gaming DNA" so suggestions match what you actually play. Queries and feedback are
+          used to rank and improve future recommendations. Account details are used for sign-in
+          and to identify your data across sessions.
+        </p>
+      </div>
+ 
+      <div class="policy-section">
+        <h2>Retention</h2>
+        <p>
+          Your data is retained for as long as your account is active. Recommendation and search
+          history is kept indefinitely to improve suggestion quality unless you delete your
+          account, at which point your account and all associated data are removed.
+        </p>
+      </div>
+ 
+      <div class="policy-section">
+        <h2>No third-party sharing</h2>
+        <p>
+          We do not sell or share your individual credentials or personal information with third
+          parties. Platform account tokens are used only to read your owned-games list from that
+          platform's API and are never passed to advertisers or other outside services.
+        </p>
+      </div>
+    `;
+  }
+ 
+  // ---------------------------------------------------------------------
+  // Pages
+  // ---------------------------------------------------------------------
+ 
+  function RegisterPage() {
+    const html = pageShell(
+      "Create your account",
+      "Register",
+      "Set up your GameGPT account to start linking platforms and getting recommendations.",
+      `
+      <form id="register-form">
+        <label class="field-label" for="reg-name">Display name</label>
+        <input id="reg-name" type="text" placeholder="Alex" />
+ 
+        <label class="field-label" for="reg-email">Email</label>
+        <input id="reg-email" type="email" placeholder="you@company.com" />
+ 
+        <label class="field-label" for="reg-password">Password</label>
+        <input id="reg-password" type="password" placeholder="••••••••" />
+ 
+        <div class="consent-row">
+          <input type="checkbox" id="consent-checkbox" />
+          <label for="consent-checkbox">
+            I have read and agree to the <a data-nav="policy">Privacy Policy</a>, including how my
+            data is collected, used, and retained.
+          </label>
+        </div>
+        <p class="field-error" id="reg-error" style="display:none;"></p>
+ 
+        <button type="submit" class="btn-primary" id="reg-submit" disabled>Create account</button>
+      </form>
+      `
+    );
+    return { html, attach: attachRegister };
+  }
+ 
+  function attachRegister() {
+    const root = document.getElementById("main");
+    const checkbox = document.getElementById("consent-checkbox");
+    const submitBtn = document.getElementById("reg-submit");
+ 
+    // Submit stays disabled until consent is given.
+    checkbox.addEventListener("change", () => {
+      submitBtn.disabled = !checkbox.checked;
+    });
+ 
+    attachNavButtons(root);
+ 
+    document.getElementById("register-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = document.getElementById("reg-name").value.trim();
+      const email = document.getElementById("reg-email").value.trim();
+      const errorEl = document.getElementById("reg-error");
+ 
+      if (!name || !email.includes("@")) {
+        errorEl.textContent = "Enter a display name and a valid email address.";
+        errorEl.style.display = "block";
+        return;
+      }
+      if (!checkbox.checked) {
+        // Defense in depth in case the disabled button gets bypassed.
+        errorEl.textContent = "You must acknowledge the Privacy Policy to continue.";
+        errorEl.style.display = "block";
+        return;
+      }
+      errorEl.style.display = "none";
+ 
+      // Real app: this goes to the backend and persists on the User record.
+      user.displayName = name;
+      user.email = email;
+      user.privacyAcknowledgedAt = new Date().toISOString();
+      saveUser(user);
+ 
+      navigate("settings");
+    });
+  }
+ 
+  // Placeholder for a real persistence call, e.g.
+  // fetch('/api/users', { method: 'POST', body: JSON.stringify(user) })
+  function saveUser(u) {
+    console.log("Saving user with privacy acknowledgement:", u);
+  }
+ 
+  function PolicyPage() {
+    const html = pageShell(
+      "Legal",
+      "Privacy Policy",
+      "How GameGPT collects, uses, and retains your data.",
+      `
+      ${policyBodyHtml()}
+      <button class="btn-ghost" data-nav="${user.email ? "settings" : "register"}">
+        Back
+      </button>
+      `
+    );
+    return { html, attach: (root) => attachNavButtons(root) };
+  }
+ 
+  function SettingsPage() {
+    const ackHtml = user.privacyAcknowledgedAt
+      ? `<span class="ack-pill">Acknowledged ${new Date(user.privacyAcknowledgedAt).toLocaleString()}</span>`
+      : `<span class="muted">Not yet acknowledged</span>`;
+ 
+    const html = pageShell(
+      "Account",
+      "Settings",
+      user.displayName ? `Signed in as ${user.displayName} (${user.email}).` : "No account yet — register first.",
+      `
+      <div class="settings-row">
+        <div>
+          <p class="settings-label">Privacy policy</p>
+          <p class="muted">Review what's collected and how it's used</p>
+          ${ackHtml}
+        </div>
+        <button class="btn-ghost" data-nav="policy">View</button>
+      </div>
+      ${!user.displayName ? `<button class="btn-primary" data-nav="register">Go to registration</button>` : ""}
+      `
+    );
+    return { html, attach: (root) => attachNavButtons(root) };
+  }
+ 
+  const PAGES = {
+    register: RegisterPage,
+    policy: PolicyPage,
+    settings: SettingsPage,
+  };
+ 
+  function render() {
+    const route = parseHash();
+    const pageFn = PAGES[route] || RegisterPage;
+    const { html, attach } = pageFn();
+    const root = document.getElementById("main");
+    root.innerHTML = html;
+    attach(root);
+  }
+ 
+  // Footer's link lives outside #main, so it's wired once, not per-render.
+  document.querySelector("footer [data-nav]").addEventListener("click", (e) => {
+    navigate(e.target.dataset.nav);
+  });
+ 
+  render(); // initial paint
+  </script>
+</body>
+</html>
+ 
