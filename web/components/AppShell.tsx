@@ -2,8 +2,8 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useEffect } from "react";
 import { useMock } from "@/lib/mock/store";
+import { useAuth } from "@/lib/auth/session";
 import { Avatar, cx } from "./ui";
 import { Compass, Controller, Gear, Library, LogOut } from "./icons";
 
@@ -17,26 +17,37 @@ function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
 
+// user_metadata is provider-supplied JSON, so every field is unknown until checked.
+// Blank strings count as absent — an empty full_name should fall through, not render.
+function pickName(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed === "" ? null : trimmed;
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { state, hydrated, signOut } = useMock();
+  const { state } = useMock();
+  const { user, signOut } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
-  // Client-side auth gate for the mock: bounce to sign-in when signed out.
-  useEffect(() => {
-    if (hydrated && !state.signedIn) router.replace("/signin");
-  }, [hydrated, state.signedIn, router]);
+  // No auth gate here any more: <RequireAuth> in app/(app)/layout.tsx owns that, and this
+  // component never renders until it says the session is real.
 
-  if (!hydrated || !state.signedIn) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center text-sm text-[var(--ink-faint)]">
-        Loading…
-      </div>
-    );
-  }
+  // Same coalesce order as handle_new_user() in migration 20260922120000: our own
+  // registration form sends display_name, Google sends full_name and name. Checking only
+  // display_name meant a Google user fell through to the mock profile and the sidebar
+  // showed a fake name next to their real email.
+  const meta = user?.user_metadata as Record<string, unknown> | undefined;
+  const displayName =
+    pickName(meta?.display_name) ??
+    pickName(meta?.full_name) ??
+    pickName(meta?.name) ??
+    state.profile.name;
+  const email = user?.email ?? state.profile.email;
 
-  function handleSignOut() {
-    signOut();
+  async function handleSignOut() {
+    await signOut();
     router.replace("/signin");
   }
 
@@ -76,11 +87,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="mt-2 flex items-center gap-2.5 rounded-xl border border-[var(--border)] p-2.5">
-          <Avatar name={state.profile.name} size={34} />
+          <Avatar name={displayName} size={34} />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-semibold">{state.profile.name}</p>
+            <p className="truncate text-[13px] font-semibold">{displayName}</p>
             <p className="truncate text-xs text-[var(--ink-faint)]">
-              {state.profile.email}
+              {email}
             </p>
           </div>
           <button
@@ -105,7 +116,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </span>
         </Link>
         <Link href="/settings" aria-label="Account settings">
-          <Avatar name={state.profile.name} size={32} />
+          <Avatar name={displayName} size={32} />
         </Link>
       </header>
 
