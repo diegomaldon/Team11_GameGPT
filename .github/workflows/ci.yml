@@ -149,7 +149,16 @@ jobs:
         # Override the workflow-level `working-directory: web`; this job runs
         # from the repo root, where api/ lives.
         working-directory: .
-        run: pip install fastapi httpx pydantic python-dotenv pytest pytest-asyncio
+        run: |
+          pip install \
+            fastapi==0.115.6 \
+            httpx==0.28.1 \
+            pydantic==2.10.4 \
+            python-dotenv==1.0.1 \
+            "psycopg[binary]==3.2.3" \
+            tenacity==9.0.0 \
+            pytest==8.3.4 \
+            pytest-asyncio==0.25.2
 
       - name: Pytest — structured logging and redaction
         working-directory: .
