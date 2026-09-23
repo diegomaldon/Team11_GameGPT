@@ -26,24 +26,20 @@ from pathlib import Path
 from typing import Any
 
 import httpx
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from api.config import get_settings  # noqa: E402
 from api.db import connection, has_db  # noqa: E402
+from api.services.metadata_client import (  # noqa: E402
+    MetadataClient,
+    MetadataError,
+    PermanentMetadataError,
+)
 
 FIXTURE_PATH = Path(__file__).resolve().parent / "fixtures" / "games.json"
-RAWG_BASE_URL = "https://api.rawg.io/api"
 RAWG_PAGE_SIZE = 40
 DEFAULT_TARGET = 150
-
-_HTTP_RETRY = dict(
-    stop=stop_after_attempt(4),
-    wait=wait_exponential(multiplier=0.5, max=8.0),
-    retry=retry_if_exception_type((httpx.TransportError, httpx.HTTPStatusError)),
-    reraise=True,
-)
 
 _STEAM_APPID_RE = re.compile(r"store\.steampowered\.com/app/(\d+)")
 
@@ -55,32 +51,23 @@ def load_fixture() -> list[dict[str, Any]]:
 
 
 # ─────────────────────────── RAWG fetch ───────────────────────────
+# Rate limiting, transient-retry with backoff, and permanent-skip all live in
+# MetadataClient now; these helpers just shape the RAWG calls the seed needs.
 
 
-@retry(**_HTTP_RETRY)
-async def _get(client: httpx.AsyncClient, url: str, params: dict[str, Any]) -> dict[str, Any]:
-    resp = await client.get(url, params=params, timeout=20.0)
-    resp.raise_for_status()
-    return resp.json()
+async def _rawg_list_page(client: MetadataClient, page: int) -> list[dict[str, Any]]:
+    return await client.list_games(limit=RAWG_PAGE_SIZE, page=page, ordering="-added")
 
 
-async def _rawg_list_page(client: httpx.AsyncClient, key: str, page: int) -> list[dict[str, Any]]:
-    data = await _get(
-        client,
-        f"{RAWG_BASE_URL}/games",
-        {"key": key, "page_size": RAWG_PAGE_SIZE, "page": page, "ordering": "-added"},
-    )
-    return data.get("results", [])
+async def _rawg_detail(client: MetadataClient, game_id: int) -> dict[str, Any]:
+    return await client.fetch_game(game_id)
 
 
-async def _rawg_detail(client: httpx.AsyncClient, key: str, game_id: int) -> dict[str, Any]:
-    return await _get(client, f"{RAWG_BASE_URL}/games/{game_id}", {"key": key})
-
-
-async def _rawg_steam_appid(client: httpx.AsyncClient, key: str, game_id: int) -> int | None:
+async def _rawg_steam_appid(client: MetadataClient, game_id: int) -> int | None:
     try:
-        data = await _get(client, f"{RAWG_BASE_URL}/games/{game_id}/stores", {"key": key})
-    except httpx.HTTPStatusError:
+        data = await client.fetch_stores(game_id)
+    except PermanentMetadataError:
+        # No store list for this title (e.g. 404) -> no discoverable Steam link.
         return None
     for entry in data.get("results", []):
         url = entry.get("url") or ""
@@ -111,19 +98,24 @@ def _normalize_rawg_game(listing: dict[str, Any], detail: dict[str, Any], steam_
     }
 
 
-async def fetch_rawg_games(api_key: str, target: int = DEFAULT_TARGET) -> list[dict[str, Any]]:
+async def fetch_rawg_games(target: int = DEFAULT_TARGET) -> list[dict[str, Any]]:
     """Pull `target` games from RAWG, enriched with description/developer/steam appid.
 
     Games RAWG has no discoverable Steam store link for are dropped (not just
     left with a null appid) so idempotency holds: the same games are skipped
     on every run instead of being inserted fresh each time with a random id.
+
+    The RAWG key is read from settings by MetadataClient; the caller only needs
+    to have confirmed one is set. A shared httpx client is injected so the whole
+    pull reuses one connection pool while the client paces + retries every hop.
     """
     games: list[dict[str, Any]] = []
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=20.0) as http:
+        client = MetadataClient(http_client=http)
         page = 1
         listings: list[dict[str, Any]] = []
         while len(listings) < target and page <= 10:
-            batch = await _rawg_list_page(client, api_key, page)
+            batch = await _rawg_list_page(client, page)
             if not batch:
                 break
             listings.extend(batch)
@@ -139,10 +131,11 @@ async def fetch_rawg_games(api_key: str, target: int = DEFAULT_TARGET) -> list[d
             async with sem:
                 try:
                     detail, steam_appid = await asyncio.gather(
-                        _rawg_detail(client, api_key, game_id),
-                        _rawg_steam_appid(client, api_key, game_id),
+                        _rawg_detail(client, game_id),
+                        _rawg_steam_appid(client, game_id),
                     )
-                except httpx.HTTPStatusError:
+                except MetadataError:
+                    # Detail unavailable (permanent 4xx or exhausted retries) -> skip.
                     return None
             if steam_appid is None:
                 return None
@@ -227,7 +220,7 @@ async def main() -> int:
             return 1
         print(f"seed_games: fetching up to {args.limit} games from RAWG...")
         try:
-            games = await fetch_rawg_games(settings.rawg_api_key, target=args.limit)
+            games = await fetch_rawg_games(target=args.limit)
         except Exception as exc:  # network/API failure -> fall back rather than crash the seed
             print(f"seed_games: RAWG fetch failed ({exc!r}); falling back to the fixture.")
             games = load_fixture()[: args.limit]

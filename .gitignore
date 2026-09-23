@@ -40,3 +40,7 @@ web/lib/api/schema.d.ts
 Thumbs.db
 .vscode/
 .idea/
+
+web/e2e/
+web/playwright-report/
+web/test-results/
