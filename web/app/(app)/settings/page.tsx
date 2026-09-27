@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMock } from "@/lib/mock/store";
 import { PLATFORMS, type Platform } from "@/lib/mock/data";
+import { describeSteamResult } from "@/lib/auth/steam";
+import { syncLibrary } from "@/lib/api/client";
 import {
   Avatar,
   Badge,
@@ -17,6 +19,12 @@ import {
   cx,
 } from "@/components/ui";
 import { Check, LogOut } from "@/components/icons";
+
+/** Kicks off the real Steam OpenID redirect. REQ010 · TM11-44. */
+function startSteamLink() {
+  // Full navigation, not a router push — the next stop is steamcommunity.com, off-site.
+  window.location.assign("/api/steam/login?next=/settings");
+}
 
 export default function SettingsPage() {
   const { state } = useMock();
@@ -108,14 +116,28 @@ function ProfileCard() {
 }
 
 function LinkedAccountsCard() {
-  const { state, unlinkAccount } = useMock();
+  const { state, linkAccount, unlinkAccount } = useMock();
   const [connecting, setConnecting] = useState<Platform | null>(null);
+  const banner = useSteamCallbackResult(linkAccount);
 
   return (
     <SectionCard
       title="Linked accounts"
       description="Connect a platform to import your owned games automatically."
     >
+      {banner && (
+        <div
+          role={banner.tone === "error" ? "alert" : "status"}
+          className={cx(
+            "mb-4 rounded-xl px-3 py-2.5 text-[13px]",
+            banner.tone === "success" && "bg-emerald-50 text-emerald-800",
+            banner.tone === "info" && "bg-neutral-100 text-[var(--ink-soft)]",
+            banner.tone === "error" && "bg-rose-50 text-rose-700",
+          )}
+        >
+          {banner.message}
+        </div>
+      )}
       <ul className="flex flex-col divide-y divide-[var(--border)]">
         {state.accounts.map((acc) => {
           const meta = PLATFORMS[acc.platform];
@@ -152,7 +174,12 @@ function LinkedAccountsCard() {
                   </Button>
                 </div>
               ) : (
-                <Button size="sm" onClick={() => setConnecting(acc.platform)}>
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    acc.platform === "steam" ? startSteamLink() : setConnecting(acc.platform)
+                  }
+                >
                   Connect
                 </Button>
               )}
@@ -167,6 +194,38 @@ function LinkedAccountsCard() {
       />
     </SectionCard>
   );
+}
+
+/**
+ * Reads the `?steam=` result the callback route redirects back with, turns it into a banner,
+ * and on success records the link and kicks off a library import. Runs once per outcome, then
+ * strips the params from the URL so a refresh does not replay it. REQ010 · TM11-44 (AC3).
+ */
+function useSteamCallbackResult(linkAccount: (platform: Platform, handle: string) => void) {
+  const router = useRouter();
+  const params = useSearchParams();
+  const result = params.get("steam");
+  const banner = describeSteamResult(result, params.get("reason"));
+  const handled = useRef(false);
+
+  useEffect(() => {
+    if (!result || handled.current) return;
+    handled.current = true;
+
+    if (result === "linked") {
+      const steamId = params.get("steamid");
+      if (steamId) {
+        linkAccount("steam", steamId);
+        // Best-effort import; the link is already recorded whether or not sync succeeds.
+        syncLibrary(steamId).catch(() => {});
+      }
+    }
+
+    // Drop steam/steamid/reason so a reload does not re-run this or leak the id in the URL.
+    router.replace("/settings");
+  }, [result, params, linkAccount, router]);
+
+  return banner;
 }
 
 function ConnectModal({
