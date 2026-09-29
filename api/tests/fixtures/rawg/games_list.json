@@ -1,0 +1,47 @@
+{
+  "count": 3,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": 3498,
+      "name": "Grand Theft Auto V",
+      "released": "2013-09-17",
+      "rating": 4.47,
+      "genres": [
+        {"id": 4, "name": "Action"},
+        {"id": 3, "name": "Adventure"}
+      ],
+      "tags": [
+        {"id": 31, "name": "Singleplayer", "language": "eng"}
+      ]
+    },
+    {
+      "id": 4200,
+      "name": "Portal 2",
+      "released": "2011-04-18",
+      "rating": 4.61,
+      "genres": [
+        {"id": 2, "name": "Shooter"},
+        {"id": 7, "name": "Puzzle"}
+      ],
+      "tags": [
+        {"id": 31, "name": "Singleplayer", "language": "eng"},
+        {"id": 18, "name": "Co-op", "language": "eng"}
+      ]
+    },
+    {
+      "id": 5286,
+      "name": "Tomb Raider (2013)",
+      "released": "2013-03-05",
+      "rating": 4.05,
+      "genres": [
+        {"id": 4, "name": "Action"},
+        {"id": 3, "name": "Adventure"}
+      ],
+      "tags": [
+        {"id": 31, "name": "Singleplayer", "language": "eng"}
+      ]
+    }
+  ]
+}

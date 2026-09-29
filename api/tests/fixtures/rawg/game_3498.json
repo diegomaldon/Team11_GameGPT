@@ -1,0 +1,24 @@
+{
+  "id": 3498,
+  "name": "Grand Theft Auto V",
+  "released": "2013-09-17",
+  "rating": 4.47,
+  "metacritic": 92,
+  "description_raw": "Rockstar Games went bigger, since their previous installment of the series. You get the complete story of three criminals in the city of Los Santos.",
+  "background_image": "https://media.rawg.io/media/games/456/456dea5e1c7e3cd07060c14e96612001.jpg",
+  "genres": [
+    {"id": 4, "name": "Action"},
+    {"id": 3, "name": "Adventure"}
+  ],
+  "tags": [
+    {"id": 31, "name": "Singleplayer", "language": "eng"},
+    {"id": 40847, "name": "Steam Achievements", "language": "eng"},
+    {"id": 7, "name": "Multiplayer", "language": "eng"}
+  ],
+  "developers": [
+    {"id": 3524, "name": "Rockstar North"}
+  ],
+  "publishers": [
+    {"id": 2155, "name": "Rockstar Games"}
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "recommendations": [
+    {
+      "rank": 1,
+      "title": "Stardew Valley",
+      "reason": "A relaxed farming sim with no fail states and a gentle soundtrack you can turn down — ideal to half-watch while a podcast plays.",
+      "steam_appid": 413150,
+      "review_score": 0.98
+    },
+    {
+      "rank": 2,
+      "title": "Dorfromantik",
+      "reason": "A quiet tile-laying puzzler. Slow, meditative, and entirely playable with the game audio muted.",
+      "steam_appid": 1455840,
+      "review_score": 0.97
+    },
+    {
+      "rank": 3,
+      "title": "Slay the Spire",
+      "reason": "Turn-based deckbuilding means you set the pace — pause to listen, resume when you're ready, no reflexes required.",
+      "steam_appid": 646570,
+      "review_score": 0.95
+    }
+  ]
+}

@@ -1,0 +1,2959 @@
+[
+  {
+    "title": "Half-Life 2",
+    "description": "A physics-driven sci-fi shooter where you fight an alien occupation with the gravity gun and a crowbar. Tense, story-rich, and still a masterclass in pacing.",
+    "genres": [
+      "Shooter",
+      "Action"
+    ],
+    "tags": [
+      "story-rich",
+      "sci-fi",
+      "singleplayer",
+      "classic"
+    ],
+    "release_date": "2004-11-16",
+    "developer": "Valve",
+    "review_score": 0.97,
+    "steam_appid": 220
+  },
+  {
+    "title": "Portal 2",
+    "description": "A first-person puzzle game about a talking gun, an evil AI, and portals that bend space. Whip-smart writing wrapped around brilliant physics puzzles.",
+    "genres": [
+      "Puzzle",
+      "Adventure"
+    ],
+    "tags": [
+      "story-rich",
+      "comedy",
+      "singleplayer",
+      "co-op"
+    ],
+    "release_date": "2011-04-18",
+    "developer": "Valve",
+    "review_score": 0.98,
+    "steam_appid": 620
+  },
+  {
+    "title": "Team Fortress 2",
+    "description": "A cartoonish class-based shooter built for chaotic team objectives and trash talk. Endlessly replayable competitive fun with friends.",
+    "genres": [
+      "Shooter",
+      "Competitive"
+    ],
+    "tags": [
+      "competitive",
+      "multiplayer",
+      "team-based",
+      "free-to-play"
+    ],
+    "release_date": "2007-10-10",
+    "developer": "Valve",
+    "review_score": 0.93,
+    "steam_appid": 440
+  },
+  {
+    "title": "Counter-Strike 2",
+    "description": "The definitive competitive tactical shooter, one bullet at a time. Razor-sharp gunplay rewards precision and teamwork.",
+    "genres": [
+      "Shooter",
+      "Competitive"
+    ],
+    "tags": [
+      "competitive",
+      "esports",
+      "multiplayer",
+      "tactical"
+    ],
+    "release_date": "2023-09-27",
+    "developer": "Valve",
+    "review_score": 0.89,
+    "steam_appid": 730
+  },
+  {
+    "title": "Dota 2",
+    "description": "A deep, unforgiving 5v5 strategy battle arena with hundreds of heroes. Endless mastery curve for competitive-minded players.",
+    "genres": [
+      "Strategy",
+      "MOBA"
+    ],
+    "tags": [
+      "competitive",
+      "esports",
+      "multiplayer",
+      "deep-strategy"
+    ],
+    "release_date": "2013-07-09",
+    "developer": "Valve",
+    "review_score": 0.9,
+    "steam_appid": 570
+  },
+  {
+    "title": "Left 4 Dead 2",
+    "description": "Four survivors, a zombie apocalypse, and a director AI that never lets you get comfortable. Great with a podcast-night squad.",
+    "genres": [
+      "Shooter",
+      "Co-op"
+    ],
+    "tags": [
+      "co-op",
+      "zombies",
+      "horror-lite",
+      "multiplayer"
+    ],
+    "release_date": "2009-11-17",
+    "developer": "Valve",
+    "review_score": 0.95,
+    "steam_appid": 550
+  },
+  {
+    "title": "The Witcher 3: Wild Hunt",
+    "description": "An open-world fantasy epic following monster hunter Geralt through morally gray choices and unforgettable side stories. Massive, story-rich, and endlessly atmospheric.",
+    "genres": [
+      "RPG",
+      "Open World"
+    ],
+    "tags": [
+      "story-rich",
+      "fantasy",
+      "singleplayer",
+      "choices-matter"
+    ],
+    "release_date": "2015-05-19",
+    "developer": "CD Projekt Red",
+    "review_score": 0.97,
+    "steam_appid": 292030
+  },
+  {
+    "title": "Stardew Valley",
+    "description": "Inherit a rundown farm and slowly turn it into a cozy life full of crops, fishing, and small-town friendships. The definitive relaxing farming sim.",
+    "genres": [
+      "Simulation",
+      "RPG"
+    ],
+    "tags": [
+      "cozy",
+      "relaxing",
+      "farming",
+      "singleplayer"
+    ],
+    "release_date": "2016-02-26",
+    "developer": "ConcernedApe",
+    "review_score": 0.98,
+    "steam_appid": 413150
+  },
+  {
+    "title": "Hollow Knight",
+    "description": "A gorgeous, moody metroidvania through a ruined insect kingdom. Tight combat and a huge interconnected world reward careful exploration.",
+    "genres": [
+      "Metroidvania",
+      "Action"
+    ],
+    "tags": [
+      "atmospheric",
+      "exploration",
+      "difficult",
+      "singleplayer"
+    ],
+    "release_date": "2017-02-24",
+    "developer": "Team Cherry",
+    "review_score": 0.97,
+    "steam_appid": 367520
+  },
+  {
+    "title": "Celeste",
+    "description": "A razor-precise platformer about climbing a mountain, and yourself. Tough but fair, with a surprisingly tender story about anxiety.",
+    "genres": [
+      "Platformer"
+    ],
+    "tags": [
+      "story-rich",
+      "difficult",
+      "precision",
+      "indie"
+    ],
+    "release_date": "2018-01-25",
+    "developer": "Extremely OK Games",
+    "review_score": 0.97,
+    "steam_appid": 504230
+  },
+  {
+    "title": "Hades",
+    "description": "A stylish roguelike dungeon crawler where you fight your way out of the Underworld, with witty gods and a surprisingly deep story woven through every run.",
+    "genres": [
+      "Roguelike",
+      "Action"
+    ],
+    "tags": [
+      "roguelike",
+      "story-rich",
+      "fast-paced",
+      "replayable"
+    ],
+    "release_date": "2020-09-17",
+    "developer": "Supergiant Games",
+    "review_score": 0.98,
+    "steam_appid": 1145360
+  },
+  {
+    "title": "Terraria",
+    "description": "A 2D sandbox where digging, building, and boss fights blend into one endlessly expandable adventure. Great solo or with friends.",
+    "genres": [
+      "Sandbox",
+      "Survival"
+    ],
+    "tags": [
+      "sandbox",
+      "exploration",
+      "co-op",
+      "building"
+    ],
+    "release_date": "2011-05-16",
+    "developer": "Re-Logic",
+    "review_score": 0.97,
+    "steam_appid": 105600
+  },
+  {
+    "title": "Rust",
+    "description": "A brutal multiplayer survival game where trust is the scarcest resource. Build, raid, and scheme against everyone else on the server.",
+    "genres": [
+      "Survival",
+      "Multiplayer"
+    ],
+    "tags": [
+      "competitive",
+      "survival",
+      "pvp",
+      "tense"
+    ],
+    "release_date": "2018-02-08",
+    "developer": "Facepunch Studios",
+    "review_score": 0.85,
+    "steam_appid": 252490
+  },
+  {
+    "title": "Rocket League",
+    "description": "Soccer, but with rocket-powered cars doing aerial acrobatics. Easy to pick up, deeply satisfying to master.",
+    "genres": [
+      "Sports",
+      "Competitive"
+    ],
+    "tags": [
+      "competitive",
+      "fast-paced",
+      "multiplayer",
+      "arcade"
+    ],
+    "release_date": "2015-07-07",
+    "developer": "Psyonix",
+    "review_score": 0.87,
+    "steam_appid": 252950
+  },
+  {
+    "title": "Undertale",
+    "description": "A tiny RPG with a huge heart, where you can befriend nearly every monster instead of fighting them. Funny, sad, and unforgettable.",
+    "genres": [
+      "RPG",
+      "Indie"
+    ],
+    "tags": [
+      "story-rich",
+      "emotional",
+      "comedy",
+      "singleplayer"
+    ],
+    "release_date": "2015-09-15",
+    "developer": "Toby Fox",
+    "review_score": 0.97,
+    "steam_appid": 391540
+  },
+  {
+    "title": "Dark Souls III",
+    "description": "A punishing, beautiful action-RPG about dying a lot and learning a little each time. Legendary boss fights and atmosphere.",
+    "genres": [
+      "Action RPG"
+    ],
+    "tags": [
+      "difficult",
+      "atmospheric",
+      "dark-fantasy",
+      "singleplayer"
+    ],
+    "release_date": "2016-04-11",
+    "developer": "FromSoftware",
+    "review_score": 0.94,
+    "steam_appid": 374320
+  },
+  {
+    "title": "Elden Ring",
+    "description": "A sprawling open-world dark fantasy where curiosity is rewarded and every horizon hides a secret. FromSoftware's biggest and most generous world yet.",
+    "genres": [
+      "Action RPG",
+      "Open World"
+    ],
+    "tags": [
+      "open-world",
+      "difficult",
+      "exploration",
+      "dark-fantasy"
+    ],
+    "release_date": "2022-02-25",
+    "developer": "FromSoftware",
+    "review_score": 0.96,
+    "steam_appid": 1245620
+  },
+  {
+    "title": "Sekiro: Shadows Die Twice",
+    "description": "A lightning-fast sword duel simulator wrapped in a feudal Japan revenge story. Parry or die, over and over.",
+    "genres": [
+      "Action"
+    ],
+    "tags": [
+      "difficult",
+      "combat-focused",
+      "singleplayer",
+      "atmospheric"
+    ],
+    "release_date": "2019-03-22",
+    "developer": "FromSoftware",
+    "review_score": 0.95,
+    "steam_appid": 814380
+  },
+  {
+    "title": "Dead Cells",
+    "description": "A frantic roguelite metroidvania where every death teaches you a new route through the castle. Combat feels incredible.",
+    "genres": [
+      "Roguelike",
+      "Metroidvania"
+    ],
+    "tags": [
+      "roguelike",
+      "fast-paced",
+      "difficult",
+      "replayable"
+    ],
+    "release_date": "2018-08-07",
+    "developer": "Motion Twin",
+    "review_score": 0.95,
+    "steam_appid": 588650
+  },
+  {
+    "title": "Cuphead",
+    "description": "A hand-drawn run-and-gun styled after 1930s cartoons, packed with brutal boss fights and unbelievable style.",
+    "genres": [
+      "Platformer",
+      "Action"
+    ],
+    "tags": [
+      "difficult",
+      "stylish",
+      "boss-rush",
+      "singleplayer"
+    ],
+    "release_date": "2017-09-29",
+    "developer": "StudioMDHR",
+    "review_score": 0.93,
+    "steam_appid": 268910
+  },
+  {
+    "title": "Ori and the Blind Forest",
+    "description": "A heartfelt, gorgeously animated platformer about a lost spirit healing a dying forest. Tight movement and an emotional core.",
+    "genres": [
+      "Platformer",
+      "Metroidvania"
+    ],
+    "tags": [
+      "story-rich",
+      "exploration",
+      "beautiful",
+      "singleplayer"
+    ],
+    "release_date": "2015-03-11",
+    "developer": "Moon Studios",
+    "review_score": 0.96,
+    "steam_appid": 261570
+  },
+  {
+    "title": "Ori and the Will of the Wisps",
+    "description": "The sequel raises the stakes with bigger areas, deeper combat, and one of the most beautiful game worlds ever made.",
+    "genres": [
+      "Platformer",
+      "Metroidvania"
+    ],
+    "tags": [
+      "story-rich",
+      "exploration",
+      "beautiful",
+      "singleplayer"
+    ],
+    "release_date": "2020-03-11",
+    "developer": "Moon Studios",
+    "review_score": 0.97,
+    "steam_appid": 1057090
+  },
+  {
+    "title": "Slay the Spire",
+    "description": "A deckbuilding roguelike where every card choice ripples through a run. Deceptively deep and endlessly replayable.",
+    "genres": [
+      "Deckbuilder",
+      "Roguelike"
+    ],
+    "tags": [
+      "strategy",
+      "roguelike",
+      "replayable",
+      "turn-based"
+    ],
+    "release_date": "2019-01-23",
+    "developer": "Mega Crit",
+    "review_score": 0.97,
+    "steam_appid": 646570
+  },
+  {
+    "title": "Cities: Skylines",
+    "description": "A relaxing yet endlessly deep city-builder about zoning, traffic, and watching your metropolis grow. A great podcast-night sandbox.",
+    "genres": [
+      "Simulation",
+      "City Builder"
+    ],
+    "tags": [
+      "relaxing",
+      "building",
+      "management",
+      "sandbox"
+    ],
+    "release_date": "2015-03-10",
+    "developer": "Colossal Order",
+    "review_score": 0.9,
+    "steam_appid": 255710
+  },
+  {
+    "title": "Factorio",
+    "description": "An addictive automation puzzle where you build sprawling factories from scratch. Deceptively meditative once the conveyor belts start humming.",
+    "genres": [
+      "Simulation",
+      "Strategy"
+    ],
+    "tags": [
+      "automation",
+      "relaxing",
+      "building",
+      "deep-strategy"
+    ],
+    "release_date": "2020-08-14",
+    "developer": "Wube Software",
+    "review_score": 0.97,
+    "steam_appid": 427520
+  },
+  {
+    "title": "Satisfactory",
+    "description": "A first-person factory-building game in a gorgeous alien landscape. Chill exploration mixed with satisfying logistics puzzles.",
+    "genres": [
+      "Simulation",
+      "Survival"
+    ],
+    "tags": [
+      "relaxing",
+      "building",
+      "co-op",
+      "exploration"
+    ],
+    "release_date": "2024-09-10",
+    "developer": "Coffee Stain Studios",
+    "review_score": 0.94,
+    "steam_appid": 526870
+  },
+  {
+    "title": "RimWorld",
+    "description": "A sci-fi colony sim that generates stories through chaos: crashed pods, raiders, and the small triumphs of survival.",
+    "genres": [
+      "Simulation",
+      "Strategy"
+    ],
+    "tags": [
+      "story-rich",
+      "emergent",
+      "management",
+      "difficult"
+    ],
+    "release_date": "2018-10-17",
+    "developer": "Ludeon Studios",
+    "review_score": 0.96,
+    "steam_appid": 294100
+  },
+  {
+    "title": "Don't Starve Together",
+    "description": "A whimsical, dark survival game best played with friends around a campfire, gathering resources before night creatures arrive.",
+    "genres": [
+      "Survival",
+      "Co-op"
+    ],
+    "tags": [
+      "co-op",
+      "survival",
+      "atmospheric",
+      "multiplayer"
+    ],
+    "release_date": "2016-04-21",
+    "developer": "Klei Entertainment",
+    "review_score": 0.9,
+    "steam_appid": 322330
+  },
+  {
+    "title": "Subnautica",
+    "description": "An underwater survival adventure that's equal parts beautiful and terrifying. Craft, explore, and try not to look down.",
+    "genres": [
+      "Survival",
+      "Adventure"
+    ],
+    "tags": [
+      "exploration",
+      "atmospheric",
+      "singleplayer",
+      "underwater"
+    ],
+    "release_date": "2018-01-23",
+    "developer": "Unknown Worlds",
+    "review_score": 0.96,
+    "steam_appid": 264710
+  },
+  {
+    "title": "The Forest",
+    "description": "Stranded after a plane crash, you build shelter and fend off a cannibal tribe in a dense, unsettling forest.",
+    "genres": [
+      "Survival",
+      "Horror"
+    ],
+    "tags": [
+      "survival",
+      "horror",
+      "crafting",
+      "co-op"
+    ],
+    "release_date": "2018-04-30",
+    "developer": "Endnight Games",
+    "review_score": 0.93,
+    "steam_appid": 242760
+  },
+  {
+    "title": "Sons of the Forest",
+    "description": "The sequel doubles down on tense survival horror with smarter enemies and deeper building. Best played tense, at night.",
+    "genres": [
+      "Survival",
+      "Horror"
+    ],
+    "tags": [
+      "survival",
+      "horror",
+      "crafting",
+      "co-op"
+    ],
+    "release_date": "2024-02-22",
+    "developer": "Endnight Games",
+    "review_score": 0.87,
+    "steam_appid": 1326470
+  },
+  {
+    "title": "Valheim",
+    "description": "A cozy-turned-brutal Viking survival game about building longhouses with friends and then getting eaten by trolls.",
+    "genres": [
+      "Survival",
+      "Co-op"
+    ],
+    "tags": [
+      "co-op",
+      "survival",
+      "exploration",
+      "crafting"
+    ],
+    "release_date": "2021-02-02",
+    "developer": "Iron Gate Studio",
+    "review_score": 0.93,
+    "steam_appid": 892970
+  },
+  {
+    "title": "ARK: Survival Ascended",
+    "description": "Tame dinosaurs, build sprawling bases, and survive on a hostile prehistoric island. Big, chaotic, and great with a group.",
+    "genres": [
+      "Survival",
+      "Action"
+    ],
+    "tags": [
+      "survival",
+      "co-op",
+      "dinosaurs",
+      "crafting"
+    ],
+    "release_date": "2023-10-25",
+    "developer": "Studio Wildcard",
+    "review_score": 0.75,
+    "steam_appid": 2399830
+  },
+  {
+    "title": "No Man's Sky",
+    "description": "An endless procedurally generated universe to explore at your own pace, alone or with friends. Relaxing space wandering with occasional base-building.",
+    "genres": [
+      "Adventure",
+      "Simulation"
+    ],
+    "tags": [
+      "exploration",
+      "relaxing",
+      "space",
+      "co-op"
+    ],
+    "release_date": "2016-08-09",
+    "developer": "Hello Games",
+    "review_score": 0.87,
+    "steam_appid": 275850
+  },
+  {
+    "title": "Kerbal Space Program",
+    "description": "Design, launch, and inevitably explode rockets in a physics-accurate space program run by adorable green aliens.",
+    "genres": [
+      "Simulation"
+    ],
+    "tags": [
+      "space",
+      "building",
+      "physics",
+      "singleplayer"
+    ],
+    "release_date": "2015-04-27",
+    "developer": "Squad",
+    "review_score": 0.92,
+    "steam_appid": 220200
+  },
+  {
+    "title": "Cyberpunk 2077",
+    "description": "A sprawling, neon-lit open world RPG about identity and survival in Night City. Dense side stories and a killer soundtrack.",
+    "genres": [
+      "RPG",
+      "Open World"
+    ],
+    "tags": [
+      "story-rich",
+      "open-world",
+      "sci-fi",
+      "singleplayer"
+    ],
+    "release_date": "2020-12-10",
+    "developer": "CD Projekt Red",
+    "review_score": 0.87,
+    "steam_appid": 1091500
+  },
+  {
+    "title": "Grand Theft Auto V",
+    "description": "A sprawling open-world crime saga across three intertwined protagonists. Chaotic fun solo or in the massive Online mode.",
+    "genres": [
+      "Action",
+      "Open World"
+    ],
+    "tags": [
+      "open-world",
+      "crime",
+      "multiplayer",
+      "story-rich"
+    ],
+    "release_date": "2015-04-14",
+    "developer": "Rockstar Games",
+    "review_score": 0.87,
+    "steam_appid": 271590
+  },
+  {
+    "title": "Red Dead Redemption 2",
+    "description": "A slow-burn western epic about outlaws, loyalty, and a dying way of life. One of the most atmospheric open worlds ever built.",
+    "genres": [
+      "Action",
+      "Open World"
+    ],
+    "tags": [
+      "story-rich",
+      "open-world",
+      "western",
+      "atmospheric"
+    ],
+    "release_date": "2019-12-05",
+    "developer": "Rockstar Games",
+    "review_score": 0.92,
+    "steam_appid": 1174180
+  },
+  {
+    "title": "The Elder Scrolls V: Skyrim",
+    "description": "A sprawling fantasy sandbox where you can be a dragon-slaying hero or just a blacksmith who collects cheese wheels. Endlessly moddable.",
+    "genres": [
+      "RPG",
+      "Open World"
+    ],
+    "tags": [
+      "open-world",
+      "fantasy",
+      "singleplayer",
+      "exploration"
+    ],
+    "release_date": "2011-11-11",
+    "developer": "Bethesda Game Studios",
+    "review_score": 0.94,
+    "steam_appid": 72850
+  },
+  {
+    "title": "Fallout 4",
+    "description": "A post-apocalyptic open world about rebuilding settlements and uncovering the Commonwealth's secrets. Great base-building side hobby.",
+    "genres": [
+      "RPG",
+      "Open World"
+    ],
+    "tags": [
+      "open-world",
+      "post-apocalyptic",
+      "building",
+      "singleplayer"
+    ],
+    "release_date": "2015-11-09",
+    "developer": "Bethesda Game Studios",
+    "review_score": 0.86,
+    "steam_appid": 377160
+  },
+  {
+    "title": "Fallout: New Vegas",
+    "description": "A wasteland political thriller with more choices and consequences than almost any RPG before it. Deeply replayable.",
+    "genres": [
+      "RPG",
+      "Open World"
+    ],
+    "tags": [
+      "story-rich",
+      "choices-matter",
+      "post-apocalyptic",
+      "singleplayer"
+    ],
+    "release_date": "2010-10-19",
+    "developer": "Obsidian Entertainment",
+    "review_score": 0.92,
+    "steam_appid": 22380
+  },
+  {
+    "title": "DOOM (2016)",
+    "description": "A relentless, adrenaline-soaked shooter that rediscovered what made the original great: fast movement and bigger guns.",
+    "genres": [
+      "Shooter"
+    ],
+    "tags": [
+      "fast-paced",
+      "action",
+      "singleplayer",
+      "violent"
+    ],
+    "release_date": "2016-05-13",
+    "developer": "id Software",
+    "review_score": 0.95,
+    "steam_appid": 379720
+  },
+  {
+    "title": "DOOM Eternal",
+    "description": "Even faster, even louder. A power-metal shooter about juggling ammo, health, and glory kills at maximum speed.",
+    "genres": [
+      "Shooter"
+    ],
+    "tags": [
+      "fast-paced",
+      "action",
+      "singleplayer",
+      "violent"
+    ],
+    "release_date": "2020-03-20",
+    "developer": "id Software",
+    "review_score": 0.9,
+    "steam_appid": 782330
+  },
+  {
+    "title": "Metro Exodus",
+    "description": "A haunting post-apocalyptic journey across Russia by train, mixing tense shooting with quiet survival-horror atmosphere.",
+    "genres": [
+      "Shooter",
+      "Survival"
+    ],
+    "tags": [
+      "story-rich",
+      "atmospheric",
+      "post-apocalyptic",
+      "singleplayer"
+    ],
+    "release_date": "2019-02-15",
+    "developer": "4A Games",
+    "review_score": 0.91,
+    "steam_appid": 412020
+  },
+  {
+    "title": "Half-Life: Alyx",
+    "description": "A VR return to the Half-Life universe with tactile puzzle-solving and terrifying headcrabs at arm's length.",
+    "genres": [
+      "Shooter",
+      "VR"
+    ],
+    "tags": [
+      "vr",
+      "story-rich",
+      "atmospheric",
+      "singleplayer"
+    ],
+    "release_date": "2020-03-23",
+    "developer": "Valve",
+    "review_score": 0.97,
+    "steam_appid": 546560
+  },
+  {
+    "title": "Garry's Mod",
+    "description": "A physics sandbox with no real goals beyond whatever chaos you and your friends can dream up. Beloved for its community mods.",
+    "genres": [
+      "Sandbox"
+    ],
+    "tags": [
+      "sandbox",
+      "multiplayer",
+      "creative",
+      "comedy"
+    ],
+    "release_date": "2006-11-29",
+    "developer": "Facepunch Studios",
+    "review_score": 0.96,
+    "steam_appid": 4000
+  },
+  {
+    "title": "PAYDAY 2",
+    "description": "Plan and pull off increasingly elaborate heists with a crew of friends. Loud shootouts or stealthy safecracking, your call.",
+    "genres": [
+      "Shooter",
+      "Co-op"
+    ],
+    "tags": [
+      "co-op",
+      "heist",
+      "multiplayer",
+      "action"
+    ],
+    "release_date": "2013-08-13",
+    "developer": "Overkill Software",
+    "review_score": 0.88,
+    "steam_appid": 218620
+  },
+  {
+    "title": "Warframe",
+    "description": "A fast, acrobatic sci-fi shooter with an enormous free-to-play content library and surprisingly deep lore for those who dig in.",
+    "genres": [
+      "Shooter",
+      "Action RPG"
+    ],
+    "tags": [
+      "free-to-play",
+      "fast-paced",
+      "co-op",
+      "sci-fi"
+    ],
+    "release_date": "2013-03-25",
+    "developer": "Digital Extremes",
+    "review_score": 0.87,
+    "steam_appid": 230410
+  },
+  {
+    "title": "Path of Exile",
+    "description": "A punishingly deep loot-and-slash RPG with one of the most intricate skill systems in the genre. For players who love theorycrafting.",
+    "genres": [
+      "Action RPG"
+    ],
+    "tags": [
+      "deep-strategy",
+      "free-to-play",
+      "difficult",
+      "multiplayer"
+    ],
+    "release_date": "2013-10-23",
+    "developer": "Grinding Gear Games",
+    "review_score": 0.9,
+    "steam_appid": 238960
+  },
+  {
+    "title": "Baldur's Gate 3",
+    "description": "A massive, reactive D&D adventure where nearly every choice branches. Turn-based tactics wrapped in a genuinely funny, heartfelt story.",
+    "genres": [
+      "RPG"
+    ],
+    "tags": [
+      "story-rich",
+      "choices-matter",
+      "turn-based",
+      "co-op"
+    ],
+    "release_date": "2023-08-03",
+    "developer": "Larian Studios",
+    "review_score": 0.97,
+    "steam_appid": 1086940
+  },
+  {
+    "title": "Divinity: Original Sin 2",
+    "description": "A co-op RPG where elemental combos and creative problem-solving matter more than raw stats. Excellent with a couple of friends.",
+    "genres": [
+      "RPG"
+    ],
+    "tags": [
+      "story-rich",
+      "co-op",
+      "turn-based",
+      "choices-matter"
+    ],
+    "release_date": "2017-09-14",
+    "developer": "Larian Studios",
+    "review_score": 0.96,
+    "steam_appid": 435150
+  },
+  {
+    "title": "Disco Elysium",
+    "description": "A detective story with no combat, just conversation, introspection, and a city full of broken people. Extraordinary writing.",
+    "genres": [
+      "RPG"
+    ],
+    "tags": [
+      "story-rich",
+      "narrative",
+      "singleplayer",
+      "dialogue-heavy"
+    ],
+    "release_date": "2019-10-15",
+    "developer": "ZA/UM",
+    "review_score": 0.95,
+    "steam_appid": 632470
+  },
+  {
+    "title": "Pillars of Eternity",
+    "description": "A classic-style isometric RPG with deep lore and a party of companions worth getting attached to.",
+    "genres": [
+      "RPG"
+    ],
+    "tags": [
+      "story-rich",
+      "isometric",
+      "singleplayer",
+      "fantasy"
+    ],
+    "release_date": "2015-03-26",
+    "developer": "Obsidian Entertainment",
+    "review_score": 0.88,
+    "steam_appid": 291650
+  },
+  {
+    "title": "Wasteland 3",
+    "description": "A tactical post-apocalyptic RPG about hard choices and harder firefights in frozen Colorado.",
+    "genres": [
+      "RPG",
+      "Tactics"
+    ],
+    "tags": [
+      "story-rich",
+      "turn-based",
+      "post-apocalyptic",
+      "co-op"
+    ],
+    "release_date": "2020-08-28",
+    "developer": "inXile Entertainment",
+    "review_score": 0.87,
+    "steam_appid": 719040
+  },
+  {
+    "title": "XCOM 2",
+    "description": "A brutal turn-based tactics game about a resistance fighting back against alien occupation. Permadeath makes every mission tense.",
+    "genres": [
+      "Strategy",
+      "Tactics"
+    ],
+    "tags": [
+      "turn-based",
+      "difficult",
+      "strategy",
+      "tense"
+    ],
+    "release_date": "2016-02-04",
+    "developer": "Firaxis Games",
+    "review_score": 0.88,
+    "steam_appid": 268500
+  },
+  {
+    "title": "Sid Meier's Civilization VI",
+    "description": "Build an empire from the Stone Age to the Information Age. The 'one more turn' game, perfect for a long relaxed session.",
+    "genres": [
+      "Strategy"
+    ],
+    "tags": [
+      "strategy",
+      "turn-based",
+      "relaxing",
+      "deep-strategy"
+    ],
+    "release_date": "2016-10-21",
+    "developer": "Firaxis Games",
+    "review_score": 0.87,
+    "steam_appid": 289070
+  },
+  {
+    "title": "Total War: WARHAMMER II",
+    "description": "Massive real-time battles layered on a turn-based campaign map, set in a grim fantasy world of monsters and magic.",
+    "genres": [
+      "Strategy"
+    ],
+    "tags": [
+      "strategy",
+      "tactics",
+      "fantasy",
+      "large-scale"
+    ],
+    "release_date": "2017-09-28",
+    "developer": "Creative Assembly",
+    "review_score": 0.91,
+    "steam_appid": 594570
+  },
+  {
+    "title": "Crusader Kings III",
+    "description": "A medieval dynasty simulator where scheming, marriages, and murder matter more than armies. Soap opera as strategy game.",
+    "genres": [
+      "Strategy",
+      "Simulation"
+    ],
+    "tags": [
+      "strategy",
+      "emergent",
+      "deep-strategy",
+      "story-rich"
+    ],
+    "release_date": "2020-09-01",
+    "developer": "Paradox Development Studio",
+    "review_score": 0.93,
+    "steam_appid": 1158310
+  },
+  {
+    "title": "Stellaris",
+    "description": "A grand space strategy game about first contact, galactic diplomacy, and the slow discovery of a much stranger universe.",
+    "genres": [
+      "Strategy"
+    ],
+    "tags": [
+      "strategy",
+      "space",
+      "exploration",
+      "deep-strategy"
+    ],
+    "release_date": "2016-05-09",
+    "developer": "Paradox Development Studio",
+    "review_score": 0.85,
+    "steam_appid": 281990
+  },
+  {
+    "title": "Hearts of Iron IV",
+    "description": "A deeply detailed WWII grand strategy game for players who want to manage entire nations at war.",
+    "genres": [
+      "Strategy"
+    ],
+    "tags": [
+      "strategy",
+      "war",
+      "deep-strategy",
+      "historical"
+    ],
+    "release_date": "2016-06-06",
+    "developer": "Paradox Development Studio",
+    "review_score": 0.85,
+    "steam_appid": 394360
+  },
+  {
+    "title": "Age of Empires II: Definitive Edition",
+    "description": "The classic real-time strategy game, remastered. Build civilizations and out-maneuver rivals across history's greatest conflicts.",
+    "genres": [
+      "Strategy"
+    ],
+    "tags": [
+      "strategy",
+      "historical",
+      "competitive",
+      "classic"
+    ],
+    "release_date": "2019-11-14",
+    "developer": "Forgotten Empires",
+    "review_score": 0.94,
+    "steam_appid": 813780
+  },
+  {
+    "title": "Anno 1800",
+    "description": "An industrial-age city builder about trade routes, colonization, and keeping citizens happy across a growing empire.",
+    "genres": [
+      "Strategy",
+      "City Builder"
+    ],
+    "tags": [
+      "building",
+      "management",
+      "relaxing",
+      "strategy"
+    ],
+    "release_date": "2019-04-16",
+    "developer": "Ubisoft Blue Byte",
+    "review_score": 0.9,
+    "steam_appid": 916440
+  },
+  {
+    "title": "Frostpunk",
+    "description": "A grim city-survival strategy game where keeping a generator running is the only thing between your city and freezing to death.",
+    "genres": [
+      "Strategy",
+      "Survival"
+    ],
+    "tags": [
+      "difficult",
+      "atmospheric",
+      "management",
+      "story-rich"
+    ],
+    "release_date": "2018-04-24",
+    "developer": "11 bit studios",
+    "review_score": 0.9,
+    "steam_appid": 323190
+  },
+  {
+    "title": "This War of Mine",
+    "description": "A bleak survival strategy game about civilians, not soldiers, trying to make it through a siege. Quietly devastating.",
+    "genres": [
+      "Strategy",
+      "Survival"
+    ],
+    "tags": [
+      "story-rich",
+      "difficult",
+      "atmospheric",
+      "singleplayer"
+    ],
+    "release_date": "2014-11-14",
+    "developer": "11 bit studios",
+    "review_score": 0.92,
+    "steam_appid": 282070
+  },
+  {
+    "title": "Papers, Please",
+    "description": "A dystopian border-checkpoint simulator that turns bureaucracy into gripping moral drama. Short, sharp, unforgettable.",
+    "genres": [
+      "Simulation",
+      "Puzzle"
+    ],
+    "tags": [
+      "story-rich",
+      "atmospheric",
+      "singleplayer",
+      "indie"
+    ],
+    "release_date": "2013-08-08",
+    "developer": "3909",
+    "review_score": 0.94,
+    "steam_appid": 239030
+  },
+  {
+    "title": "Return of the Obra Dinn",
+    "description": "A striking monochrome detective mystery aboard a ghost ship, piecing together the fate of a lost crew from frozen moments in time.",
+    "genres": [
+      "Puzzle",
+      "Mystery"
+    ],
+    "tags": [
+      "story-rich",
+      "mystery",
+      "singleplayer",
+      "atmospheric"
+    ],
+    "release_date": "2018-10-18",
+    "developer": "Lucas Pope",
+    "review_score": 0.98,
+    "steam_appid": 653530
+  },
+  {
+    "title": "Firewatch",
+    "description": "A quiet, gorgeously drawn walking sim about a fire lookout in the Wyoming wilderness and the voice on the other end of his radio.",
+    "genres": [
+      "Adventure"
+    ],
+    "tags": [
+      "story-rich",
+      "relaxing",
+      "walking-sim",
+      "singleplayer"
+    ],
+    "release_date": "2016-02-09",
+    "developer": "Campo Santo",
+    "review_score": 0.87,
+    "steam_appid": 383870
+  },
+  {
+    "title": "Gone Home",
+    "description": "Explore an empty house room by room to piece together your family's story. A cozy, contemplative mystery.",
+    "genres": [
+      "Adventure"
+    ],
+    "tags": [
+      "story-rich",
+      "walking-sim",
+      "relaxing",
+      "singleplayer"
+    ],
+    "release_date": "2013-08-15",
+    "developer": "The Fullbright Company",
+    "review_score": 0.83,
+    "steam_appid": 232430
+  },
+  {
+    "title": "The Stanley Parable",
+    "description": "A wickedly funny meta-narrative about choice, obedience, and a narrator who really wishes you'd just follow instructions.",
+    "genres": [
+      "Adventure",
+      "Comedy"
+    ],
+    "tags": [
+      "comedy",
+      "narrative",
+      "singleplayer",
+      "short"
+    ],
+    "release_date": "2013-10-17",
+    "developer": "Galactic Cafe",
+    "review_score": 0.95,
+    "steam_appid": 221910
+  },
+  {
+    "title": "INSIDE",
+    "description": "A haunting, wordless puzzle-platformer about a boy fleeing something sinister. Stunning atmosphere, minimal hand-holding.",
+    "genres": [
+      "Puzzle",
+      "Platformer"
+    ],
+    "tags": [
+      "atmospheric",
+      "story-rich",
+      "singleplayer",
+      "dark"
+    ],
+    "release_date": "2016-06-29",
+    "developer": "Playdead",
+    "review_score": 0.95,
+    "steam_appid": 304430
+  },
+  {
+    "title": "LIMBO",
+    "description": "A stark black-and-white puzzle-platformer full of quiet dread and clever, deadly traps.",
+    "genres": [
+      "Puzzle",
+      "Platformer"
+    ],
+    "tags": [
+      "atmospheric",
+      "difficult",
+      "singleplayer",
+      "dark"
+    ],
+    "release_date": "2011-08-02",
+    "developer": "Playdead",
+    "review_score": 0.93,
+    "steam_appid": 48000
+  },
+  {
+    "title": "Little Nightmares II",
+    "description": "A creepy, doll-like world of oversized monsters and tight escapes. Beautifully unsettling co-op-optional horror.",
+    "genres": [
+      "Horror",
+      "Platformer"
+    ],
+    "tags": [
+      "horror",
+      "atmospheric",
+      "story-rich",
+      "singleplayer"
+    ],
+    "release_date": "2021-02-11",
+    "developer": "Tarsier Studios",
+    "review_score": 0.89,
+    "steam_appid": 860510
+  },
+  {
+    "title": "A Plague Tale: Innocence",
+    "description": "A medieval story of two siblings fleeing plague, soldiers, and swarms of rats. Gorgeous, grim, and emotionally heavy.",
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "tags": [
+      "story-rich",
+      "atmospheric",
+      "singleplayer",
+      "stealth"
+    ],
+    "release_date": "2019-05-14",
+    "developer": "Asobo Studio",
+    "review_score": 0.9,
+    "steam_appid": 752590
+  },
+  {
+    "title": "It Takes Two",
+    "description": "A wildly inventive co-op platformer built entirely around two players solving puzzles together. Great for couples or best friends.",
+    "genres": [
+      "Platformer",
+      "Co-op"
+    ],
+    "tags": [
+      "co-op",
+      "story-rich",
+      "puzzle",
+      "couch-co-op"
+    ],
+    "release_date": "2021-03-26",
+    "developer": "Hazelight Studios",
+    "review_score": 0.95,
+    "steam_appid": 1426210
+  },
+  {
+    "title": "Overcooked! 2",
+    "description": "Frantic, hilarious co-op cooking chaos. Perfect for turning a friend group into a screaming, laughing kitchen disaster.",
+    "genres": [
+      "Party",
+      "Co-op"
+    ],
+    "tags": [
+      "co-op",
+      "comedy",
+      "party",
+      "fast-paced"
+    ],
+    "release_date": "2018-08-07",
+    "developer": "Ghost Town Games",
+    "review_score": 0.9,
+    "steam_appid": 728880
+  },
+  {
+    "title": "Human: Fall Flat",
+    "description": "A physics-comedy puzzle-platformer starring wobbly, floppy little people. Ridiculous and great for laughing with friends.",
+    "genres": [
+      "Puzzle",
+      "Co-op"
+    ],
+    "tags": [
+      "comedy",
+      "co-op",
+      "physics",
+      "party"
+    ],
+    "release_date": "2016-07-22",
+    "developer": "No Brakes Games",
+    "review_score": 0.9,
+    "steam_appid": 477160
+  },
+  {
+    "title": "Among Us",
+    "description": "A social deduction party game about figuring out who among your crewmates is secretly sabotaging the ship.",
+    "genres": [
+      "Party",
+      "Social"
+    ],
+    "tags": [
+      "party",
+      "multiplayer",
+      "social-deduction",
+      "casual"
+    ],
+    "release_date": "2018-06-15",
+    "developer": "Innersloth",
+    "review_score": 0.86,
+    "steam_appid": 945360
+  },
+  {
+    "title": "Phasmophobia",
+    "description": "A co-op ghost-hunting horror game where you and your friends investigate haunted locations with real equipment and real screaming.",
+    "genres": [
+      "Horror",
+      "Co-op"
+    ],
+    "tags": [
+      "horror",
+      "co-op",
+      "multiplayer",
+      "tense"
+    ],
+    "release_date": "2020-09-18",
+    "developer": "Kinetic Games",
+    "review_score": 0.92,
+    "steam_appid": 739630
+  },
+  {
+    "title": "Dead by Daylight",
+    "description": "An asymmetrical horror game pitting one relentless killer against four survivors. Tense, replayable, and packed with crossover killers.",
+    "genres": [
+      "Horror",
+      "Multiplayer"
+    ],
+    "tags": [
+      "horror",
+      "competitive",
+      "multiplayer",
+      "tense"
+    ],
+    "release_date": "2016-06-14",
+    "developer": "Behaviour Interactive",
+    "review_score": 0.82,
+    "steam_appid": 381210
+  },
+  {
+    "title": "Killing Floor 2",
+    "description": "A gory, high-energy co-op horde shooter about mowing down waves of mutants with an ever-growing arsenal.",
+    "genres": [
+      "Shooter",
+      "Co-op"
+    ],
+    "tags": [
+      "co-op",
+      "fast-paced",
+      "horror",
+      "violent"
+    ],
+    "release_date": "2016-11-18",
+    "developer": "Tripwire Interactive",
+    "review_score": 0.92,
+    "steam_appid": 232090
+  },
+  {
+    "title": "PUBG: BATTLEGROUNDS",
+    "description": "The battle royale that started the genre: scavenge, loot, and survive as the play area shrinks around a hundred players.",
+    "genres": [
+      "Shooter",
+      "Battle Royale"
+    ],
+    "tags": [
+      "competitive",
+      "multiplayer",
+      "tense",
+      "battle-royale"
+    ],
+    "release_date": "2017-12-21",
+    "developer": "KRAFTON",
+    "review_score": 0.62,
+    "steam_appid": 578080
+  },
+  {
+    "title": "Apex Legends",
+    "description": "A fast, slick battle royale built on movement tech and squad synergy. Competitive but endlessly stylish.",
+    "genres": [
+      "Shooter",
+      "Battle Royale"
+    ],
+    "tags": [
+      "competitive",
+      "fast-paced",
+      "multiplayer",
+      "free-to-play"
+    ],
+    "release_date": "2019-02-04",
+    "developer": "Respawn Entertainment",
+    "review_score": 0.79,
+    "steam_appid": 1172470
+  },
+  {
+    "title": "Destiny 2",
+    "description": "A looter-shooter MMO-lite with gorgeous set pieces, satisfying gunplay, and raids built for coordinated teams.",
+    "genres": [
+      "Shooter",
+      "MMO"
+    ],
+    "tags": [
+      "co-op",
+      "competitive",
+      "sci-fi",
+      "looter"
+    ],
+    "release_date": "2017-10-24",
+    "developer": "Bungie",
+    "review_score": 0.79,
+    "steam_appid": 1085660
+  },
+  {
+    "title": "Warhammer: Vermintide 2",
+    "description": "A brutal four-player co-op horde slasher set in a decaying fantasy world overrun by rat-men. Great with a coordinated squad.",
+    "genres": [
+      "Action",
+      "Co-op"
+    ],
+    "tags": [
+      "co-op",
+      "fantasy",
+      "fast-paced",
+      "violent"
+    ],
+    "release_date": "2018-03-08",
+    "developer": "Fatshark",
+    "review_score": 0.9,
+    "steam_appid": 552500
+  },
+  {
+    "title": "Deep Rock Galactic",
+    "description": "Dwarven space miners tunnel through procedural caves, fight bugs, and yell 'Rock and Stone' a lot. Fantastic co-op chemistry.",
+    "genres": [
+      "Co-op",
+      "Shooter"
+    ],
+    "tags": [
+      "co-op",
+      "mining",
+      "multiplayer",
+      "fun"
+    ],
+    "release_date": "2020-05-13",
+    "developer": "Ghost Ship Games",
+    "review_score": 0.98,
+    "steam_appid": 548430
+  },
+  {
+    "title": "Risk of Rain 2",
+    "description": "A roguelike third-person shooter about outrunning an escalating difficulty curve while stacking absurd item combos.",
+    "genres": [
+      "Roguelike",
+      "Shooter"
+    ],
+    "tags": [
+      "roguelike",
+      "co-op",
+      "fast-paced",
+      "replayable"
+    ],
+    "release_date": "2020-08-11",
+    "developer": "Hopoo Games",
+    "review_score": 0.92,
+    "steam_appid": 632360
+  },
+  {
+    "title": "Monster Hunter: World",
+    "description": "Hunt enormous, beautifully designed monsters solo or with friends, then craft their parts into better gear to hunt bigger monsters.",
+    "genres": [
+      "Action RPG"
+    ],
+    "tags": [
+      "co-op",
+      "difficult",
+      "grindy",
+      "monster-hunting"
+    ],
+    "release_date": "2018-08-09",
+    "developer": "Capcom",
+    "review_score": 0.86,
+    "steam_appid": 582010
+  },
+  {
+    "title": "Nioh",
+    "description": "A punishing samurai action RPG that blends Souls-like combat with Japanese folklore and yokai.",
+    "genres": [
+      "Action RPG"
+    ],
+    "tags": [
+      "difficult",
+      "combat-focused",
+      "singleplayer",
+      "dark-fantasy"
+    ],
+    "release_date": "2017-11-07",
+    "developer": "Team Ninja",
+    "review_score": 0.87,
+    "steam_appid": 485510
+  },
+  {
+    "title": "Cult of the Lamb",
+    "description": "A charmingly dark roguelite about founding your own cult, complete with base management between dungeon crawls.",
+    "genres": [
+      "Roguelike",
+      "Simulation"
+    ],
+    "tags": [
+      "roguelike",
+      "cozy-dark",
+      "management",
+      "singleplayer"
+    ],
+    "release_date": "2022-08-11",
+    "developer": "Massive Monster",
+    "review_score": 0.92,
+    "steam_appid": 1313140
+  },
+  {
+    "title": "Vampire Survivors",
+    "description": "A minimalist bullet-heaven roguelike where standing still means death and every run spirals into glorious chaos.",
+    "genres": [
+      "Roguelike",
+      "Action"
+    ],
+    "tags": [
+      "roguelike",
+      "fast-paced",
+      "replayable",
+      "addictive"
+    ],
+    "release_date": "2022-10-20",
+    "developer": "poncle",
+    "review_score": 0.97,
+    "steam_appid": 1794680
+  },
+  {
+    "title": "Katana ZERO",
+    "description": "A stylish, ultra-violent one-hit-kill action game with time manipulation and a moody neon-noir story.",
+    "genres": [
+      "Action",
+      "Platformer"
+    ],
+    "tags": [
+      "fast-paced",
+      "story-rich",
+      "difficult",
+      "stylish"
+    ],
+    "release_date": "2019-04-18",
+    "developer": "Askiisoft",
+    "review_score": 0.96,
+    "steam_appid": 460950
+  },
+  {
+    "title": "Hyper Light Drifter",
+    "description": "A gorgeous pixel-art action game about a dying world, told almost entirely without words. Atmospheric and challenging.",
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "tags": [
+      "atmospheric",
+      "difficult",
+      "story-rich",
+      "singleplayer"
+    ],
+    "release_date": "2016-03-31",
+    "developer": "Heart Machine",
+    "review_score": 0.92,
+    "steam_appid": 257850
+  },
+  {
+    "title": "Enter the Gungeon",
+    "description": "A frantic bullet-hell roguelike dungeon crawler about guns that are also, somehow, more guns.",
+    "genres": [
+      "Roguelike",
+      "Shooter"
+    ],
+    "tags": [
+      "roguelike",
+      "difficult",
+      "fast-paced",
+      "co-op"
+    ],
+    "release_date": "2016-04-05",
+    "developer": "Dodge Roll",
+    "review_score": 0.93,
+    "steam_appid": 311690
+  },
+  {
+    "title": "The Binding of Isaac: Rebirth",
+    "description": "A deeply twisted roguelike about a boy fighting his way through basement monsters made of biblical horror and dark humor.",
+    "genres": [
+      "Roguelike"
+    ],
+    "tags": [
+      "roguelike",
+      "difficult",
+      "replayable",
+      "dark-humor"
+    ],
+    "release_date": "2014-11-04",
+    "developer": "Nicalis",
+    "review_score": 0.95,
+    "steam_appid": 250900
+  },
+  {
+    "title": "Shovel Knight",
+    "description": "A tight, joyful throwback platformer that nails retro NES-era design while adding modern polish.",
+    "genres": [
+      "Platformer"
+    ],
+    "tags": [
+      "retro",
+      "precision",
+      "singleplayer",
+      "classic-style"
+    ],
+    "release_date": "2014-06-26",
+    "developer": "Yacht Club Games",
+    "review_score": 0.97,
+    "steam_appid": 250760
+  },
+  {
+    "title": "Super Meat Boy",
+    "description": "A brutally precise platformer about a skinless boy rescuing his bandage girlfriend. Short levels, instant death, huge satisfaction.",
+    "genres": [
+      "Platformer"
+    ],
+    "tags": [
+      "difficult",
+      "precision",
+      "fast-paced",
+      "singleplayer"
+    ],
+    "release_date": "2010-11-30",
+    "developer": "Team Meat",
+    "review_score": 0.94,
+    "steam_appid": 40800
+  },
+  {
+    "title": "Braid",
+    "description": "A time-manipulation puzzle-platformer wrapped in a melancholic, painterly story about regret.",
+    "genres": [
+      "Puzzle",
+      "Platformer"
+    ],
+    "tags": [
+      "puzzle",
+      "story-rich",
+      "atmospheric",
+      "singleplayer"
+    ],
+    "release_date": "2009-04-30",
+    "developer": "Number None",
+    "review_score": 0.87,
+    "steam_appid": 26800
+  },
+  {
+    "title": "Fez",
+    "description": "A perspective-bending puzzle-platformer where a 2D world hides 3D secrets. Meditative and clever.",
+    "genres": [
+      "Puzzle",
+      "Platformer"
+    ],
+    "tags": [
+      "puzzle",
+      "relaxing",
+      "indie",
+      "exploration"
+    ],
+    "release_date": "2013-05-01",
+    "developer": "Polytron Corporation",
+    "review_score": 0.9,
+    "steam_appid": 224760
+  },
+  {
+    "title": "Spelunky 2",
+    "description": "A brutal, deeply systemic roguelike platformer where every run through the caves teaches you something new and kills you anyway.",
+    "genres": [
+      "Roguelike",
+      "Platformer"
+    ],
+    "tags": [
+      "roguelike",
+      "difficult",
+      "replayable",
+      "singleplayer"
+    ],
+    "release_date": "2020-09-15",
+    "developer": "Mossmouth",
+    "review_score": 0.9,
+    "steam_appid": 418530
+  },
+  {
+    "title": "Dead Space (2023)",
+    "description": "A meticulous remake of the sci-fi horror classic. Isolated space station, dismemberment combat, and constant dread.",
+    "genres": [
+      "Horror",
+      "Shooter"
+    ],
+    "tags": [
+      "horror",
+      "atmospheric",
+      "sci-fi",
+      "singleplayer"
+    ],
+    "release_date": "2023-01-27",
+    "developer": "Motive Studio",
+    "review_score": 0.93,
+    "steam_appid": 1693980
+  },
+  {
+    "title": "Resident Evil Village",
+    "description": "A gothic horror adventure through a nightmarish European village full of monsters, mystery, and one very tall lady.",
+    "genres": [
+      "Horror",
+      "Action"
+    ],
+    "tags": [
+      "horror",
+      "story-rich",
+      "action",
+      "singleplayer"
+    ],
+    "release_date": "2021-05-07",
+    "developer": "Capcom",
+    "review_score": 0.9,
+    "steam_appid": 1196590
+  },
+  {
+    "title": "Alien: Isolation",
+    "description": "A tense survival horror game where one relentless Xenomorph hunts you through a derelict space station. True dread, not jump scares.",
+    "genres": [
+      "Horror"
+    ],
+    "tags": [
+      "horror",
+      "tense",
+      "atmospheric",
+      "singleplayer"
+    ],
+    "release_date": "2014-10-07",
+    "developer": "Creative Assembly",
+    "review_score": 0.92,
+    "steam_appid": 214490
+  },
+  {
+    "title": "Outlast",
+    "description": "A found-footage-style horror game about sneaking through an asylum with nothing but a camcorder and your nerves.",
+    "genres": [
+      "Horror"
+    ],
+    "tags": [
+      "horror",
+      "tense",
+      "singleplayer",
+      "atmospheric"
+    ],
+    "release_date": "2013-09-04",
+    "developer": "Red Barrels",
+    "review_score": 0.89,
+    "steam_appid": 238320
+  },
+  {
+    "title": "Amnesia: The Dark Descent",
+    "description": "A classic first-person horror game about sanity, darkness, and things that should not be looked at directly.",
+    "genres": [
+      "Horror"
+    ],
+    "tags": [
+      "horror",
+      "atmospheric",
+      "singleplayer",
+      "tense"
+    ],
+    "release_date": "2010-09-08",
+    "developer": "Frictional Games",
+    "review_score": 0.9,
+    "steam_appid": 57300
+  },
+  {
+    "title": "SOMA",
+    "description": "A philosophical underwater horror game that asks uncomfortable questions about consciousness while things lurk in the dark.",
+    "genres": [
+      "Horror"
+    ],
+    "tags": [
+      "story-rich",
+      "horror",
+      "atmospheric",
+      "singleplayer"
+    ],
+    "release_date": "2015-09-22",
+    "developer": "Frictional Games",
+    "review_score": 0.91,
+    "steam_appid": 282140
+  },
+  {
+    "title": "The Long Dark",
+    "description": "A quiet, unforgiving survival game about staying alive in the frozen Canadian wilderness after a plane crash. Meditative and tense by turns.",
+    "genres": [
+      "Survival"
+    ],
+    "tags": [
+      "survival",
+      "atmospheric",
+      "singleplayer",
+      "difficult"
+    ],
+    "release_date": "2017-08-01",
+    "developer": "Hinterland Studio",
+    "review_score": 0.9,
+    "steam_appid": 305620
+  },
+  {
+    "title": "Kingdom Come: Deliverance",
+    "description": "A grounded, historically detailed medieval RPG with no magic, just swordplay, politics, and surviving as a blacksmith's son.",
+    "genres": [
+      "RPG",
+      "Open World"
+    ],
+    "tags": [
+      "story-rich",
+      "open-world",
+      "historical",
+      "singleplayer"
+    ],
+    "release_date": "2018-02-13",
+    "developer": "Warhorse Studios",
+    "review_score": 0.85,
+    "steam_appid": 379430
+  },
+  {
+    "title": "Mount & Blade II: Bannerlord",
+    "description": "A medieval sandbox about building a kingdom through diplomacy, trade, and absolutely enormous battlefield tactics.",
+    "genres": [
+      "RPG",
+      "Strategy"
+    ],
+    "tags": [
+      "open-world",
+      "strategy",
+      "medieval",
+      "sandbox"
+    ],
+    "release_date": "2022-10-25",
+    "developer": "TaleWorlds Entertainment",
+    "review_score": 0.83,
+    "steam_appid": 261550
+  },
+  {
+    "title": "Two Point Hospital",
+    "description": "A witty management sim about running a hospital full of absurd diseases. Cozy, funny, and strangely soothing to optimize.",
+    "genres": [
+      "Simulation",
+      "Management"
+    ],
+    "tags": [
+      "relaxing",
+      "comedy",
+      "management",
+      "building"
+    ],
+    "release_date": "2018-08-30",
+    "developer": "Two Point Studios",
+    "review_score": 0.9,
+    "steam_appid": 535930
+  },
+  {
+    "title": "Planet Coaster",
+    "description": "A joyful, creative theme-park builder with deep customization for players who love making things pretty and profitable.",
+    "genres": [
+      "Simulation",
+      "Building"
+    ],
+    "tags": [
+      "relaxing",
+      "creative",
+      "building",
+      "management"
+    ],
+    "release_date": "2016-11-17",
+    "developer": "Frontier Developments",
+    "review_score": 0.9,
+    "steam_appid": 493340
+  },
+  {
+    "title": "Golf With Your Friends",
+    "description": "A goofy multiplayer mini-golf game with wild course design. Low-stakes, high-laughs party fun.",
+    "genres": [
+      "Sports",
+      "Party"
+    ],
+    "tags": [
+      "party",
+      "multiplayer",
+      "casual",
+      "comedy"
+    ],
+    "release_date": "2020-07-30",
+    "developer": "Blacknut",
+    "review_score": 0.85,
+    "steam_appid": 431240
+  },
+  {
+    "title": "Sea of Thieves",
+    "description": "A pirate sandbox built for co-op chaos: sail, plunder, and get betrayed by your own crewmates. Gorgeous ocean, constant emergent stories.",
+    "genres": [
+      "Adventure",
+      "Co-op"
+    ],
+    "tags": [
+      "co-op",
+      "open-world",
+      "multiplayer",
+      "pirates"
+    ],
+    "release_date": "2018-03-20",
+    "developer": "Rare",
+    "review_score": 0.86,
+    "steam_appid": 1172620
+  },
+  {
+    "title": "Fall Guys",
+    "description": "A candy-colored battle royale obstacle course full of physics comedy and chaotic elimination rounds. Pure silly fun.",
+    "genres": [
+      "Party",
+      "Battle Royale"
+    ],
+    "tags": [
+      "party",
+      "multiplayer",
+      "comedy",
+      "casual"
+    ],
+    "release_date": "2020-08-04",
+    "developer": "Mediatonic",
+    "review_score": 0.79,
+    "steam_appid": 1097150
+  },
+  {
+    "title": "Raft",
+    "description": "Survive on a tiny raft in the middle of the ocean, scavenging debris and fending off sharks while slowly building an island empire.",
+    "genres": [
+      "Survival",
+      "Co-op"
+    ],
+    "tags": [
+      "co-op",
+      "survival",
+      "relaxing",
+      "crafting"
+    ],
+    "release_date": "2022-06-20",
+    "developer": "Redbeet Interactive",
+    "review_score": 0.93,
+    "steam_appid": 648800
+  },
+  {
+    "title": "Unravel Two",
+    "description": "A tender co-op platformer about two yarn creatures linked together, solving puzzles that require real cooperation.",
+    "genres": [
+      "Platformer",
+      "Co-op"
+    ],
+    "tags": [
+      "co-op",
+      "story-rich",
+      "relaxing",
+      "puzzle"
+    ],
+    "release_date": "2018-06-08",
+    "developer": "Coldwood Interactive",
+    "review_score": 0.88,
+    "steam_appid": 1031660
+  },
+  {
+    "title": "A Way Out",
+    "description": "A tense, cinematic co-op prison-break story told entirely through split-screen collaboration between two players.",
+    "genres": [
+      "Adventure",
+      "Co-op"
+    ],
+    "tags": [
+      "co-op",
+      "story-rich",
+      "cinematic",
+      "action"
+    ],
+    "release_date": "2018-03-23",
+    "developer": "Hazelight Studios",
+    "review_score": 0.86,
+    "steam_appid": 1222700
+  },
+  {
+    "title": "Journey",
+    "description": "A wordless, wordless-but-wondrous adventure across shifting sands toward a distant mountain, with strangers who might just help you.",
+    "genres": [
+      "Adventure"
+    ],
+    "tags": [
+      "relaxing",
+      "atmospheric",
+      "short",
+      "beautiful"
+    ],
+    "release_date": "2019-06-11",
+    "developer": "Annapurna Interactive",
+    "review_score": 0.95,
+    "steam_appid": 638230
+  },
+  {
+    "title": "ABZU",
+    "description": "A serene underwater adventure about diving through coral reefs and ancient ruins. Nothing but color, calm, and wonder.",
+    "genres": [
+      "Adventure"
+    ],
+    "tags": [
+      "relaxing",
+      "beautiful",
+      "short",
+      "underwater"
+    ],
+    "release_date": "2016-08-02",
+    "developer": "Giant Squid",
+    "review_score": 0.85,
+    "steam_appid": 384190
+  },
+  {
+    "title": "GRIS",
+    "description": "A wordless watercolor platformer about grief and healing, where the world's color returns as the character heals.",
+    "genres": [
+      "Platformer",
+      "Adventure"
+    ],
+    "tags": [
+      "relaxing",
+      "beautiful",
+      "story-rich",
+      "emotional"
+    ],
+    "release_date": "2018-12-13",
+    "developer": "Nomada Studio",
+    "review_score": 0.94,
+    "steam_appid": 683320
+  },
+  {
+    "title": "Spiritfarer",
+    "description": "A cozy management game about being death's ferrymaster, helping spirits find peace before they cross over. Warm, sad, gentle.",
+    "genres": [
+      "Simulation",
+      "Adventure"
+    ],
+    "tags": [
+      "cozy",
+      "emotional",
+      "relaxing",
+      "story-rich"
+    ],
+    "release_date": "2020-08-18",
+    "developer": "Thunder Lotus Games",
+    "review_score": 0.94,
+    "steam_appid": 972660
+  },
+  {
+    "title": "Coffee Talk",
+    "description": "A gentle visual novel where you brew coffee for fantasy creatures and listen to their late-night problems. Extremely cozy.",
+    "genres": [
+      "Visual Novel",
+      "Simulation"
+    ],
+    "tags": [
+      "cozy",
+      "relaxing",
+      "story-rich",
+      "singleplayer"
+    ],
+    "release_date": "2020-01-29",
+    "developer": "Toge Productions",
+    "review_score": 0.91,
+    "steam_appid": 914800
+  },
+  {
+    "title": "A Short Hike",
+    "description": "A tiny, delightful open world about climbing a mountain at your own pace, chatting with birds along the way. Perfect quick relaxer.",
+    "genres": [
+      "Adventure"
+    ],
+    "tags": [
+      "relaxing",
+      "cozy",
+      "short",
+      "exploration"
+    ],
+    "release_date": "2019-07-31",
+    "developer": "Adam Robinson-Yu",
+    "review_score": 0.97,
+    "steam_appid": 1055540
+  },
+  {
+    "title": "Unpacking",
+    "description": "A meditative puzzle game about unpacking boxes into new homes across someone's life. Oddly moving and endlessly soothing.",
+    "genres": [
+      "Puzzle",
+      "Simulation"
+    ],
+    "tags": [
+      "relaxing",
+      "cozy",
+      "story-rich",
+      "short"
+    ],
+    "release_date": "2021-11-02",
+    "developer": "Witch Beam",
+    "review_score": 0.96,
+    "steam_appid": 1135690
+  },
+  {
+    "title": "Untitled Goose Game",
+    "description": "Be a horrible, honking goose terrorizing a quiet English village. Short, silly, and extremely satisfying.",
+    "genres": [
+      "Adventure",
+      "Comedy"
+    ],
+    "tags": [
+      "comedy",
+      "short",
+      "relaxing",
+      "singleplayer"
+    ],
+    "release_date": "2019-09-20",
+    "developer": "House House",
+    "review_score": 0.87,
+    "steam_appid": 837170
+  },
+  {
+    "title": "My Time at Portia",
+    "description": "A cozy crafting and life sim in a post-apocalyptic-but-cheerful world, rebuilding a workshop and a community.",
+    "genres": [
+      "Simulation",
+      "RPG"
+    ],
+    "tags": [
+      "cozy",
+      "crafting",
+      "relaxing",
+      "singleplayer"
+    ],
+    "release_date": "2019-01-15",
+    "developer": "Pathea Games",
+    "review_score": 0.85,
+    "steam_appid": 666140
+  },
+  {
+    "title": "Ooblets",
+    "description": "An adorable creature-collecting farming sim with dance-battle creature contests. Wholesome and slow-paced.",
+    "genres": [
+      "Simulation",
+      "RPG"
+    ],
+    "tags": [
+      "cozy",
+      "relaxing",
+      "farming",
+      "singleplayer"
+    ],
+    "release_date": "2022-09-15",
+    "developer": "Glumberland",
+    "review_score": 0.8,
+    "steam_appid": 887720
+  },
+  {
+    "title": "Dinkum",
+    "description": "An Australian-outback-flavored farming and crafting sim about building a town from scratch. Relaxed co-op or solo.",
+    "genres": [
+      "Simulation"
+    ],
+    "tags": [
+      "cozy",
+      "relaxing",
+      "farming",
+      "co-op"
+    ],
+    "release_date": "2023-07-13",
+    "developer": "James Bendon",
+    "review_score": 0.85,
+    "steam_appid": 1062090
+  },
+  {
+    "title": "Cozy Grove",
+    "description": "A gentle island life sim where you help ghost spirits move on, one day at a time, with charming diorama art.",
+    "genres": [
+      "Simulation"
+    ],
+    "tags": [
+      "cozy",
+      "relaxing",
+      "short-sessions",
+      "singleplayer"
+    ],
+    "release_date": "2021-04-08",
+    "developer": "Spry Fox",
+    "review_score": 0.83,
+    "steam_appid": 1370120
+  },
+  {
+    "title": "Slime Rancher",
+    "description": "A bouncy, colorful sim about ranching adorable slimes on a distant planet. Bright, breezy, and stress-free.",
+    "genres": [
+      "Simulation"
+    ],
+    "tags": [
+      "cozy",
+      "relaxing",
+      "farming",
+      "singleplayer"
+    ],
+    "release_date": "2017-08-01",
+    "developer": "Monomi Park",
+    "review_score": 0.93,
+    "steam_appid": 433340
+  },
+  {
+    "title": "Moonlighter",
+    "description": "A shopkeeper by day, dungeon-diving hero by night. A charming loop of loot, pricing, and light action-RPG combat.",
+    "genres": [
+      "Action RPG",
+      "Simulation"
+    ],
+    "tags": [
+      "cozy",
+      "management",
+      "action",
+      "singleplayer"
+    ],
+    "release_date": "2018-05-29",
+    "developer": "Digital Sun",
+    "review_score": 0.87,
+    "steam_appid": 606150
+  },
+  {
+    "title": "Potion Craft",
+    "description": "A whimsical alchemy sim about brewing potions by literally navigating a mixing cauldron map. Uniquely relaxing.",
+    "genres": [
+      "Simulation"
+    ],
+    "tags": [
+      "cozy",
+      "relaxing",
+      "crafting",
+      "singleplayer"
+    ],
+    "release_date": "2022-12-08",
+    "developer": "niceplay games",
+    "review_score": 0.87,
+    "steam_appid": 1210320
+  },
+  {
+    "title": "Loop Hero",
+    "description": "A hypnotic card-placement roguelike where you build the world around a looping hero, one tile at a time.",
+    "genres": [
+      "Roguelike",
+      "Strategy"
+    ],
+    "tags": [
+      "roguelike",
+      "relaxing",
+      "strategy",
+      "indie"
+    ],
+    "release_date": "2021-03-04",
+    "developer": "Four Quarters",
+    "review_score": 0.92,
+    "steam_appid": 1282730
+  },
+  {
+    "title": "Return to Monkey Island",
+    "description": "A witty, nostalgic point-and-click adventure returning to the pirate comedy series that defined the genre.",
+    "genres": [
+      "Adventure",
+      "Comedy"
+    ],
+    "tags": [
+      "comedy",
+      "story-rich",
+      "puzzle",
+      "singleplayer"
+    ],
+    "release_date": "2022-09-19",
+    "developer": "Terrible Toybox",
+    "review_score": 0.88,
+    "steam_appid": 1721470
+  },
+  {
+    "title": "Grim Fandango Remastered",
+    "description": "A noir comedy adventure set in the Land of the Dead, following a travel agent for souls on a four-year mystery.",
+    "genres": [
+      "Adventure",
+      "Comedy"
+    ],
+    "tags": [
+      "comedy",
+      "story-rich",
+      "puzzle",
+      "singleplayer"
+    ],
+    "release_date": "2015-01-27",
+    "developer": "Double Fine Productions",
+    "review_score": 0.91,
+    "steam_appid": 335670
+  },
+  {
+    "title": "Psychonauts",
+    "description": "A wildly imaginative platformer that literally dives into people's minds, each one a wholly different surreal level.",
+    "genres": [
+      "Platformer",
+      "Adventure"
+    ],
+    "tags": [
+      "story-rich",
+      "comedy",
+      "platforming",
+      "singleplayer"
+    ],
+    "release_date": "2005-04-19",
+    "developer": "Double Fine Productions",
+    "review_score": 0.9,
+    "steam_appid": 3830
+  },
+  {
+    "title": "Portal",
+    "description": "The original portal-based puzzle game: a sadistic AI, a deadly test chamber, and the cake that started a meme.",
+    "genres": [
+      "Puzzle"
+    ],
+    "tags": [
+      "puzzle",
+      "story-rich",
+      "short",
+      "singleplayer"
+    ],
+    "release_date": "2007-10-10",
+    "developer": "Valve",
+    "review_score": 0.96,
+    "steam_appid": 400
+  },
+  {
+    "title": "Half-Life",
+    "description": "The game that reinvented the FPS narrative: a silent scientist, an alien invasion, and a black mesa gone very wrong.",
+    "genres": [
+      "Shooter"
+    ],
+    "tags": [
+      "classic",
+      "story-rich",
+      "singleplayer",
+      "sci-fi"
+    ],
+    "release_date": "1998-11-08",
+    "developer": "Valve",
+    "review_score": 0.96,
+    "steam_appid": 70
+  },
+  {
+    "title": "Left 4 Dead",
+    "description": "The original four-survivor zombie horde shooter that set the template for co-op horror shooters ever since.",
+    "genres": [
+      "Shooter",
+      "Co-op"
+    ],
+    "tags": [
+      "co-op",
+      "zombies",
+      "multiplayer",
+      "horror-lite"
+    ],
+    "release_date": "2008-11-17",
+    "developer": "Valve",
+    "review_score": 0.92,
+    "steam_appid": 500
+  },
+  {
+    "title": "Football Manager 2023",
+    "description": "The definitive football management sim: transfers, tactics, and the emotional rollercoaster of a relegation battle.",
+    "genres": [
+      "Sports",
+      "Simulation"
+    ],
+    "tags": [
+      "management",
+      "strategy",
+      "sports",
+      "deep-strategy"
+    ],
+    "release_date": "2022-11-08",
+    "developer": "Sports Interactive",
+    "review_score": 0.75,
+    "steam_appid": 1904540
+  },
+  {
+    "title": "Civilization V",
+    "description": "The beloved predecessor in the 'one more turn' empire-building series, still adored for its hex-based strategy.",
+    "genres": [
+      "Strategy"
+    ],
+    "tags": [
+      "strategy",
+      "turn-based",
+      "relaxing",
+      "classic"
+    ],
+    "release_date": "2010-09-21",
+    "developer": "Firaxis Games",
+    "review_score": 0.94,
+    "steam_appid": 8930
+  },
+  {
+    "title": "Divinity: Original Sin",
+    "description": "A tactical co-op RPG praised for its elemental combo combat and freeform problem solving, before the sequel got even bigger.",
+    "genres": [
+      "RPG"
+    ],
+    "tags": [
+      "story-rich",
+      "turn-based",
+      "co-op",
+      "tactics"
+    ],
+    "release_date": "2014-06-30",
+    "developer": "Larian Studios",
+    "review_score": 0.91,
+    "steam_appid": 373420
+  },
+  {
+    "title": "XCOM: Enemy Unknown",
+    "description": "Command a squad defending Earth from alien invasion, one nerve-wracking turn-based mission at a time.",
+    "genres": [
+      "Strategy",
+      "Tactics"
+    ],
+    "tags": [
+      "turn-based",
+      "difficult",
+      "strategy",
+      "tense"
+    ],
+    "release_date": "2012-10-09",
+    "developer": "Firaxis Games",
+    "review_score": 0.9,
+    "steam_appid": 200510
+  },
+  {
+    "title": "Company of Heroes 2",
+    "description": "A gritty WWII real-time strategy game on the Eastern Front, with destructible environments and brutal weather.",
+    "genres": [
+      "Strategy"
+    ],
+    "tags": [
+      "strategy",
+      "war",
+      "historical",
+      "tactics"
+    ],
+    "release_date": "2013-06-25",
+    "developer": "Relic Entertainment",
+    "review_score": 0.79,
+    "steam_appid": 231430
+  },
+  {
+    "title": "Age of Empires IV",
+    "description": "A modern real-time strategy game rebuilding classic siege-and-civilization warfare with gorgeous new visuals.",
+    "genres": [
+      "Strategy"
+    ],
+    "tags": [
+      "strategy",
+      "historical",
+      "competitive",
+      "tactics"
+    ],
+    "release_date": "2021-10-28",
+    "developer": "Relic Entertainment",
+    "review_score": 0.83,
+    "steam_appid": 1466860
+  },
+  {
+    "title": "Little Nightmares",
+    "description": "The original creepy doll-world escape, following tiny Six through a nightmarish vessel called the Maw.",
+    "genres": [
+      "Horror",
+      "Platformer"
+    ],
+    "tags": [
+      "horror",
+      "atmospheric",
+      "story-rich",
+      "singleplayer"
+    ],
+    "release_date": "2017-04-28",
+    "developer": "Tarsier Studios",
+    "review_score": 0.87,
+    "steam_appid": 424840
+  },
+  {
+    "title": "Green Hell",
+    "description": "A survival game set deep in the Amazon rainforest, blending brutal realism with a story about isolation and sanity.",
+    "genres": [
+      "Survival"
+    ],
+    "tags": [
+      "survival",
+      "atmospheric",
+      "singleplayer",
+      "tense"
+    ],
+    "release_date": "2019-08-29",
+    "developer": "Creepy Jar",
+    "review_score": 0.88,
+    "steam_appid": 815370
+  },
+  {
+    "title": "Owlboy",
+    "description": "A gorgeous pixel-art platformer following a mute owl-boy on a sky-pirate-filled adventure. Painstakingly hand-crafted.",
+    "genres": [
+      "Platformer",
+      "Adventure"
+    ],
+    "tags": [
+      "story-rich",
+      "beautiful",
+      "singleplayer",
+      "indie"
+    ],
+    "release_date": "2016-11-01",
+    "developer": "D-Pad Studio",
+    "review_score": 0.92,
+    "steam_appid": 115130
+  },
+  {
+    "title": "Cave Story+",
+    "description": "A beloved freeware-turned-commercial metroidvania classic about a memoryless robot saving a village of rabbit-people.",
+    "genres": [
+      "Metroidvania",
+      "Platformer"
+    ],
+    "tags": [
+      "retro",
+      "exploration",
+      "classic",
+      "singleplayer"
+    ],
+    "release_date": "2011-05-16",
+    "developer": "Nicalis",
+    "review_score": 0.94,
+    "steam_appid": 200900
+  },
+  {
+    "title": "Risk of Rain",
+    "description": "The original roguelike shooter that spawned a sequel, about surviving an alien planet as the difficulty ramps up forever.",
+    "genres": [
+      "Roguelike",
+      "Shooter"
+    ],
+    "tags": [
+      "roguelike",
+      "difficult",
+      "co-op",
+      "replayable"
+    ],
+    "release_date": "2013-11-08",
+    "developer": "Hopoo Games",
+    "review_score": 0.9,
+    "steam_appid": 248820
+  },
+  {
+    "title": "Warhammer 40,000: Dawn of War",
+    "description": "A gritty, fast real-time strategy game where positioning and cover matter as much as unit counts, set in the grim 41st millennium.",
+    "genres": [
+      "Strategy"
+    ],
+    "tags": [
+      "strategy",
+      "tactics",
+      "sci-fi",
+      "war"
+    ],
+    "release_date": "2004-09-20",
+    "developer": "Relic Entertainment",
+    "review_score": 0.89,
+    "steam_appid": 3920
+  },
+  {
+    "title": "Recettear: An Item Shop's Tale",
+    "description": "Run a fantasy item shop by day and dive into dungeons by night to stock your shelves. Charming and unexpectedly deep.",
+    "genres": [
+      "Simulation",
+      "RPG"
+    ],
+    "tags": [
+      "cozy",
+      "management",
+      "dungeon-crawling",
+      "singleplayer"
+    ],
+    "release_date": "2010-09-10",
+    "developer": "EasyGameStation",
+    "review_score": 0.89,
+    "steam_appid": 70210
+  },
+  {
+    "title": "Vampyr",
+    "description": "A gothic action-RPG about a doctor turned vampire in plague-ravaged London, torn between healing and feeding on his patients.",
+    "genres": [
+      "Action RPG"
+    ],
+    "tags": [
+      "story-rich",
+      "dark-fantasy",
+      "singleplayer",
+      "choices-matter"
+    ],
+    "release_date": "2018-06-05",
+    "developer": "DONTNOD Entertainment",
+    "review_score": 0.76,
+    "steam_appid": 774171
+  },
+  {
+    "title": "Dishonored 2",
+    "description": "A stylish stealth-action game about assassination, supernatural powers, and a beautifully weird clockwork city.",
+    "genres": [
+      "Action",
+      "Stealth"
+    ],
+    "tags": [
+      "stealth",
+      "story-rich",
+      "atmospheric",
+      "singleplayer"
+    ],
+    "release_date": "2016-11-11",
+    "developer": "Arkane Studios",
+    "review_score": 0.89,
+    "steam_appid": 403640
+  },
+  {
+    "title": "Prey (2017)",
+    "description": "A moody sci-fi horror RPG aboard a space station overrun by shapeshifting aliens, full of creative problem-solving.",
+    "genres": [
+      "Action RPG",
+      "Horror"
+    ],
+    "tags": [
+      "story-rich",
+      "horror",
+      "atmospheric",
+      "singleplayer"
+    ],
+    "release_date": "2017-05-05",
+    "developer": "Arkane Studios",
+    "review_score": 0.87,
+    "steam_appid": 480490
+  },
+  {
+    "title": "Deus Ex: Human Revolution",
+    "description": "A cyberpunk RPG about augmented humans and corporate conspiracy, with combat, stealth, and dialogue all viable paths.",
+    "genres": [
+      "Action RPG"
+    ],
+    "tags": [
+      "story-rich",
+      "choices-matter",
+      "stealth",
+      "singleplayer"
+    ],
+    "release_date": "2011-08-23",
+    "developer": "Eidos Montreal",
+    "review_score": 0.9,
+    "steam_appid": 238010
+  },
+  {
+    "title": "Hitman 3",
+    "description": "A meticulous stealth-assassination sandbox with gorgeous, puzzle-box levels that reward patience and creativity.",
+    "genres": [
+      "Stealth",
+      "Action"
+    ],
+    "tags": [
+      "stealth",
+      "sandbox",
+      "replayable",
+      "singleplayer"
+    ],
+    "release_date": "2021-01-20",
+    "developer": "IO Interactive",
+    "review_score": 0.87,
+    "steam_appid": 1659040
+  },
+  {
+    "title": "Marvel's Spider-Man Remastered",
+    "description": "Swing through a vibrant New York as Spider-Man in a love letter to the character, full of spectacle and heart.",
+    "genres": [
+      "Action",
+      "Open World"
+    ],
+    "tags": [
+      "story-rich",
+      "open-world",
+      "superhero",
+      "singleplayer"
+    ],
+    "release_date": "2022-08-12",
+    "developer": "Insomniac Games",
+    "review_score": 0.9,
+    "steam_appid": 1817070
+  },
+  {
+    "title": "God of War (2018)",
+    "description": "A brutal, emotional reinvention of Kratos as a father navigating Norse myth alongside his son. Cinematic combat throughout.",
+    "genres": [
+      "Action"
+    ],
+    "tags": [
+      "story-rich",
+      "combat-focused",
+      "cinematic",
+      "singleplayer"
+    ],
+    "release_date": "2022-01-14",
+    "developer": "Santa Monica Studio",
+    "review_score": 0.96,
+    "steam_appid": 1593500
+  },
+  {
+    "title": "Hades II",
+    "description": "The early-access sequel to Hades, sending Melinoë into the Underworld with witchier tools and an even richer cast.",
+    "genres": [
+      "Roguelike",
+      "Action"
+    ],
+    "tags": [
+      "roguelike",
+      "story-rich",
+      "fast-paced",
+      "replayable"
+    ],
+    "release_date": "2024-05-06",
+    "developer": "Supergiant Games",
+    "review_score": 0.94,
+    "steam_appid": 1145350
+  },
+  {
+    "title": "Balatro",
+    "description": "A wildly addictive poker-inspired roguelike deckbuilder about stacking joker synergies for absurd scoring combos.",
+    "genres": [
+      "Deckbuilder",
+      "Roguelike"
+    ],
+    "tags": [
+      "roguelike",
+      "addictive",
+      "strategy",
+      "replayable"
+    ],
+    "release_date": "2024-02-20",
+    "developer": "LocalThunk",
+    "review_score": 0.97,
+    "steam_appid": 2379780
+  },
+  {
+    "title": "Lethal Company",
+    "description": "A cooperative horror scavenging game where four astronauts loot abandoned facilities while something in the dark hunts them.",
+    "genres": [
+      "Horror",
+      "Co-op"
+    ],
+    "tags": [
+      "co-op",
+      "horror",
+      "tense",
+      "multiplayer"
+    ],
+    "release_date": "2023-10-23",
+    "developer": "Zeekerss",
+    "review_score": 0.96,
+    "steam_appid": 1966720
+  },
+  {
+    "title": "Palworld",
+    "description": "A creature-collecting survival crafting game blending Pokémon-style companions with base building and combat.",
+    "genres": [
+      "Survival",
+      "Simulation"
+    ],
+    "tags": [
+      "co-op",
+      "crafting",
+      "exploration",
+      "multiplayer"
+    ],
+    "release_date": "2024-01-19",
+    "developer": "Pocketpair",
+    "review_score": 0.86,
+    "steam_appid": 1623730
+  },
+  {
+    "title": "Helldivers 2",
+    "description": "A chaotic, hilarious co-op third-person shooter about spreading managed democracy to the galaxy at the cost of your own squad.",
+    "genres": [
+      "Shooter",
+      "Co-op"
+    ],
+    "tags": [
+      "co-op",
+      "fast-paced",
+      "comedy",
+      "multiplayer"
+    ],
+    "release_date": "2024-02-08",
+    "developer": "Arrowhead Game Studios",
+    "review_score": 0.87,
+    "steam_appid": 553850
+  },
+  {
+    "title": "Baba Is You",
+    "description": "A mind-bending puzzle game where the rules of the level are physical blocks you can rearrange to change reality itself.",
+    "genres": [
+      "Puzzle"
+    ],
+    "tags": [
+      "puzzle",
+      "clever",
+      "singleplayer",
+      "indie"
+    ],
+    "release_date": "2019-03-13",
+    "developer": "Hempuli Oy",
+    "review_score": 0.97,
+    "steam_appid": 736260
+  },
+  {
+    "title": "Outer Wilds",
+    "description": "A curious, melancholic space exploration game on a 22-minute time loop, piecing together the mystery of a dying solar system.",
+    "genres": [
+      "Adventure",
+      "Puzzle"
+    ],
+    "tags": [
+      "exploration",
+      "story-rich",
+      "atmospheric",
+      "singleplayer"
+    ],
+    "release_date": "2019-05-28",
+    "developer": "Mobius Digital",
+    "review_score": 0.96,
+    "steam_appid": 753640
+  },
+  {
+    "title": "Kentucky Route Zero",
+    "description": "A magical-realist road trip through a surreal, glowing version of rural Kentucky. Slow, literary, and unforgettable.",
+    "genres": [
+      "Adventure"
+    ],
+    "tags": [
+      "story-rich",
+      "atmospheric",
+      "relaxing",
+      "singleplayer"
+    ],
+    "release_date": "2020-01-28",
+    "developer": "Cardboard Computer",
+    "review_score": 0.93,
+    "steam_appid": 231200
+  },
+  {
+    "title": "Night in the Woods",
+    "description": "A melancholic slice-of-life adventure about returning home after dropping out of college, full of warmth and dread in equal measure.",
+    "genres": [
+      "Adventure",
+      "RPG"
+    ],
+    "tags": [
+      "story-rich",
+      "emotional",
+      "singleplayer",
+      "narrative"
+    ],
+    "release_date": "2017-02-21",
+    "developer": "Infinite Fall",
+    "review_score": 0.92,
+    "steam_appid": 481510
+  }
+]
