@@ -1,0 +1,57 @@
+{
+  "run_id": "prototype-rawg-01",
+  "source": "rawg",
+  "generated_at": "2026-09-29T18:44:16+00:00",
+  "rows_total": 15,
+  "rows_valid": 15,
+  "rows_rejected": 0,
+  "rejection_reasons": {},
+  "warning_counts": {
+    "description contains appended non-English translation": 1
+  },
+  "coverage_valid_rows": {
+    "description": {
+      "present": 15,
+      "total": 15,
+      "pct": 100.0
+    },
+    "genres": {
+      "present": 15,
+      "total": 15,
+      "pct": 100.0
+    },
+    "scores": {
+      "present": 15,
+      "total": 15,
+      "pct": 100.0
+    },
+    "platforms": {
+      "present": 15,
+      "total": 15,
+      "pct": 100.0
+    }
+  },
+  "coverage_all_rows": {
+    "description": {
+      "present": 15,
+      "total": 15,
+      "pct": 100.0
+    },
+    "genres": {
+      "present": 15,
+      "total": 15,
+      "pct": 100.0
+    },
+    "scores": {
+      "present": 15,
+      "total": 15,
+      "pct": 100.0
+    },
+    "platforms": {
+      "present": 15,
+      "total": 15,
+      "pct": 100.0
+    }
+  },
+  "rejected": []
+}
