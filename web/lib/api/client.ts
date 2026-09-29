@@ -8,11 +8,18 @@
 //   below resolves against canned data in fixtures.ts instead of the network.
 //   `npm run dev` then works fully standalone. Leave it unset to hit the real
 //   API at NEXT_PUBLIC_API_URL.
+//
+// OBSERVABILITY (TM11-20): every call goes through `request()`, which stamps an
+// `x-request-id` and attaches the current Supabase access token. Both exist so a
+// server log line can name the user and be traced back to the click that caused
+// it. A fetch added outside `request()` silently loses both.
 import {
   fixtureFeedback,
   fixtureRecommend,
   fixtureSyncLibrary,
 } from "./fixtures";
+import { getAccessToken } from "../auth/token";
+import { newRequestId, setLastRequestId } from "../observability";
 import type {
   FeedbackRequest,
   LibraryResponse,
@@ -29,20 +36,47 @@ export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    /** Quote this in a bug report; it matches a server log line. */
+    readonly requestId: string | null = null,
   ) {
     super(message);
     this.name = "ApiError";
   }
 }
 
-async function post<TResponse>(path: string, body: unknown): Promise<TResponse> {
+async function request<TResponse>(
+  path: string,
+  init: RequestInit = {},
+): Promise<TResponse | null> {
+  const requestId = newRequestId();
+  setLastRequestId(requestId);
+
+  // Read, never subscribe: lib/auth/session.tsx is the only session subscriber
+  // and publishes here on every change, including TOKEN_REFRESHED.
+  const token = getAccessToken();
+
   const res = await fetch(`${API_URL}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      "x-request-id": requestId,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init.headers ?? {}),
+    },
   });
-  if (!res.ok) throw new ApiError(`POST ${path} failed`, res.status);
-  return res.json() as Promise<TResponse>;
+
+  // Prefer the server's id: on a proxy hop or a retry they can differ, and the
+  // one in the logs is the server's.
+  setLastRequestId(res.headers.get("x-request-id") ?? requestId);
+
+  if (!res.ok) {
+    throw new ApiError(
+      `${init.method ?? "GET"} ${path} failed`,
+      res.status,
+      res.headers.get("x-request-id"),
+    );
+  }
+  return res.status === 204 ? null : ((await res.json()) as TResponse);
 }
 
 /** POST /api/recommend — natural-language query in, ranked recommendations out. */
@@ -51,7 +85,10 @@ export async function recommend(query: string): Promise<RecommendResponse> {
     await sleep(1500); // mirror the API's real ~1.5s latency
     return fixtureRecommend(query);
   }
-  return post<RecommendResponse>("/api/recommend", { query });
+  return (await request<RecommendResponse>("/api/recommend", {
+    method: "POST",
+    body: JSON.stringify({ query }),
+  })) as RecommendResponse;
 }
 
 /** POST /api/feedback — persist a thumbs up/down. Returns 204 (no body). */
@@ -60,12 +97,10 @@ export async function sendFeedback(body: FeedbackRequest): Promise<void> {
     fixtureFeedback(body);
     return;
   }
-  const res = await fetch(`${API_URL}/api/feedback`, {
+  await request<void>("/api/feedback", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new ApiError("POST /api/feedback failed", res.status);
 }
 
 /** GET /api/library — the current user's owned games. */
@@ -73,9 +108,7 @@ export async function getLibrary(): Promise<LibraryResponse> {
   if (USE_FIXTURES) {
     return { items: [] };
   }
-  const res = await fetch(`${API_URL}/api/library`);
-  if (!res.ok) throw new ApiError("GET /api/library failed", res.status);
-  return res.json() as Promise<LibraryResponse>;
+  return (await request<LibraryResponse>("/api/library")) as LibraryResponse;
 }
 
 /** POST /api/library/sync — pull a public Steam library by steamID64. */
@@ -84,5 +117,8 @@ export async function syncLibrary(steamId: string): Promise<LibrarySyncResponse>
     await sleep(600);
     return fixtureSyncLibrary(steamId);
   }
-  return post<LibrarySyncResponse>("/api/library/sync", { steam_id: steamId });
+  return (await request<LibrarySyncResponse>("/api/library/sync", {
+    method: "POST",
+    body: JSON.stringify({ steam_id: steamId }),
+  })) as LibrarySyncResponse;
 }
