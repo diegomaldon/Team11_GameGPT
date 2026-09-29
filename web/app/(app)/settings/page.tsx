@@ -3,6 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMock } from "@/lib/mock/store";
+import { useAuth } from "@/lib/auth/session";
+import {
+  confirmationMatches,
+  deleteMyAccount,
+  DELETE_CONFIRMATION,
+} from "@/lib/account/delete";
 import { PLATFORMS, type Platform } from "@/lib/mock/data";
 import { describeSteamResult } from "@/lib/auth/steam";
 import { syncLibrary } from "@/lib/api/client";
@@ -332,9 +338,45 @@ function PreferencesCard() {
 }
 
 function DangerCard() {
-  const { signOut, resetAll } = useMock();
+  const { signOut } = useAuth();
   const router = useRouter();
   const [confirm, setConfirm] = useState(false);
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const canDelete = confirmationMatches(typed) && !busy;
+
+  function closeModal() {
+    if (busy) return;
+    setConfirm(false);
+    setTyped("");
+    setError(null);
+  }
+
+  async function handleDelete() {
+    setBusy(true);
+    setError(null);
+
+    const result = await deleteMyAccount();
+
+    if (result.status === "deleted") {
+      // The account is gone; this only clears the now-orphaned local session.
+      // Failing here must not leave the user staring at an app backed by
+      // nothing, so the redirect happens either way.
+      await signOut().catch(() => {});
+      router.replace("/signin");
+      return;
+    }
+
+    if (result.status === "unauthenticated") {
+      router.replace("/signin");
+      return;
+    }
+
+    setError(result.message);
+    setBusy(false);
+  }
 
   return (
     <Card className={cx("p-5 sm:p-6")}>
@@ -347,8 +389,8 @@ function DangerCard() {
         <Button
           variant="secondary"
           size="sm"
-          onClick={() => {
-            signOut();
+          onClick={async () => {
+            await signOut();
             router.replace("/signin");
           }}
         >
@@ -370,31 +412,50 @@ function DangerCard() {
 
       <Modal
         open={confirm}
-        onClose={() => setConfirm(false)}
+        onClose={closeModal}
         title="Delete account?"
         footer={
           <>
-            <Button variant="secondary" size="sm" onClick={() => setConfirm(false)}>
+            <Button variant="secondary" size="sm" onClick={closeModal} disabled={busy}>
               Cancel
             </Button>
             <Button
               variant="danger"
               size="sm"
-              onClick={() => {
-                resetAll();
-                signOut();
-                router.replace("/signin");
-              }}
+              onClick={handleDelete}
+              loading={busy}
+              disabled={!canDelete}
             >
               Delete everything
             </Button>
           </>
         }
       >
-        <p className="text-sm text-[var(--ink-soft)]">
-          This removes your profile, linked accounts, and library. In this demo
-          it just resets the mock data and signs you out.
-        </p>
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-[var(--ink-soft)]">
+            This permanently removes your profile, linked platform accounts, game
+            library, search history, recommendations and feedback. It cannot be
+            undone and there is no recovery.
+          </p>
+
+          {error && (
+            <p role="alert" className="rounded-xl bg-red-50 px-3 py-2.5 text-sm text-red-700">
+              {error}
+            </p>
+          )}
+
+          {/* A second click is not a decision. Typing the word is. */}
+          <Field label={`Type ${DELETE_CONFIRMATION} to confirm`} htmlFor="delete-confirm">
+            <TextInput
+              id="delete-confirm"
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              autoComplete="off"
+              placeholder={DELETE_CONFIRMATION}
+              disabled={busy}
+            />
+          </Field>
+        </div>
       </Modal>
     </Card>
   );
