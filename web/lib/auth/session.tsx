@@ -11,6 +11,7 @@ import {
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "../supabase";
+import { publishAccessToken } from "./token";
 
 /**
  * GameGPT · E2 Identity & Account Management
@@ -65,6 +66,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       resolved.current = true;
       setSession(next);
       setStatus(next ? "authenticated" : "anonymous");
+      // Mirror the token into a plain module so lib/api/client.ts can attach it
+      // without becoming a second getSession() caller. This function is the only
+      // place the session changes, so it is the only place that needs the line.
+      publishAccessToken(next?.access_token ?? null);
     }
 
     // Reads the persisted session out of localStorage and refreshes it if the access
@@ -123,6 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // immediately without waiting for the event to land.
     setSession(null);
     setStatus("anonymous");
+    publishAccessToken(null);
   }, []);
 
   const value = useMemo<AuthContextValue>(

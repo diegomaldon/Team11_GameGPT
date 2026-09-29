@@ -14,6 +14,7 @@ import httpx
 
 from api.config import get_settings
 from api.models import GameCandidate, Recommendation
+from api.observability.upstream import raise_for_status_safe
 
 _UNSET = object()
 
@@ -191,7 +192,9 @@ class LLMService:
             resp = await client.post(
                 url, params={"key": self._gemini_key}, json=payload
             )
-            resp.raise_for_status()
+            # The key rides in the query string; raise_for_status() would put it
+            # in the exception message. See observability/upstream.py.
+            raise_for_status_safe(resp, "gemini")
             body = resp.json()
         text = "".join(
             part.get("text", "")

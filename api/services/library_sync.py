@@ -19,6 +19,7 @@ import httpx
 from api.config import Settings, get_settings
 from api.db import repositories
 from api.models import LibraryItem, LibrarySyncResponse
+from api.observability.upstream import raise_for_status_safe
 
 log = logging.getLogger("gamegpt.library_sync")
 
@@ -86,13 +87,16 @@ class LibrarySyncService:
             "include_appinfo": 1,
             "format": "json",
         }
+        # NOT resp.raise_for_status(): httpx puts the full URL — including
+        # ?key=<STEAM_API_KEY> — into the exception message, which then lands in
+        # log.exception("library sync failed") upstairs. See observability/upstream.py.
         if self._http_client is not None:
             resp = await self._http_client.get(_STEAM_URL, params=params)
-            resp.raise_for_status()
+            raise_for_status_safe(resp, "steam")
             data = resp.json()
         else:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 resp = await client.get(_STEAM_URL, params=params)
-                resp.raise_for_status()
+                raise_for_status_safe(resp, "steam")
                 data = resp.json()
         return data.get("response", {}).get("games", []) or []

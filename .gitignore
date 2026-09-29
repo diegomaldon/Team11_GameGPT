@@ -18,6 +18,13 @@ npm-debug.log*
 # Vitest coverage output — uploaded as a CI artifact, never committed.
 coverage/
 
+# Playwright — report, per-run outputs, screenshots, and local browser binaries.
+web/playwright-report/
+web/test-results/
+web/e2e/screens/
+/test-results/
+.playwright/
+
 # Env — never commit real secrets
 .env
 .env.local

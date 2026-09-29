@@ -28,3 +28,7 @@ services:
         sync: false
       - key: RAWG_API_KEY
         sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: SENTRY_ENVIRONMENT
+        value: production
