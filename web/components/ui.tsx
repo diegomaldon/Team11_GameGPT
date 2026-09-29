@@ -217,9 +217,21 @@ export function Modal({
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
+  // onClose is almost always an inline arrow or a function declared in the caller's
+  // body, so its identity changes on every parent render. Holding it in a ref keeps
+  // the effect below depending on `open` alone.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
+  // Deps are [open] on purpose. With onClose in the list this effect re-ran on every
+  // keystroke in a modal that renders a controlled input — each run called
+  // ref.current?.focus(), which moved focus off the field and made typing anything
+  // longer than one character impossible.
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCloseRef.current();
     document.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -228,7 +240,7 @@ export function Modal({
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
   return (
