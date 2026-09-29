@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Clean, modern, light. One accent, generous whitespace, no gradients. ── */
+
+:root {
+  --bg: #f8f8f9; /* page: a hair off-white so white cards read as surfaces */
+  --surface: #ffffff;
+  --border: #e8e8ec;
+  --ink: #101014; /* near-black, not pure black */
+  --ink-soft: #52525b;
+  --ink-faint: #8a8a94;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Consistent, visible keyboard focus everywhere. */
+  :focus-visible {
+    outline: 2px solid theme("colors.accent.600");
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: theme("colors.accent.100");
+    color: var(--ink);
+  }
+}
+
+@layer utilities {
+  /* Skeleton shimmer for the loading state (transform-only; GPU-friendly). */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(255 255 255 / 0.65),
+      transparent
+    );
+    animation: shimmer 1.4s infinite;
+  }
+}
+
+/* Respect users who ask for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .shimmer::after {
+    animation: none;
+    background: rgb(0 0 0 / 0.03);
+    transform: none;
+  }
+}

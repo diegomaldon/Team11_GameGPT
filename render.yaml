@@ -1,0 +1,30 @@
+# Render blueprint for the GameGPT API.
+# Auto-deploys from `main` once the repo is connected in the Render dashboard.
+# Free tier sleeps after ~15 min idle and wakes in ~1 min — see README before
+# any live demo; budget the paid Starter tier or switch hosts.
+services:
+  - type: web
+    name: gamegpt-api
+    runtime: python
+    plan: free # NOTE: upgrade to "starter" before the first live demo.
+    rootDir: .
+    buildCommand: pip install -r api/requirements.txt
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      # Render auto-provides RENDER_GIT_COMMIT; config.py reads it, so no
+      # GIT_COMMIT entry is needed here. Everything else is set per-environment
+      # in the dashboard (sync: false = not committed to the blueprint).
+      - key: DEV_USER_ID
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: STEAM_API_KEY
+        sync: false
+      - key: RAWG_API_KEY
+        sync: false

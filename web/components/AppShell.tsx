@@ -1,0 +1,155 @@
+"use client";
+
+import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
+import { useMock } from "@/lib/mock/store";
+import { useAuth } from "@/lib/auth/session";
+import { Avatar, cx } from "./ui";
+import { Compass, Controller, Gear, Library, LogOut } from "./icons";
+
+const NAV = [
+  { href: "/", label: "Discover", Icon: Compass },
+  { href: "/library", label: "Library", Icon: Library },
+  { href: "/settings", label: "Settings", Icon: Gear },
+] as const;
+
+function isActive(pathname: string, href: string) {
+  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+}
+
+// user_metadata is provider-supplied JSON, so every field is unknown until checked.
+// Blank strings count as absent — an empty full_name should fall through, not render.
+function pickName(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed === "" ? null : trimmed;
+}
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  const { state } = useMock();
+  const { user, signOut } = useAuth();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // No auth gate here any more: <RequireAuth> in app/(app)/layout.tsx owns that, and this
+  // component never renders until it says the session is real.
+
+  // Same coalesce order as handle_new_user() in migration 20260922120000: our own
+  // registration form sends display_name, Google sends full_name and name. Checking only
+  // display_name meant a Google user fell through to the mock profile and the sidebar
+  // showed a fake name next to their real email.
+  const meta = user?.user_metadata as Record<string, unknown> | undefined;
+  const displayName =
+    pickName(meta?.display_name) ??
+    pickName(meta?.full_name) ??
+    pickName(meta?.name) ??
+    state.profile.name;
+  const email = user?.email ?? state.profile.email;
+
+  async function handleSignOut() {
+    await signOut();
+    router.replace("/signin");
+  }
+
+  return (
+    <div className="min-h-dvh">
+      {/* ── Desktop sidebar ── */}
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-[var(--border)] bg-white px-3 py-5 md:flex">
+        <Link href="/" className="mb-6 flex items-center gap-2.5 px-2">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--ink)] text-white">
+            <Controller className="h-5 w-5" />
+          </span>
+          <span className="font-display text-lg font-bold tracking-tight">
+            GameGPT
+          </span>
+        </Link>
+
+        <nav className="flex flex-1 flex-col gap-1">
+          {NAV.map(({ href, label, Icon }) => {
+            const active = isActive(pathname, href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={cx(
+                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                  active
+                    ? "bg-accent-50 text-accent-700"
+                    : "text-[var(--ink-soft)] hover:bg-neutral-100 hover:text-[var(--ink)]",
+                )}
+              >
+                <Icon className="h-5 w-5" />
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="mt-2 flex items-center gap-2.5 rounded-xl border border-[var(--border)] p-2.5">
+          <Avatar name={displayName} size={34} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-semibold">{displayName}</p>
+            <p className="truncate text-xs text-[var(--ink-faint)]">
+              {email}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            aria-label="Sign out"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-neutral-100 hover:text-[var(--ink)]"
+          >
+            <LogOut className="h-[18px] w-[18px]" />
+          </button>
+        </div>
+      </aside>
+
+      {/* ── Mobile top bar ── */}
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--border)] bg-white/90 px-5 py-3 backdrop-blur md:hidden">
+        <Link href="/" className="flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--ink)] text-white">
+            <Controller className="h-[18px] w-[18px]" />
+          </span>
+          <span className="font-display text-base font-bold tracking-tight">
+            GameGPT
+          </span>
+        </Link>
+        <Link href="/settings" aria-label="Account settings">
+          <Avatar name={displayName} size={32} />
+        </Link>
+      </header>
+
+      {/* ── Content ── */}
+      <main className="md:pl-60">
+        <div className="mx-auto w-full max-w-3xl px-5 py-8 pb-28 sm:px-6 md:pb-14">
+          {children}
+        </div>
+      </main>
+
+      {/* ── Mobile bottom nav ── */}
+      <nav
+        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-t border-[var(--border)] bg-white/95 backdrop-blur md:hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        {NAV.map(({ href, label, Icon }) => {
+          const active = isActive(pathname, href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              aria-current={active ? "page" : undefined}
+              className={cx(
+                "flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors",
+                active ? "text-accent-700" : "text-[var(--ink-faint)]",
+              )}
+            >
+              <Icon className="h-[22px] w-[22px]" />
+              {label}
+            </Link>
+          );
+        })}
+      </nav>
+    </div>
+  );
+}
