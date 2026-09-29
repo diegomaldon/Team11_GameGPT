@@ -34,6 +34,10 @@ function startSteamLink() {
 
 export default function SettingsPage() {
   const { state } = useMock();
+  // The session is real even when NEXT_PUBLIC_USE_FIXTURES is on — only the game data
+  // is canned. Reading the email off the mock profile put a fake address in the footer
+  // while the sidebar showed the real one, on the same screen.
+  const { user } = useAuth();
   return (
     <>
       <PageHeader title="Settings" subtitle="Manage your profile, linked platforms, and preferences." />
@@ -44,7 +48,7 @@ export default function SettingsPage() {
         <DangerCard />
       </div>
       <p className="mt-6 text-center text-xs text-[var(--ink-faint)]">
-        Signed in as {state.profile.email} · demo account
+        Signed in as {user?.email ?? state.profile.email}
       </p>
     </>
   );
