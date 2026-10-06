@@ -6,6 +6,7 @@
 // the network, still simulating the ~1.5s recommend latency.
 import type {
   FeedbackRequest,
+  LibrarySyncJob,
   LibrarySyncResponse,
   RecommendResponse,
 } from "./types";
@@ -57,5 +58,45 @@ export function fixtureFeedback(body: FeedbackRequest): void {
 export function fixtureSyncLibrary(steamId: string): LibrarySyncResponse {
   // Deterministic count derived from the id so the UI shows something plausible.
   const synced = 12 + (steamId.length % 7);
-  return { synced, source: "seed" };
+  return { synced, source: "seed", total: synced, failed: [] };
+}
+
+// Fixture-mode import job (TM11-49): advances one chunk per poll and includes one
+// per-title failure, so the progress bar and the failure list can be seen without an API.
+const FIXTURE_TOTAL = 48;
+const FIXTURE_CHUNK = 12;
+const fixtureJobs = new Map<string, LibrarySyncJob>();
+
+export function fixtureStartSync(steamId: string): LibrarySyncJob {
+  const job: LibrarySyncJob = {
+    job_id: `fixture-${steamId}-${Date.now()}`,
+    state: "fetching",
+    total: 0,
+    processed: 0,
+    synced: 0,
+    failed: [],
+    source: "seed",
+    started_at: new Date().toISOString(),
+  };
+  fixtureJobs.set(job.job_id, job);
+  return { ...job };
+}
+
+export function fixtureGetSyncJob(jobId: string): LibrarySyncJob {
+  const job = fixtureJobs.get(jobId);
+  if (!job) throw new Error(`unknown fixture job ${jobId}`);
+  if (job.state === "fetching") {
+    Object.assign(job, { state: "importing", total: FIXTURE_TOTAL });
+  } else if (job.state === "importing") {
+    const processed = Math.min(FIXTURE_TOTAL, (job.processed ?? 0) + FIXTURE_CHUNK);
+    const failed =
+      processed >= 24
+        ? [{ steam_appid: 999999999, title: "Delisted Demo", reason: "invalid appid" }]
+        : [];
+    Object.assign(job, { processed, failed, synced: processed - failed.length });
+    if (processed === FIXTURE_TOTAL) {
+      Object.assign(job, { state: "succeeded", finished_at: new Date().toISOString() });
+    }
+  }
+  return { ...job, failed: [...(job.failed ?? [])] };
 }

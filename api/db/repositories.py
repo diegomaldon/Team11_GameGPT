@@ -11,7 +11,7 @@ router can turn it into a structured response instead of looping pointlessly.
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 from uuid import UUID
 
 import psycopg
@@ -174,3 +174,83 @@ async def upsert_owned_games(
             )
         await conn.commit()
     return len(params)
+
+
+# ─────────────────────── library import (TM11-49) ───────────────────────
+
+# Rows per savepoint. Progress is reported after each chunk, so this is also the
+# UI's update granularity: a 500-title library moves in 10 visible steps.
+IMPORT_CHUNK = 50
+
+_OWNED_UPSERT = (
+    "insert into owned_games (user_id, platform, steam_appid, title) "
+    "values (%s, %s, %s, %s) "
+    "on conflict (user_id, platform, steam_appid) do update set "
+    "title = excluded.title"
+)
+
+# A bad title (out-of-range id, bad text, constraint) — isolate it and carry on.
+# Connection-level errors (OperationalError / InterfaceError) are NOT in here:
+# they abort the run, and the outer transaction rolls everything back.
+_ROW_ERRORS = (psycopg.DataError, psycopg.IntegrityError, psycopg.ProgrammingError)
+
+ImportProgress = Callable[[int, int, list[tuple[Mapping[str, Any], str]]], None]
+
+
+def _row_error_reason(exc: Exception) -> str:
+    diag = getattr(exc, "diag", None)
+    msg = getattr(diag, "message_primary", None) or next(iter(str(exc).splitlines()), "")
+    return f"{type(exc).__name__}: {msg}" if msg else type(exc).__name__
+
+
+async def import_owned_games(
+    user_id: UUID,
+    rows: Sequence[Mapping[str, Any]],
+    platform: str = "steam",
+    *,
+    chunk_size: int = IMPORT_CHUNK,
+    on_progress: ImportProgress | None = None,
+    conn_factory: Callable[[], Any] | None = None,
+) -> tuple[int, list[tuple[Mapping[str, Any], str]]]:
+    """Import a whole library in ONE transaction, isolating per-title failures.
+
+    - Each chunk runs in a savepoint. If it fails, the chunk is replayed row by
+      row (each in its own savepoint) so only the offending titles are dropped.
+    - Nothing commits until every chunk is done. Any other error (connection
+      lost, server gone) propagates out of the outer block, which rolls back:
+      a failed run leaves the user's previous library exactly as it was.
+
+    Returns (synced, failures) where failures is [(row, reason)]. Not wrapped
+    in @retry: a retry would replay progress callbacks the UI already showed.
+    """
+    factory = conn_factory or connection
+    synced = 0
+    failures: list[tuple[Mapping[str, Any], str]] = []
+
+    def params(row: Mapping[str, Any]) -> tuple:
+        return (str(user_id), platform, row.get("steam_appid"), row.get("title"))
+
+    async with factory() as conn:
+        async with conn.transaction():
+            for start in range(0, len(rows), chunk_size):
+                chunk = rows[start : start + chunk_size]
+                try:
+                    async with conn.transaction():
+                        async with conn.cursor() as cur:
+                            await cur.executemany(_OWNED_UPSERT, [params(r) for r in chunk])
+                    synced += len(chunk)
+                except _ROW_ERRORS:
+                    for row in chunk:
+                        try:
+                            async with conn.transaction():
+                                async with conn.cursor() as cur:
+                                    await cur.execute(_OWNED_UPSERT, params(row))
+                            synced += 1
+                        except _ROW_ERRORS as exc:
+                            reason = _row_error_reason(exc)
+                            log.warning("owned_games import: skip appid=%s: %s",
+                                        row.get("steam_appid"), reason)
+                            failures.append((row, reason))
+                if on_progress is not None:
+                    on_progress(start + len(chunk), synced, failures)
+    return synced, failures

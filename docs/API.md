@@ -129,15 +129,63 @@ Import a public Steam library by steamID64.
 
 **200**
 ```json
-{ "synced": 5, "source": "seed" }
+{ "synced": 498, "source": "steam", "total": 500,
+  "failed": [{ "steam_appid": 7, "title": "Broken Game", "reason": "DataError: integer out of range" }] }
 ```
 | Field | Type | Notes |
 |-------|------|-------|
 | `synced` | int | rows upserted / counted |
 | `source` | `"steam"` \| `"seed"` | `"steam"` = real API call; `"seed"` = no-key fallback |
+| `total` | int | titles the source returned (`synced` + `failed`) |
+| `failed` | `SyncFailure[]` | per-title failures (TM11-49); they do not abort the run |
 
 - With `STEAM_API_KEY` set: calls `IPlayerService/GetOwnedGames`, upserts
   `owned_games`, returns `source: "steam"`.
 - Without a key: reuses seeded `owned_games`, else a small built-in fallback set,
   returns `source: "seed"`.
+- The import is one transaction. A bad title is skipped and listed in `failed`,
+  but if the run itself fails (Steam error, DB connection lost) nothing is
+  committed and the previous library is unchanged.
 - **502** `sync_failed` on a Steam/API error.
+
+---
+
+## `POST /api/library/sync/jobs`
+
+Same import as `POST /api/library/sync`, but run in the background so the UI
+can show progress (TM11-49). If the user already has an import running, that
+job is returned instead of starting a second one.
+
+**Request:** same as `/api/library/sync`.
+
+**202:** a `LibrarySyncJob` (below), normally in state `queued`.
+
+## `GET /api/library/sync/jobs/{job_id}`
+
+Poll an import. The web client polls every 750 ms (`runLibrarySync` in
+`web/lib/api/client.ts`).
+
+**200**
+```json
+{
+  "job_id": "02373f58-8e02-4207-af0b-6ce6ee6cef44",
+  "state": "importing",
+  "total": 500, "processed": 150, "synced": 149,
+  "failed": [{ "steam_appid": 7, "title": "Broken Game", "reason": "DataError: integer out of range" }],
+  "source": "steam", "error": null,
+  "started_at": "2026-10-06T14:31:37Z", "finished_at": null
+}
+```
+| `state` | Meaning |
+|---------|---------|
+| `queued` | accepted, not started |
+| `fetching` | waiting on the Steam API (`total` is still 0) |
+| `importing` | writing `owned_games`; `processed` goes up by one chunk (50 titles) at a time |
+| `succeeded` | committed; there may still be per-title entries in `failed` |
+| `failed` | rolled back, so the previous library is unchanged; `error` is a safe user-facing message (the cause is only logged) |
+
+- **404** `job_not_found`: unknown id, or another user's job.
+- Jobs live in the API process's memory, so a restart forgets them. The client
+  treats a 404 mid-poll as "lost track". An import that was cut off by a restart
+  never committed.
+

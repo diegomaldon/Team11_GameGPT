@@ -7,6 +7,7 @@ If a shape needs to change, the orchestrator changes it here and re-generates
 
 from __future__ import annotations
 
+from datetime import datetime
 from enum import Enum
 from typing import Optional
 from uuid import UUID
@@ -90,11 +91,45 @@ class LibrarySyncRequest(BaseModel):
                           description="Public steamID64, e.g. 76561197960287930.")
 
 
+class SyncFailure(BaseModel):
+    """One title that could not be imported. The rest of the run still lands. TM11-49."""
+
+    steam_appid: Optional[int] = None
+    title: Optional[str] = None
+    reason: str
+
+
 class LibrarySyncResponse(BaseModel):
     """Result of a sync: how many rows landed and where they came from."""
 
     synced: int
     source: str = Field(..., description="'steam' for a real API call, 'seed' for the fallback.")
+    total: int = Field(0, description="Titles the source returned (synced + failed).")
+    failed: list[SyncFailure] = Field(default_factory=list,
+                                      description="Per-title failures; they do not abort the run.")
+
+
+class SyncJobState(str, Enum):
+    queued = "queued"
+    fetching = "fetching"      # waiting on the Steam API
+    importing = "importing"    # writing owned_games; processed/total advance
+    succeeded = "succeeded"    # committed (possibly with per-title failures)
+    failed = "failed"          # rolled back: the previous library is unchanged
+
+
+class LibrarySyncJob(BaseModel):
+    """A background library sync, polled by the UI for progress. TM11-49."""
+
+    job_id: UUID
+    state: SyncJobState
+    total: int = 0
+    processed: int = Field(0, description="Titles handled so far, imported or failed.")
+    synced: int = 0
+    failed: list[SyncFailure] = Field(default_factory=list)
+    source: Optional[str] = None
+    error: Optional[str] = Field(None, description="Set when state is 'failed'.")
+    started_at: datetime
+    finished_at: Optional[datetime] = None
 
 
 class LibraryItem(BaseModel):
