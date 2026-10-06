@@ -36,17 +36,21 @@ function toPlatform(value: string | null | undefined): GamePlatform {
 }
 
 /**
- * Title key for matching copies across platforms. Case, trademark marks and
- * punctuation differ between stores ("DOOM™" vs "Doom"), so they are ignored.
+ * Title key for matching copies across platforms. Case, trademark marks,
+ * accents and punctuation differ between stores ("DOOM™" vs "Doom"), so they
+ * are ignored. Letters from every script are kept, so "東方 2" and "鬼武者 2"
+ * stay different games instead of both matching on "2".
  */
 export function normalizeTitle(title: string): string {
   return title
     // Strip marks first: NFKD would otherwise turn "™" into the letters "TM".
     .replace(/[™®©]/g, "")
     .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
+    // Latin accents only. Other scripts' marks carry meaning (ゲ vs ケ), so
+    // they stay, which is why \p{M} is kept below.
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[^\p{L}\p{M}\p{N}]+/gu, " ")
     .trim();
 }
 

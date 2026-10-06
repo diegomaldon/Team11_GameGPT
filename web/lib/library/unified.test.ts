@@ -59,6 +59,20 @@ describe("mergeLibrary (TM11-50 AC: owned titles listed with per-platform badges
     expect(rows[0].manualIds).toEqual(["g1"]);
   });
 
+  it("keeps non-Latin titles apart instead of matching on their digits", () => {
+    // Before: both normalized to "2", merged, and Remove deleted the wrong game.
+    const rows = mergeLibrary([steam("鬼武者 2", 111)], [manual("g1", "東方 2", "xbox")]);
+    expect(rows).toHaveLength(2);
+    expect(rows.find((r) => r.title === "鬼武者 2")?.platforms).toEqual(["steam"]);
+    expect(rows.find((r) => r.title === "東方 2")?.platforms).toEqual(["xbox"]);
+  });
+
+  it("still matches a non-Latin game owned on two platforms", () => {
+    const rows = mergeLibrary([steam("Ведьмак 3", 292030)], [manual("g1", "ВЕДЬМАК 3", "xbox")]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].platforms).toEqual(["steam", "xbox"]);
+  });
+
   it("keeps two different Steam apps apart even when they share a name", () => {
     const rows = mergeLibrary([steam("HITMAN", 236870), steam("HITMAN", 863550)], []);
     expect(rows).toHaveLength(2);
@@ -143,6 +157,12 @@ describe("countByPlatform", () => {
 describe("normalizeTitle", () => {
   it("drops case, marks, accents and punctuation", () => {
     expect(normalizeTitle("Pokémon™: Let's Go!")).toBe("pokemon let s go");
+  });
+
+  it("keeps letters from every script, including Japanese voicing marks", () => {
+    expect(normalizeTitle("東方 2")).toBe("東方 2");
+    // ゲ and ケ are different sounds; the mark that tells them apart must survive.
+    expect(normalizeTitle("ゲーム")).not.toBe(normalizeTitle("ケーム"));
   });
 });
 
