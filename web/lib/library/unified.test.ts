@@ -94,6 +94,33 @@ describe("mergeLibrary (TM11-50 AC: owned titles listed with per-platform badges
     expect(mergeLibrary([steam("", 440)], [])[0].title).toBe("App 440");
   });
 
+  it("keeps each row's key when other games are added or removed", () => {
+    // Keys are React identity. If they shift, removing one game hands its DOM
+    // node (and keyboard focus on its Remove button) to the next game.
+    const imported = [steam("Rust", 252490)];
+    const before = mergeLibrary(imported, [
+      manual("a", "Halo Infinite", "xbox"),
+      manual("b", "Celeste", "playstation"),
+    ]);
+    const removed = mergeLibrary(imported, [manual("b", "Celeste", "playstation")]);
+    const added = mergeLibrary(imported, [
+      manual("c", "Hades", "epic"), // addGame prepends
+      manual("a", "Halo Infinite", "xbox"),
+      manual("b", "Celeste", "playstation"),
+    ]);
+    const keyOf = (rows: typeof before, title: string) => rows.find((r) => r.title === title)?.key;
+    for (const rows of [removed, added]) {
+      expect(keyOf(rows, "Celeste")).toBe(keyOf(before, "Celeste"));
+      expect(keyOf(rows, "Rust")).toBe(keyOf(before, "Rust"));
+      expect(new Set(rows.map((r) => r.key)).size).toBe(rows.length);
+    }
+  });
+
+  it("sorts numbered titles in number order", () => {
+    const rows = mergeLibrary([], [manual("a", "Game 10", "steam"), manual("b", "Game 2", "steam")]);
+    expect(rows.map((r) => r.title)).toEqual(["Game 2", "Game 10"]);
+  });
+
   it("handles 5,000 titles", () => {
     const items = Array.from({ length: 5000 }, (_, i) => steam(`Game ${i}`, 1000 + i, i));
     const rows = mergeLibrary(items, [manual("g1", "Game 42", "xbox")]);

@@ -11,7 +11,7 @@
 // the list follows window scroll rather than owning a scrollbox. Rows have a
 // fixed height, which keeps the math exact: row i sits at i * rowHeight.
 
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 type Range = { start: number; end: number };
 
@@ -54,7 +54,9 @@ export function VirtualList<T>({
     end: Math.min(items.length, INITIAL_ROWS),
   });
 
-  useEffect(() => {
+  // Layout effect, not a plain effect: it measures before the browser paints, so
+  // a filter that shrinks the list never shows a frame of empty space.
+  useLayoutEffect(() => {
     const update = () => {
       const el = ref.current;
       if (!el) return;

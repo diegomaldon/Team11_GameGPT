@@ -106,7 +106,17 @@ export function mergeLibrary(imported: LibraryItem[], manual: OwnedGame[]): Unif
 
     let row = key !== undefined ? rows.get(key) : undefined;
     if (!row) {
-      key = `row-${rows.size}`;
+      // Derived from the game, never from position. React uses this as identity,
+      // and a position-based key would shift when a game is added or removed,
+      // handing one game's row (and keyboard focus) to the next.
+      key =
+        e.appid !== undefined
+          ? `app-${e.appid}`
+          : norm
+            ? `title-${norm}`
+            : e.manualId
+              ? `manual-${e.manualId}`
+              : `row-${rows.size}`;
       row = {
         key,
         title: e.title || (e.appid !== undefined ? `App ${e.appid}` : "Untitled"),
@@ -134,9 +144,13 @@ export function mergeLibrary(imported: LibraryItem[], manual: OwnedGame[]): Unif
     row.platforms.sort((a, b) => PLATFORM_ORDER.indexOf(a) - PLATFORM_ORDER.indexOf(b));
   }
   return out.sort(
-    (a, b) => b.playtimeMinutes - a.playtimeMinutes || a.title.localeCompare(b.title),
+    (a, b) => b.playtimeMinutes - a.playtimeMinutes || byTitle.compare(a.title, b.title),
   );
 }
+
+// One collator for every comparison: localeCompare builds one per call, which
+// adds up over a 5,000-title sort. `numeric` puts "Game 2" before "Game 10".
+const byTitle = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
 
 /** Rows per platform for the filter chips, in one pass rather than one per chip. */
 export function countByPlatform(rows: UnifiedGame[]): Record<GamePlatform, number> {

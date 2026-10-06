@@ -103,6 +103,27 @@ describe("Library page: owned titles with per-platform badges", () => {
   });
 });
 
+it("does not leave focus on another game's Remove button after a removal", async () => {
+  const halo: OwnedGame = { id: "a", title: "Halo Infinite", platform: "xbox" };
+  const celeste: OwnedGame = { id: "b", title: "Celeste", platform: "playstation" };
+  const view = setup({ manual: [halo, celeste] });
+  await screen.findByRole("list", { name: "Owned games" });
+
+  await userEvent.click(screen.getByRole("button", { name: "Remove Halo Infinite" }));
+  // The store drops the game; the page re-renders without it.
+  vi.mocked(useMock).mockReturnValue({
+    state: { games: [celeste] },
+    hydrated: true,
+    addGame: vi.fn(),
+    removeGame,
+  } as unknown as ReturnType<typeof useMock>);
+  view.rerender(<LibraryPage />);
+
+  expect(screen.queryByText("Halo Infinite")).toBeNull();
+  // Enter again must not delete a game the user never picked.
+  expect(document.activeElement?.getAttribute("aria-label")).not.toBe("Remove Celeste");
+});
+
 describe("Library page: empty state prompts linking a platform", () => {
   it("links to Settings when nothing is owned anywhere", async () => {
     setup();
