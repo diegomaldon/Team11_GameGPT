@@ -73,6 +73,17 @@ describe("SyncProgress (TM11-49)", () => {
     expect(onRetry).toHaveBeenCalledOnce();
   });
 
+  it("shows the server's reason when the job carries one, e.g. a private profile", () => {
+    const message =
+      "Your Steam game details are private. Set them to Public in Steam Privacy Settings.";
+    render(
+      <SyncProgress
+        job={job({ state: "failed", error: message, error_code: "steam_profile_private" })}
+      />,
+    );
+    expect(screen.getByRole("alert").textContent).toBe(message);
+  });
+
   it("shows a tracking error even with no job", () => {
     render(<SyncProgress job={null} error="We lost track of the import." />);
     expect(screen.getByRole("alert").textContent).toContain("We lost track of the import.");

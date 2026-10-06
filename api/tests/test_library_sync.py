@@ -28,7 +28,7 @@ from api.services.library_sync import (
     SyncJobRegistry,
     new_job,
 )
-from api.services.steam_client import OwnedGame, SteamClient
+from api.services.steam_client import OwnedGame, SteamClient, SteamPrivateProfileError
 
 pytestmark = pytest.mark.asyncio
 
@@ -263,8 +263,31 @@ async def test_registry_marks_failed_job_with_safe_message(fake_db: FakeDB) -> N
     await reg.wait(job.job_id)
     assert job.state is SyncJobState.failed
     assert job.error == SYNC_FAILED_MESSAGE
+    assert job.error_code == "sync_failed"
     assert fake_db.committed == {(str(USER), "steam", 1): "Kept"}
     assert reg.start(USER, STEAM_ID).job_id != job.job_id  # a retry gets a fresh job
+
+
+async def test_private_profile_job_carries_the_explainable_error(
+    fake_db: FakeDB, caplog: pytest.LogCaptureFixture
+) -> None:
+    """TM11-46 AC-02 on the path Settings uses: the job, not POST /library/sync."""
+    fake_db.committed = {(str(USER), "steam", 1): "Kept"}
+    reg = SyncJobRegistry(service_factory=lambda: service(
+        steam_client({"response": {}})))  # what Steam sends for a private profile
+    with caplog.at_level("INFO"):
+        job = reg.start(USER, STEAM_ID)
+        await reg.wait(job.job_id)
+
+    assert job.state is SyncJobState.failed
+    assert job.error_code == "steam_profile_private"
+    assert job.error == SteamPrivateProfileError(STEAM_ID).user_message
+    assert fake_db.committed == {(str(USER), "steam", 1): "Kept"}
+    # A private profile is a user setting, not a crash: no stack trace, and the
+    # steamID does not reach the job-runner's log line.
+    runner = [r for r in caplog.records if "library sync job" in r.getMessage()]
+    assert runner and all(r.exc_info is None for r in runner)
+    assert all(STEAM_ID not in r.getMessage() for r in runner)
 
 
 async def test_registry_prunes_old_finished_jobs(fake_db: FakeDB) -> None:

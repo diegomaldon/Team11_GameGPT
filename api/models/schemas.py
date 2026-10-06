@@ -128,6 +128,11 @@ class LibrarySyncJob(BaseModel):
     failed: list[SyncFailure] = Field(default_factory=list)
     source: Optional[str] = None
     error: Optional[str] = Field(None, description="Set when state is 'failed'.")
+    error_code: Optional[str] = Field(
+        None,
+        description="Stable code the UI branches on, e.g. 'steam_profile_private'. "
+        "Set when state is 'failed'.",
+    )
     started_at: datetime
     finished_at: Optional[datetime] = None
 

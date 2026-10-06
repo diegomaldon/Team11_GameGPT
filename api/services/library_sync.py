@@ -38,7 +38,7 @@ from api.models import (
     SyncFailure,
     SyncJobState,
 )
-from api.services.steam_client import OwnedGame, SteamClient
+from api.services.steam_client import STEAM_LIMITER, OwnedGame, SteamClient, SteamError
 
 log = logging.getLogger("gamegpt.library_sync")
 
@@ -67,7 +67,7 @@ class LibrarySyncService:
         # Injected client lets tests fake the Steam hop; None => real network.
         self._http_client = http_client
         self._steam = steam_client or SteamClient(
-            settings=self._settings, http_client=http_client
+            settings=self._settings, http_client=http_client, limiter=STEAM_LIMITER
         )
 
     async def sync(
@@ -185,6 +185,13 @@ def _split_valid(
     return rows, invalid
 
 
+def _fail(job: LibrarySyncJob, code: str, message: str) -> None:
+    job.state = SyncJobState.failed
+    job.error_code = code
+    job.error = message
+    job.finished_at = _now()
+
+
 def _finish(job: LibrarySyncJob) -> LibrarySyncResponse:
     job.state = SyncJobState.succeeded
     job.finished_at = _now()
@@ -240,11 +247,16 @@ class SyncJobRegistry:
     async def _run(self, user_id: UUID, steam_id: str, job: LibrarySyncJob) -> None:
         try:
             await self._service_factory().sync(user_id, steam_id, job)
+        except SteamError as exc:
+            # Expected and explainable (private profile, bad id, Steam down), the
+            # same cases POST /api/library/sync maps to 403/422/502/503. Keep the
+            # typed message so Settings can show it. No stack trace: a user
+            # setting is not a crash, and the exception text carries the steamID.
+            log.warning("library sync job rejected: job=%s error=%s", job.job_id, exc.code)
+            _fail(job, exc.code, exc.user_message)
         except Exception:
             log.exception("library sync job failed: job=%s", job.job_id)
-            job.state = SyncJobState.failed
-            job.error = SYNC_FAILED_MESSAGE
-            job.finished_at = _now()
+            _fail(job, "sync_failed", SYNC_FAILED_MESSAGE)
         finally:
             self._tasks.pop(job.job_id, None)
 

@@ -61,11 +61,22 @@ render verbatim — it never contains an id, a key, or a URL.
 4xx means someone can fix it; 5xx means retry. That split is what lets the
 library view show a useful message instead of a spinner that never resolves.
 
+Settings imports through the background job (`POST /api/library/sync/jobs`,
+TM11-49), not the endpoint above. A job that fails on a Steam error ends with
+`state: "failed"`, the same code in `error_code`, and `message` in `error`, which
+`SyncProgress` renders. It is logged at warning with no stack trace, since a
+private profile is a user setting, not a crash.
+
 ## Rate limiting
 
 Steam publishes a ceiling of **100,000 calls per key per day** — about 1.16/s
 sustained — and no documented per-second limit. The client paces at **1 req/s**
 (`_STEAM_MIN_INTERVAL`), which stays under the ceiling even if a caller loops.
+
+The quota is per key, so the pacing is per process. `LibrarySyncService` builds a
+client per request and per job, and every one shares `STEAM_LIMITER`, so two
+users syncing at once still queue at 1 req/s. A `SteamClient` built on its own
+(tests, scripts) gets a private limiter.
 
 Pacing is applied **inside** the retry loop, so a retry storm is throttled too.
 That is the moment it matters most: a 429 answered by three immediate retries is

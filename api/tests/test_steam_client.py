@@ -21,7 +21,9 @@ import httpx
 import pytest
 
 from api.config import Settings
+from api.services.rate_limiter import AsyncRateLimiter
 from api.services.steam_client import (
+    STEAM_LIMITER,
     OwnedGame,
     SteamClient,
     SteamInvalidSteamIDError,
@@ -160,6 +162,18 @@ class TestAC1OwnedAppidsWithPlaytime:
         )
         assert [g.appid for g in await client.get_owned_games(STEAM_ID)] == [220]
 
+    async def test_dropped_entries_are_logged_not_silent(self, caplog):
+        """The import's total should still be explainable against Steam's count."""
+        client = _client(
+            _serves({"response": {"game_count": 2, "games": [
+                {"appid": 220, "playtime_forever": 10},
+                {"appid": "620", "playtime_forever": 5},
+            ]}})
+        )
+        with caplog.at_level("WARNING", logger="gamegpt.steam"):
+            await client.get_owned_games(STEAM_ID)
+        assert any("dropped 1 entries" in r.getMessage() for r in caplog.records)
+
     async def test_garbage_playtime_becomes_zero_not_a_crash(self):
         client = _client(
             _serves({"response": {"game_count": 2, "games": [
@@ -259,6 +273,25 @@ class TestAC3RateLimits:
         # First call goes straight through; each later one waits out the window.
         assert len(sleep.calls) == 2
         assert all(s == pytest.approx(1.0) for s in sleep.calls)
+
+    async def test_clients_sharing_a_limiter_are_paced_together(self):
+        """The quota is per key, so two syncs at once must queue behind each other."""
+        sleep = RecordingSleep()
+        shared = AsyncRateLimiter(1.0, sleep=sleep, monotonic=FakeClock(sleep))
+        first = _client(_serves(_load("owned_games.json")), sleep=sleep, limiter=shared)
+        second = _client(_serves(_load("owned_games.json")), sleep=sleep, limiter=shared)
+        await first.get_owned_games(STEAM_ID)
+        await second.get_owned_games(STEAM_ID)
+        assert sleep.calls == [pytest.approx(1.0)]
+
+    async def test_library_sync_shares_one_limiter_per_process(self):
+        """LibrarySyncService builds a client per request and per job; all share pacing."""
+        from api.services.library_sync import LibrarySyncService
+
+        settings = Settings(steam_api_key="TEST_KEY")
+        a, b = LibrarySyncService(settings=settings), LibrarySyncService(settings=settings)
+        assert a._steam._limiter is STEAM_LIMITER
+        assert b._steam._limiter is STEAM_LIMITER
 
     async def test_default_interval_stays_under_steams_daily_ceiling(self):
         """100k calls/day is ~1.16/s sustained; the default must be at or above 1s."""

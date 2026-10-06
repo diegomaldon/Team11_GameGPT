@@ -24,7 +24,8 @@ export function SyncProgress({
   if (error || job?.state === "failed") {
     return (
       <div role="alert" className="mt-4 rounded-xl bg-rose-50 px-3 py-2.5 text-[13px] text-rose-700">
-        <p>{error ?? FAILED_RUN_MESSAGE}</p>
+        {/* job.error is the server's user_message (e.g. a private Steam profile), safe to render as is. */}
+        <p>{error ?? job?.error ?? FAILED_RUN_MESSAGE}</p>
         {onRetry && (
           <Button variant="secondary" size="sm" className="mt-2" onClick={onRetry}>
             Try again

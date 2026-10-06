@@ -61,6 +61,12 @@ _OWNED_GAMES_PATH = "/IPlayerService/GetOwnedGames/v1/"
 # even if a caller loops. Overridable for tests and for batch jobs that know better.
 _STEAM_MIN_INTERVAL = 1.0
 
+# The quota is per key, and the key is per process, so the pacing has to be too.
+# LibrarySyncService builds a SteamClient per request and per job; each one
+# shares this limiter, so concurrent syncs for different users still queue at
+# 1 req/s. A client built on its own (tests, scripts) gets a private limiter.
+STEAM_LIMITER = AsyncRateLimiter(_STEAM_MIN_INTERVAL)
+
 # Statuses worth retrying: rate limiting and transient server errors.
 _TRANSIENT_STATUS = frozenset({429, 500, 502, 503, 504})
 
@@ -217,6 +223,7 @@ class SteamClient:
         timeout: float = 15.0,
         sleep: Callable[[float], Awaitable[None]] | None = None,
         monotonic: Callable[[], float] | None = None,
+        limiter: AsyncRateLimiter | None = None,
     ) -> None:
         self._settings = settings or get_settings()
         # Injected client lets tests fake the network; None => real per-call client.
@@ -227,7 +234,10 @@ class SteamClient:
         self._wait_max = wait_max
         self._timeout = timeout
         self._sleep = sleep or asyncio.sleep
-        self._limiter = AsyncRateLimiter(min_interval, sleep=sleep, monotonic=monotonic)
+        # Pass STEAM_LIMITER to share pacing across clients; see its comment.
+        self._limiter = limiter or AsyncRateLimiter(
+            min_interval, sleep=sleep, monotonic=monotonic
+        )
 
     # ── public API ──
 
@@ -269,8 +279,17 @@ class SteamClient:
             raise SteamPrivateProfileError(steam_id)
 
         games = response.get("games") or []  # absent when game_count is 0
-        owned = [self._to_owned_game(g) for g in games if isinstance(g, dict)]
-        owned = [g for g in owned if g is not None]
+        parsed = [self._to_owned_game(g) for g in games if isinstance(g, dict)]
+        owned = [g for g in parsed if g is not None]
+        dropped = len(games) - len(owned)
+        if dropped:
+            # Never seen in real Steam data, but say so rather than shrink the
+            # library silently: the import's total would no longer match Steam.
+            log.warning(
+                "steam library: steam_id=%s dropped %d entries without an integer appid",
+                steam_id,
+                dropped,
+            )
         log.info(
             "steam library: steam_id=%s game_count=%s parsed=%d",
             steam_id,
