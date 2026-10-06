@@ -1,0 +1,164 @@
+{
+  "response": {
+    "game_count": 10,
+    "games": [
+      {
+        "appid": 252490,
+        "name": "Rust",
+        "playtime_forever": 129351,
+        "img_icon_url": "820be4782639f9c4b64fa3ca7e6c26a95ae4fd1c",
+        "has_community_visible_stats": true,
+        "playtime_windows_forever": 40288,
+        "playtime_mac_forever": 0,
+        "playtime_linux_forever": 0,
+        "playtime_deck_forever": 0,
+        "rtime_last_played": 1730603854,
+        "content_descriptorids": [
+          1,
+          2,
+          5
+        ],
+        "playtime_disconnected": 0
+      },
+      {
+        "appid": 730,
+        "name": "Counter-Strike 2",
+        "playtime_forever": 72815,
+        "img_icon_url": "8dbc71957312bbd3baea65848b545be9eae2a355",
+        "has_community_visible_stats": true,
+        "playtime_windows_forever": 35511,
+        "playtime_mac_forever": 401,
+        "playtime_linux_forever": 0,
+        "playtime_deck_forever": 0,
+        "rtime_last_played": 1786318510,
+        "content_descriptorids": [
+          2,
+          5
+        ],
+        "playtime_disconnected": 1
+      },
+      {
+        "appid": 292030,
+        "name": "The Witcher 3: Wild Hunt \u2014 Remastered",
+        "playtime_2weeks": 41,
+        "playtime_forever": 13136,
+        "img_icon_url": "7b52d11edee478d652ef4e7103e00644bed2c74c",
+        "has_community_visible_stats": true,
+        "playtime_windows_forever": 10412,
+        "playtime_mac_forever": 0,
+        "playtime_linux_forever": 0,
+        "playtime_deck_forever": 0,
+        "rtime_last_played": 1790893028,
+        "content_descriptorids": [
+          1,
+          5
+        ],
+        "playtime_disconnected": 0
+      },
+      {
+        "appid": 1551360,
+        "name": "Forza Horizon 5",
+        "playtime_forever": 4577,
+        "img_icon_url": "6c1d20c62c4613263548323052c62cece488876b",
+        "has_community_visible_stats": true,
+        "playtime_windows_forever": 4577,
+        "playtime_mac_forever": 0,
+        "playtime_linux_forever": 0,
+        "playtime_deck_forever": 0,
+        "rtime_last_played": 1785798407,
+        "playtime_disconnected": 34
+      },
+      {
+        "appid": 252950,
+        "name": "Rocket League",
+        "playtime_forever": 4559,
+        "img_icon_url": "9ad6dd3d173523354385955b5fb2af87639c4163",
+        "has_community_visible_stats": true,
+        "playtime_windows_forever": 3582,
+        "playtime_mac_forever": 0,
+        "playtime_linux_forever": 0,
+        "playtime_deck_forever": 0,
+        "rtime_last_played": 1653176401,
+        "playtime_disconnected": 0
+      },
+      {
+        "appid": 383870,
+        "name": "Firewatch",
+        "playtime_forever": 679,
+        "img_icon_url": "d13e70a08cab192c52104f315a7d68591c085e81",
+        "has_community_visible_stats": true,
+        "playtime_windows_forever": 239,
+        "playtime_mac_forever": 36,
+        "playtime_linux_forever": 0,
+        "playtime_deck_forever": 0,
+        "rtime_last_played": 1736194312,
+        "content_descriptorids": [
+          1,
+          5
+        ],
+        "playtime_disconnected": 0
+      },
+      {
+        "appid": 2379780,
+        "name": "Balatro",
+        "playtime_forever": 671,
+        "img_icon_url": "b6018068070ab0e23561694c11f7950dd6f4c752",
+        "has_community_visible_stats": true,
+        "playtime_windows_forever": 0,
+        "playtime_mac_forever": 671,
+        "playtime_linux_forever": 0,
+        "playtime_deck_forever": 0,
+        "rtime_last_played": 1775507864,
+        "playtime_disconnected": 0
+      },
+      {
+        "appid": 239030,
+        "name": "Papers, Please",
+        "playtime_forever": 139,
+        "img_icon_url": "102e22fc7e0689cb5a9d8cfdd5a6725d571d1a0f",
+        "has_community_visible_stats": true,
+        "playtime_windows_forever": 0,
+        "playtime_mac_forever": 51,
+        "playtime_linux_forever": 0,
+        "playtime_deck_forever": 0,
+        "rtime_last_played": 1720756166,
+        "has_leaderboards": true,
+        "content_descriptorids": [
+          1,
+          5
+        ],
+        "playtime_disconnected": 0
+      },
+      {
+        "appid": 431960,
+        "name": "Wallpaper Engine",
+        "playtime_forever": 0,
+        "img_icon_url": "72edaed9d748c6cf7397ffb1c83f0b837b9ebd9d",
+        "has_community_visible_stats": true,
+        "playtime_windows_forever": 0,
+        "playtime_mac_forever": 0,
+        "playtime_linux_forever": 0,
+        "playtime_deck_forever": 0,
+        "rtime_last_played": 0,
+        "playtime_disconnected": 0
+      },
+      {
+        "appid": 1659040,
+        "name": "HITMAN World of Assassination",
+        "playtime_forever": 0,
+        "img_icon_url": "552be1d38866afd1c33f682323d325130e7d0ce6",
+        "has_community_visible_stats": true,
+        "playtime_windows_forever": 0,
+        "playtime_mac_forever": 0,
+        "playtime_linux_forever": 0,
+        "playtime_deck_forever": 0,
+        "rtime_last_played": 0,
+        "content_descriptorids": [
+          2,
+          5
+        ],
+        "playtime_disconnected": 0
+      }
+    ]
+  }
+}

@@ -136,8 +136,11 @@ async def list_owned_games(user_id: UUID) -> list[LibraryItem]:
     async with connection() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                "select game_id, title, steam_appid, platform "
-                "from owned_games where user_id = %s order by title nulls last",
+                "select game_id, title, steam_appid, platform, playtime_minutes "
+                "from owned_games where user_id = %s "
+                # Most-played first: the library view leads with what the user
+                # actually plays, not whatever sorts alphabetically.
+                "order by playtime_minutes desc, title nulls last",
                 (str(user_id),),
             )
             rows = await cur.fetchall()
@@ -147,6 +150,7 @@ async def list_owned_games(user_id: UUID) -> list[LibraryItem]:
             title=r[1] or "",
             steam_appid=r[2],
             platform=r[3] or "steam",
+            playtime_minutes=r[4] or 0,
         )
         for r in rows
     ]
@@ -160,16 +164,31 @@ async def upsert_owned_games(
     if not rows:
         return 0
     params = [
-        (str(user_id), platform, row.get("steam_appid"), row.get("title"))
+        (
+            str(user_id),
+            platform,
+            row.get("steam_appid"),
+            row.get("title"),
+            # TM11-46: Steam reports playtime_forever in minutes. Absent on a
+            # non-Steam import, so default rather than write NULL into a NOT NULL
+            # column. See 20261006120000_owned_games_playtime.sql.
+            int(row.get("playtime_minutes") or 0),
+        )
         for row in rows
     ]
     async with connection() as conn:
         async with conn.cursor() as cur:
             await cur.executemany(
-                "insert into owned_games (user_id, platform, steam_appid, title) "
-                "values (%s, %s, %s, %s) "
+                "insert into owned_games "
+                "(user_id, platform, steam_appid, title, playtime_minutes) "
+                "values (%s, %s, %s, %s, %s) "
                 "on conflict (user_id, platform, steam_appid) do update set "
-                "title = excluded.title",
+                "title = excluded.title, "
+                # A re-sync should move playtime forward, never backward: Steam
+                # is the source of truth and playtime only grows. Taking the max
+                # also means a partial/failed sync cannot zero out real hours.
+                "playtime_minutes = greatest("
+                "    owned_games.playtime_minutes, excluded.playtime_minutes)",
                 params,
             )
         await conn.commit()
@@ -182,11 +201,14 @@ async def upsert_owned_games(
 # UI's update granularity: a 500-title library moves in 10 visible steps.
 IMPORT_CHUNK = 50
 
+# Same playtime rule as upsert_owned_games: a re-sync only moves it forward.
 _OWNED_UPSERT = (
-    "insert into owned_games (user_id, platform, steam_appid, title) "
-    "values (%s, %s, %s, %s) "
+    "insert into owned_games (user_id, platform, steam_appid, title, playtime_minutes) "
+    "values (%s, %s, %s, %s, %s) "
     "on conflict (user_id, platform, steam_appid) do update set "
-    "title = excluded.title"
+    "title = excluded.title, "
+    "playtime_minutes = greatest("
+    "    owned_games.playtime_minutes, excluded.playtime_minutes)"
 )
 
 # A bad title (out-of-range id, bad text, constraint) — isolate it and carry on.
@@ -228,7 +250,13 @@ async def import_owned_games(
     failures: list[tuple[Mapping[str, Any], str]] = []
 
     def params(row: Mapping[str, Any]) -> tuple:
-        return (str(user_id), platform, row.get("steam_appid"), row.get("title"))
+        return (
+            str(user_id),
+            platform,
+            row.get("steam_appid"),
+            row.get("title"),
+            int(row.get("playtime_minutes") or 0),  # absent on the seed fallback
+        )
 
     async with factory() as conn:
         async with conn.transaction():

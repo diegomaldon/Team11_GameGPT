@@ -431,6 +431,18 @@
             "title": "Error",
             "description": "Set when state is 'failed'."
           },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code",
+            "description": "Stable code the UI branches on, e.g. 'steam_profile_private'. Set when state is 'failed'."
+          },
           "started_at": {
             "type": "string",
             "format": "date-time",

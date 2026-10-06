@@ -4,8 +4,11 @@ SysML block: Library Sync. Real IPlayerService/GetOwnedGames call (needs only
 an API key + public steamID64, no OAuth). With no STEAM_API_KEY, the
 implementation falls back to seeded owned_games rows so the slice still runs.
 
-The external Steam call is isolated in `_fetch_steam_games`, and the httpx
-client is injectable, so the network hop can be faked in tests without a key.
+TM11-46 moved the external call out of this module and into
+`api/services/steam_client.SteamClient`, which adds playtime, rate limiting,
+retries with backoff, and typed errors, including `SteamPrivateProfileError`,
+which the library router turns into a message the UI can show. The client is
+injectable, so the network hop can still be faked in tests without an API key.
 
 TM11-49 (import progress + partial failure):
 - `sync()` takes an optional LibrarySyncJob and advances it (state, processed,
@@ -35,11 +38,9 @@ from api.models import (
     SyncFailure,
     SyncJobState,
 )
-from api.observability.upstream import raise_for_status_safe
+from api.services.steam_client import STEAM_LIMITER, OwnedGame, SteamClient, SteamError
 
 log = logging.getLogger("gamegpt.library_sync")
-
-_STEAM_URL = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
 
 # Tiny built-in library used only when there is no Steam key AND no seed rows,
 # so the dedup step and the slice still have something to chew on offline.
@@ -59,10 +60,15 @@ class LibrarySyncService:
         self,
         settings: Settings | None = None,
         http_client: httpx.AsyncClient | None = None,
+        *,
+        steam_client: SteamClient | None = None,
     ) -> None:
         self._settings = settings or get_settings()
         # Injected client lets tests fake the Steam hop; None => real network.
         self._http_client = http_client
+        self._steam = steam_client or SteamClient(
+            settings=self._settings, http_client=http_client, limiter=STEAM_LIMITER
+        )
 
     async def sync(
         self, user_id: UUID, steam_id: str, job: LibrarySyncJob | None = None
@@ -78,7 +84,11 @@ class LibrarySyncService:
         if self._settings.steam_api_key:
             job.state = SyncJobState.fetching
             job.source = "steam"
-            games = await self._fetch_steam_games(steam_id)
+            # SteamPrivateProfileError / SteamInvalidSteamIDError / SteamTransientError
+            # propagate on purpose: routers/library.py maps each to its own HTTP
+            # status and error code so the UI can explain what happened. Swallowing
+            # them here would turn "your profile is private" into "0 games synced".
+            games = await self._steam.get_owned_games(steam_id)
             rows, invalid = _split_valid(games)
             await self._import(user_id, rows, invalid, job)
             log.info(
@@ -126,28 +136,6 @@ class LibrarySyncService:
         )
         on_progress(len(rows), synced, failures)
 
-    # ── the one external call, kept behind the service so it can be faked ──
-    async def _fetch_steam_games(self, steam_id: str) -> list[dict[str, Any]]:
-        params = {
-            "key": self._settings.steam_api_key,
-            "steamid": steam_id,
-            "include_appinfo": 1,
-            "format": "json",
-        }
-        # NOT resp.raise_for_status(): httpx puts the full URL — including
-        # ?key=<STEAM_API_KEY> — into the exception message, which then lands in
-        # log.exception("library sync failed") upstairs. See observability/upstream.py.
-        if self._http_client is not None:
-            resp = await self._http_client.get(_STEAM_URL, params=params)
-            raise_for_status_safe(resp, "steam")
-            data = resp.json()
-        else:
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                resp = await client.get(_STEAM_URL, params=params)
-                raise_for_status_safe(resp, "steam")
-                data = resp.json()
-        return data.get("response", {}).get("games", []) or []
-
 
 # ─────────────────────────── helpers ───────────────────────────
 
@@ -171,25 +159,37 @@ def _failure(row: Mapping[str, Any], reason: str) -> SyncFailure:
 
 
 def _split_valid(
-    games: list[dict[str, Any]],
+    games: list[OwnedGame],
 ) -> tuple[list[dict[str, Any]], list[SyncFailure]]:
-    """Steam rows -> importable rows + per-title failures. Repeated appids are dropped."""
+    """Steam games -> importable rows + per-title failures. Repeated appids are dropped.
+
+    SteamClient already drops entries without an integer appid, so what is left
+    to catch here is an id Postgres would reject and a title listed twice.
+    """
     rows: list[dict[str, Any]] = []
     invalid: list[SyncFailure] = []
     seen: set[int] = set()
     for g in games:
-        appid, name = g.get("appid"), g.get("name")
-        row = {"steam_appid": appid, "title": name if isinstance(name, str) else None}
-        if appid is None:
-            continue  # as before TM11-49: not a game row at all
-        if isinstance(appid, bool) or not isinstance(appid, int) or appid <= 0:
-            invalid.append(_failure(row, f"invalid appid {appid!r}"))
+        row = {
+            "steam_appid": g.appid,
+            "title": g.name,
+            "playtime_minutes": g.playtime_minutes,
+        }
+        if g.appid <= 0:
+            invalid.append(_failure(row, f"invalid appid {g.appid!r}"))
             continue
-        if appid in seen:
+        if g.appid in seen:
             continue
-        seen.add(appid)
+        seen.add(g.appid)
         rows.append(row)
     return rows, invalid
+
+
+def _fail(job: LibrarySyncJob, code: str, message: str) -> None:
+    job.state = SyncJobState.failed
+    job.error_code = code
+    job.error = message
+    job.finished_at = _now()
 
 
 def _finish(job: LibrarySyncJob) -> LibrarySyncResponse:
@@ -247,11 +247,16 @@ class SyncJobRegistry:
     async def _run(self, user_id: UUID, steam_id: str, job: LibrarySyncJob) -> None:
         try:
             await self._service_factory().sync(user_id, steam_id, job)
+        except SteamError as exc:
+            # Expected and explainable (private profile, bad id, Steam down), the
+            # same cases POST /api/library/sync maps to 403/422/502/503. Keep the
+            # typed message so Settings can show it. No stack trace: a user
+            # setting is not a crash, and the exception text carries the steamID.
+            log.warning("library sync job rejected: job=%s error=%s", job.job_id, exc.code)
+            _fail(job, exc.code, exc.user_message)
         except Exception:
             log.exception("library sync job failed: job=%s", job.job_id)
-            job.state = SyncJobState.failed
-            job.error = SYNC_FAILED_MESSAGE
-            job.finished_at = _now()
+            _fail(job, "sync_failed", SYNC_FAILED_MESSAGE)
         finally:
             self._tasks.pop(job.job_id, None)
 
