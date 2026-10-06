@@ -349,6 +349,13 @@
             "type": "string",
             "title": "Platform",
             "default": "steam"
+          },
+          "playtime_minutes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Playtime Minutes",
+            "description": "Lifetime minutes played. 0 means owned but never played (TM11-46).",
+            "default": 0
           }
         },
         "type": "object",
