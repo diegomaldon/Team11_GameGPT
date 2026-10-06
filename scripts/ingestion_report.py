@@ -22,6 +22,8 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+from purchase_links import PLATFORMS as LINK_PLATFORMS, check_link, link_coverage, normalise_url
+
 # ---- Field config: edit these to match sql/03_tables.sql / field_mapping.md ----
 # Row identity is the pair (source, source_id), e.g. ("rawg", 3498).
 SOURCE_FIELD = "source"
@@ -114,6 +116,12 @@ def validate_row(row: dict, i: int) -> RowResult:
     pl = row.get("purchase_links")
     if pl is not None and not isinstance(pl, dict):
         res.errors.append("purchase_links must be an object")
+    elif isinstance(pl, dict):
+        # TM11-37: a bad link is dropped by the ingest job, not a reason to lose the game
+        bad = sorted(str(k) for k, u in pl.items()
+                     if check_link(k, normalise_url(u) if isinstance(u, str) else u))
+        if bad:
+            res.warnings.append(f"invalid purchase link: {', '.join(bad)}")
 
     desc = row.get(DESCRIPTION_FIELD)
     if isinstance(desc, str) and "\nEspañol" in desc:
@@ -156,6 +164,7 @@ def coverage(rows: list[dict]) -> dict[str, dict]:
         "genres": sum(not _blank(r.get(GENRES_FIELD)) for r in rows),
         "scores": sum(bool(_scores(r)) for r in rows),
         "platforms": sum(not _blank(r.get(PLATFORMS_FIELD)) for r in rows),
+        "purchase_links": link_coverage(rows)["any"]["present"],
     }
     return {k: {"present": v, "total": n, "pct": round(100 * v / n, 1) if n else 0.0}
             for k, v in counts.items()}
@@ -175,6 +184,7 @@ def build_summary(result: ValidationResult, run_id: str, source: str) -> dict:
         "warning_counts": dict(warns.most_common()),
         "coverage_valid_rows": coverage(result.valid_rows),
         "coverage_all_rows": coverage(result.rows),
+        "purchase_link_coverage": link_coverage(result.valid_rows),
         "rejected": [{"index": r.index, "key": r.key, "errors": r.errors} for r in result.invalid],
     }
 
@@ -191,9 +201,16 @@ def render_markdown(s: dict) -> str:
          "The all-rows column shows the same measure before rejects were removed.", "",
          "| Field | Present | Coverage (valid rows) | Coverage (all rows) |",
          "|---|---|---|---|"]
-    for k in ("description", "genres", "scores", "platforms"):
+    for k in ("description", "genres", "scores", "platforms", "purchase_links"):
         v, a = s["coverage_valid_rows"][k], s["coverage_all_rows"][k]
         L.append(f"| {k} | {v['present']} / {v['total']} | {v['pct']}% | {a['pct']}% |")
+    L += ["", "## Purchase link coverage", "",
+          "Rows (passed validation) holding a validated storefront link. Absent means the",
+          "source gave no usable URL; nothing is filled in or guessed.", "",
+          "| Storefront | Present | Coverage |", "|---|---|---|"]
+    for k in ("any", *LINK_PLATFORMS):
+        v = s["purchase_link_coverage"][k]
+        L.append(f"| {k} | {v['present']} / {v['total']} | {v['pct']}% |")
     L += ["", "## Rejections", ""]
     if s["rejection_reasons"]:
         L += ["| Reason | Rows |", "|---|---|"] + [f"| {k} | {v} |" for k, v in s["rejection_reasons"].items()]

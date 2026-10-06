@@ -46,6 +46,8 @@ import urllib.request
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+import purchase_links
+
 # -----------------------------------------------------------------------------
 # Rate limits. Documented in docs/metadata_source_evaluation.md.
 # -----------------------------------------------------------------------------
@@ -61,21 +63,11 @@ USER_AGENT = "GameGPT-CIS453-prototype/0.1 (coursework)"
 # Storefronts we care about, per REQ008. Must match the platform_type enum.
 STOREFRONTS = {"STEAM", "XBOX", "EPIC"}
 
-# RAWG store slugs -> our platform_type enum
-RAWG_STORE_MAP = {
-    "steam": "STEAM",
-    "xbox-store": "XBOX",
-    "xbox360": "XBOX",
-    "epic-games": "EPIC",
-}
-
-# IGDB website category ids -> our platform_type enum
-# 13 = Steam, 16 = Epic Games Store. IGDB has no Xbox storefront category,
-# which is a real gap for REQ008 -- see the evaluation doc.
-IGDB_WEBSITE_MAP = {
-    13: "STEAM",
-    16: "EPIC",
-}
+# Store mappings live in purchase_links.py (TM11-37) so the ingest job and
+# this prototype validate links the same way.
+RAWG_STORE_MAP = purchase_links.RAWG_STORE_SLUGS
+# IGDB has no Xbox storefront category, which is a real gap for REQ008.
+IGDB_WEBSITE_MAP = purchase_links.IGDB_WEBSITE_CATEGORIES
 
 
 # =============================================================================
@@ -137,7 +129,8 @@ def blank_record():
         "tags": [],
         "platforms_raw": [],        # NOT a games column -- kept for the report
         "available_platforms": [],  # storefronts only, per REQ008
-        "purchase_links": {},
+        "purchase_links": {},       # validated links only (purchase_links.py)
+        "purchase_links_rejected": [],  # NOT a games column -- kept for the report
         "critic_score": None,
         "review_score": None,
         "release_date": None,
@@ -197,7 +190,27 @@ def rawg_detail(key, game_id, throttle, raw_dir):
     return payload
 
 
-def rawg_normalize(summary, detail):
+def rawg_needs_stores(detail):
+    """Detail `stores[]` usually carries an empty url; only then call /stores."""
+    return any(
+        RAWG_STORE_MAP.get((e.get("store") or {}).get("slug")) and not (e.get("url") or "").strip()
+        for e in detail.get("stores") or []
+    )
+
+
+def rawg_stores(key, game_id, throttle, raw_dir):
+    """/games/{id}/stores: the endpoint that actually holds the storefront URLs."""
+    cache = raw_dir / f"rawg_{game_id}_stores.json"
+    if cache.exists():
+        return json.loads(cache.read_text())
+    qs = urllib.parse.urlencode({"key": key})
+    throttle.wait()
+    payload = http(f"{RAWG_BASE}/games/{game_id}/stores?{qs}")
+    cache.write_text(json.dumps(payload, indent=2))
+    return payload
+
+
+def rawg_normalize(summary, detail, stores=None):
     r = blank_record()
     r["source"] = "rawg"
     r["source_id"] = detail.get("id") or summary.get("id")
@@ -218,20 +231,17 @@ def rawg_normalize(summary, detail):
         p["platform"]["name"] for p in detail.get("platforms") or []
     )
 
-    # RAWG "stores" ARE storefronts, and carry a URL. This is what REQ008 and
-    # REQ012 actually need.
-    storefronts, links = [], {}
-    for entry in detail.get("stores") or []:
-        slug = (entry.get("store") or {}).get("slug")
-        mapped = RAWG_STORE_MAP.get(slug)
-        if not mapped:
-            continue
-        storefronts.append(mapped)
-        url = entry.get("url") or ""
-        if url and mapped not in links:
-            links[mapped] = url
-    r["available_platforms"] = dedupe(storefronts)
-    r["purchase_links"] = links
+    # RAWG "stores" ARE storefronts. This is what REQ008 and REQ012 actually
+    # need. The URL usually comes from /stores, not the detail payload.
+    r["available_platforms"] = dedupe(
+        RAWG_STORE_MAP.get((e.get("store") or {}).get("slug"))
+        for e in detail.get("stores") or []
+    )
+    links = purchase_links.from_rawg(
+        detail.get("stores"), (stores or {}).get("results")
+    )
+    r["purchase_links"] = links.links
+    r["purchase_links_rejected"] = links.rejected  # report only, not a column
 
     r["critic_score"] = clamp_score(detail.get("metacritic"))
     # RAWG's own user rating is 0-5. Rescale to 0-100 to match critic_score.
@@ -253,11 +263,16 @@ def pull_rawg(limit, raw_dir):
     print(f"RAWG: listing {limit} titles")
     summaries = rawg_list(key, limit, throttle)[:limit]
     out = []
+    requests = 1 + len(summaries)
     for i, s in enumerate(summaries, 1):
         print(f"  [{i}/{len(summaries)}] {s.get('name')}")
         detail = rawg_detail(key, s["id"], throttle, raw_dir)
-        out.append(rawg_normalize(s, detail))
-    print(f"RAWG: {len(out)} records, {1 + len(out)} requests")
+        stores = None
+        if rawg_needs_stores(detail):
+            stores = rawg_stores(key, s["id"], throttle, raw_dir)
+            requests += 1
+        out.append(rawg_normalize(s, detail, stores))
+    print(f"RAWG: {len(out)} records, {requests} requests")
     return out
 
 
@@ -335,16 +350,12 @@ def igdb_normalize(g):
 
     r["platforms_raw"] = dedupe(x["name"] for x in g.get("platforms") or [])
 
-    storefronts, links = [], {}
-    for site in g.get("websites") or []:
-        mapped = IGDB_WEBSITE_MAP.get(site.get("category"))
-        if not mapped:
-            continue
-        storefronts.append(mapped)
-        if site.get("url") and mapped not in links:
-            links[mapped] = site["url"]
-    r["available_platforms"] = dedupe(storefronts)
-    r["purchase_links"] = links
+    r["available_platforms"] = dedupe(
+        IGDB_WEBSITE_MAP.get(site.get("category")) for site in g.get("websites") or []
+    )
+    links = purchase_links.from_igdb(g.get("websites"))
+    r["purchase_links"] = links.links
+    r["purchase_links_rejected"] = links.rejected  # report only, not a column
 
     r["critic_score"] = clamp_score(g.get("aggregated_rating"))
     r["review_score"] = clamp_score(g.get("rating"))
@@ -445,7 +456,9 @@ def coverage(records):
         avg_desc = (
             sum(len(r["description"] or "") for r in rows) / len(rows) if rows else 0
         )
+        rejected = [x for r in rows for x in r.get("purchase_links_rejected") or []]
         lines += [
+            f"- purchase links rejected by format validation: **{len(rejected)}**",
             f"- mean tags per title: **{avg_tags:.1f}**",
             f"- mean genres per title: **{avg_genres:.1f}**",
             f"- mean description length: **{avg_desc:.0f}** chars",
@@ -581,6 +594,17 @@ FIXTURE_RAWG = {
     "publishers": [{"name": "Rockstar Games"}],
 }
 
+# /games/{id}/stores. Epic URL points at the wrong host: must be rejected.
+FIXTURE_RAWG_STORES = {
+    "count": 2,
+    "results": [
+        {"id": 1, "game_id": 3498, "store_id": 1,
+         "url": "http://store.steampowered.com/app/271590"},
+        {"id": 2, "game_id": 3498, "store_id": 11,
+         "url": "https://store.steampowered.com/app/271590"},
+    ],
+}
+
 FIXTURE_IGDB = {
     "id": 1020,
     "name": "Grand Theft Auto V",
@@ -606,8 +630,11 @@ FIXTURE_IGDB = {
 
 def self_test():
     failures = []
+    checks = 0
 
     def check(label, actual, expected):
+        nonlocal checks
+        checks += 1
         if actual != expected:
             failures.append(f"{label}: got {actual!r}, expected {expected!r}")
 
@@ -619,6 +646,24 @@ def self_test():
     check("rawg.tags", r["tags"], ["Singleplayer", "Atmospheric"])  # deu dropped
     check("rawg.storefronts", r["available_platforms"], ["STEAM", "XBOX"])  # gog dropped
     check("rawg.links", sorted(r["purchase_links"]), ["STEAM", "XBOX"])
+    check("rawg.link_url", r["purchase_links"].get("STEAM"),
+          "https://store.steampowered.com/app/271590")
+
+    # Real RAWG detail payloads list stores with an empty url; /stores has them.
+    blank = dict(FIXTURE_RAWG, stores=[
+        {"store": {"slug": "steam"}, "url": ""},
+        {"store": {"slug": "epic-games"}, "url": ""},
+    ])
+    check("rawg.needs_stores", rawg_needs_stores(blank), True)
+    check("rawg.needs_stores.full", rawg_needs_stores(FIXTURE_RAWG), False)
+    b = rawg_normalize(blank, blank, FIXTURE_RAWG_STORES)
+    check("rawg.stores.links", b["purchase_links"], {
+        "STEAM": "https://store.steampowered.com/app/271590",
+    })
+    check("rawg.stores.rejected", [x[0] for x in b["purchase_links_rejected"]], ["EPIC"])
+    check("rawg.stores.platforms", b["available_platforms"], ["STEAM", "EPIC"])
+    check("rawg.no_stores.links", rawg_normalize(blank, blank)["purchase_links"], {})
+
     check("rawg.platforms_raw", r["platforms_raw"], ["PC", "Xbox Series S/X"])
     check("rawg.developers", r["developers"], ["Rockstar North"])
     check("rawg.release_date", r["release_date"], "2013-09-17")
@@ -628,6 +673,7 @@ def self_test():
     check("igdb.review_score", g["review_score"], 89)
     check("igdb.tags", g["tags"], ["Action", "Comedy", "open world", "heist"])
     check("igdb.storefronts", g["available_platforms"], ["STEAM"])  # no XBOX category
+    check("igdb.links", g["purchase_links"], {"STEAM": "https://store.steampowered.com/app/271590"})
     check("igdb.release_date", g["release_date"], "2013-09-17")
     check("igdb.developers", g["developers"], ["Rockstar North"])
     check("igdb.publishers", g["publishers"], ["Rockstar Games"])
@@ -646,12 +692,13 @@ def self_test():
     if "on conflict (rawg_id)" not in sql:
         failures.append("SQL conflict target wrong for rawg")
 
+    checks += 2
     if failures:
         print("SELF-TEST FAILED")
         for f in failures:
             print("  -", f)
         return 1
-    print("self-test passed: 21 assertions")
+    print(f"self-test passed: {checks} assertions")
     return 0
 
 
