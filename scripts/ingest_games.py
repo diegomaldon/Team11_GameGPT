@@ -5,6 +5,7 @@
   AC-02  idempotent by external id (ON CONFLICT (<id col>) DO UPDATE; identical rows are skipped)
   AC-03  rejected rows are written to rejects.jsonl and logged, never swallowed
   AC-04  duration and record counts are reported (stdout + artifact)
+  TM11-37 purchase links are re-validated; bad links are dropped and counted, the game is kept
 
 Row source is pluggable so the job does not care how rows were fetched:
 
@@ -32,6 +33,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Protocol
 
+import purchase_links
 from ingestion_report import ARTIFACT_ROOT, _load, validate_rows, write_run_report
 
 log = logging.getLogger("ingest_games")
@@ -154,6 +156,8 @@ class RunStats:
     valid: int = 0
     rejected_validation: int = 0
     rejected_database: int = 0
+    links_kept: int = 0
+    links_dropped: int = 0
     inserted: int = 0
     updated: int = 0
     unchanged: int = 0
@@ -164,6 +168,7 @@ class RunStats:
     dry_run: bool = False
     reject_file: str = ""
     notes: list[str] = field(default_factory=list)
+    dropped_links: list[dict] = field(default_factory=list)
 
     @property
     def rejected(self) -> int:
@@ -181,6 +186,21 @@ def _write_rejects(path: Path, entries: list[dict]) -> None:
             fh.write(json.dumps(e, default=str) + "\n")
 
 
+def _clean_links(row: dict, stats: RunStats) -> dict:
+    """Drop purchase links that fail validation. Never adds a link."""
+    pl = row.get("purchase_links")
+    if not isinstance(pl, dict) or not pl:
+        return row  # absent stays absent; a non-object is rejected by validation
+    res = purchase_links.clean(pl)
+    stats.links_kept += len(res.links)
+    stats.links_dropped += len(res.rejected)
+    key = f"{row.get('source')}:{row.get('source_id')}"
+    for platform, url, reason in res.rejected:
+        log.warning("dropped %s purchase link for %s: %s", platform, key, reason)
+        stats.dropped_links.append({"key": key, "platform": platform, "url": url, "reason": reason})
+    return {**row, "purchase_links": res.links}
+
+
 def run_job(rows: Iterable[dict], store: Store, run_id: str, source: str,
             limit: int = DEFAULT_LIMIT, target: int = DEFAULT_LIMIT,
             artifact_root: Path = ARTIFACT_ROOT, dry_run: bool = False) -> RunStats:
@@ -192,7 +212,7 @@ def run_job(rows: Iterable[dict], store: Store, run_id: str, source: str,
     # --- fetch (the defined subset) ---
     fetched: list[dict] = []
     for r in rows:
-        fetched.append(r)
+        fetched.append(_clean_links(r, stats))
         if len(fetched) >= limit:
             break
     stats.fetched = len(fetched)
@@ -266,11 +286,18 @@ def _write_run_summary(s: RunStats, out: Path) -> None:
           f"| Unchanged (present, identical) | {s.unchanged} |",
           f"| Rejected — validation | {s.rejected_validation} |",
           f"| Rejected — database | {s.rejected_database} |",
+          f"| Purchase links kept | {s.links_kept} |",
+          f"| Purchase links dropped (failed validation) | {s.links_dropped} |",
           f"| **Loaded total** | **{s.loaded}** |", "",
           f"**Target {s.target}+:** {'MET' if s.target_met else 'NOT MET'}", ""]
     if s.reject_file:
         md.append(f"Rejected rows and reasons: `{s.reject_file}`")
     md += [f"- {n}" for n in s.notes]
+    if s.dropped_links:
+        md += ["", "Dropped purchase links:", ""]
+        md += [f"- `{d['key']}` {d['platform']}: {d['reason']}" for d in s.dropped_links[:50]]
+        if len(s.dropped_links) > 50:
+            md.append(f"- … and {len(s.dropped_links) - 50} more (see ingestion_run.json)")
     md += ["", "Field coverage: see `ingestion_report.md` in this folder."]
     (out / "ingestion_run.md").write_text("\n".join(md) + "\n")
 
