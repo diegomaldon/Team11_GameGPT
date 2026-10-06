@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMock } from "@/lib/mock/store";
 import { useAuth } from "@/lib/auth/session";
@@ -11,7 +11,8 @@ import {
 } from "@/lib/account/delete";
 import { PLATFORMS, type Platform } from "@/lib/mock/data";
 import { describeSteamResult } from "@/lib/auth/steam";
-import { syncLibrary } from "@/lib/api/client";
+import { useLibrarySync } from "@/lib/library/useLibrarySync";
+import { SyncProgress } from "@/components/library/SyncProgress";
 import {
   Avatar,
   Badge,
@@ -128,7 +129,18 @@ function ProfileCard() {
 function LinkedAccountsCard() {
   const { state, linkAccount, unlinkAccount } = useMock();
   const [connecting, setConnecting] = useState<Platform | null>(null);
-  const banner = useSteamCallbackResult(linkAccount);
+  // TM11-49: the import runs in the background; this tracks its progress.
+  const librarySync = useLibrarySync();
+  const [lastSteamId, setLastSteamId] = useState<string | null>(null);
+  const { start: startLibrarySync } = librarySync;
+  const startSync = useCallback(
+    (steamId: string) => {
+      setLastSteamId(steamId);
+      startLibrarySync(steamId);
+    },
+    [startLibrarySync],
+  );
+  const banner = useSteamCallbackResult(linkAccount, startSync);
 
   return (
     <SectionCard
@@ -175,6 +187,16 @@ function LinkedAccountsCard() {
                   <Badge tone="success">
                     <Check className="h-3 w-3" /> Linked
                   </Badge>
+                  {acc.platform === "steam" && acc.handle && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      loading={librarySync.running}
+                      onClick={() => startSync(acc.handle!)}
+                    >
+                      {librarySync.running ? "Syncing" : "Sync now"}
+                    </Button>
+                  )}
                   <Button
                     variant="secondary"
                     size="sm"
@@ -198,6 +220,12 @@ function LinkedAccountsCard() {
         })}
       </ul>
 
+      <SyncProgress
+        job={librarySync.job}
+        error={librarySync.error}
+        onRetry={lastSteamId ? () => startSync(lastSteamId) : undefined}
+      />
+
       <ConnectModal
         platform={connecting}
         onClose={() => setConnecting(null)}
@@ -211,7 +239,10 @@ function LinkedAccountsCard() {
  * and on success records the link and kicks off a library import. Runs once per outcome, then
  * strips the params from the URL so a refresh does not replay it. REQ010 · TM11-44 (AC3).
  */
-function useSteamCallbackResult(linkAccount: (platform: Platform, handle: string) => void) {
+function useSteamCallbackResult(
+  linkAccount: (platform: Platform, handle: string) => void,
+  startSync: (steamId: string) => void,
+) {
   const router = useRouter();
   const params = useSearchParams();
   const result = params.get("steam");
@@ -226,14 +257,15 @@ function useSteamCallbackResult(linkAccount: (platform: Platform, handle: string
       const steamId = params.get("steamid");
       if (steamId) {
         linkAccount("steam", steamId);
-        // Best-effort import; the link is already recorded whether or not sync succeeds.
-        syncLibrary(steamId).catch(() => {});
+        // The link is recorded whether or not the import succeeds; progress and any
+        // per-title failures show under the account list (TM11-49).
+        startSync(steamId);
       }
     }
 
     // Drop steam/steamid/reason so a reload does not re-run this or leak the id in the URL.
     router.replace("/settings");
-  }, [result, params, linkAccount, router]);
+  }, [result, params, linkAccount, router, startSync]);
 
   return banner;
 }

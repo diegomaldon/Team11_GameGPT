@@ -9,11 +9,14 @@ from api.models.schemas import (
     GameCandidate,
     LibraryItem,
     LibraryResponse,
+    LibrarySyncJob,
     LibrarySyncRequest,
     LibrarySyncResponse,
     Recommendation,
     RecommendRequest,
     RecommendResponse,
+    SyncFailure,
+    SyncJobState,
     Vote,
 )
 
@@ -22,10 +25,13 @@ __all__ = [
     "GameCandidate",
     "LibraryItem",
     "LibraryResponse",
+    "LibrarySyncJob",
     "LibrarySyncRequest",
     "LibrarySyncResponse",
     "Recommendation",
     "RecommendRequest",
     "RecommendResponse",
+    "SyncFailure",
+    "SyncJobState",
     "Vote",
 ]

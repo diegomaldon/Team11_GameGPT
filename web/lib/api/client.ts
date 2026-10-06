@@ -15,7 +15,9 @@
 // it. A fetch added outside `request()` silently loses both.
 import {
   fixtureFeedback,
+  fixtureGetSyncJob,
   fixtureRecommend,
+  fixtureStartSync,
   fixtureSyncLibrary,
 } from "./fixtures";
 import { getAccessToken } from "../auth/token";
@@ -23,6 +25,7 @@ import { newRequestId, setLastRequestId } from "../observability";
 import type {
   FeedbackRequest,
   LibraryResponse,
+  LibrarySyncJob,
   LibrarySyncResponse,
   RecommendResponse,
 } from "./types";
@@ -121,4 +124,70 @@ export async function syncLibrary(steamId: string): Promise<LibrarySyncResponse>
     method: "POST",
     body: JSON.stringify({ steam_id: steamId }),
   })) as LibrarySyncResponse;
+}
+
+// ── Background library import (TM11-49) ──
+//
+// A 500-title import takes long enough to look frozen, so the UI starts a job
+// and polls it. `runLibrarySync` is the one call the UI needs: it reports every
+// update and resolves with the finished job. A job that ends in "failed" was
+// rolled back server-side, so the previous library is unchanged.
+
+/** POST /api/library/sync/jobs — start (or rejoin) a background import. */
+export async function startLibrarySync(steamId: string): Promise<LibrarySyncJob> {
+  if (USE_FIXTURES) return fixtureStartSync(steamId);
+  return (await request<LibrarySyncJob>("/api/library/sync/jobs", {
+    method: "POST",
+    body: JSON.stringify({ steam_id: steamId }),
+  })) as LibrarySyncJob;
+}
+
+/** GET /api/library/sync/jobs/{id} — progress and per-title failures so far. */
+export async function getLibrarySyncJob(jobId: string): Promise<LibrarySyncJob> {
+  if (USE_FIXTURES) return fixtureGetSyncJob(jobId);
+  return (await request<LibrarySyncJob>(
+    `/api/library/sync/jobs/${encodeURIComponent(jobId)}`,
+  )) as LibrarySyncJob;
+}
+
+export function isSyncFinished(job: LibrarySyncJob): boolean {
+  return job.state === "succeeded" || job.state === "failed";
+}
+
+export interface RunSyncOptions {
+  /** Delay between polls. */
+  intervalMs?: number;
+  /** Consecutive poll errors tolerated before giving up (a blip should not end the UI). */
+  maxPollErrors?: number;
+  signal?: AbortSignal;
+}
+
+/**
+ * Start an import and poll it to completion, calling `onUpdate` with every
+ * snapshot. Resolves with the final job (succeeded or failed); rejects only if
+ * the job cannot be started or tracked, or `signal` aborts.
+ */
+export async function runLibrarySync(
+  steamId: string,
+  onUpdate: (job: LibrarySyncJob) => void,
+  { intervalMs = 750, maxPollErrors = 3, signal }: RunSyncOptions = {},
+): Promise<LibrarySyncJob> {
+  let job = await startLibrarySync(steamId);
+  onUpdate(job);
+  let errors = 0;
+  while (!isSyncFinished(job)) {
+    await sleep(intervalMs);
+    if (signal?.aborted) throw new DOMException("Sync polling aborted", "AbortError");
+    try {
+      job = await getLibrarySyncJob(job.job_id);
+      errors = 0;
+    } catch (err) {
+      // 404 means the server no longer knows the job (e.g. it restarted). No point retrying.
+      if (err instanceof ApiError && err.status === 404) throw err;
+      if (++errors >= maxPollErrors) throw err;
+      continue;
+    }
+    onUpdate(job);
+  }
+  return job;
 }

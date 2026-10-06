@@ -13,3 +13,6 @@ export type LibraryItem = Schemas["LibraryItem"];
 export type LibrarySyncRequest = Schemas["LibrarySyncRequest"];
 export type LibrarySyncResponse = Schemas["LibrarySyncResponse"];
 export type Vote = Schemas["Vote"];
+export type LibrarySyncJob = Schemas["LibrarySyncJob"];
+export type SyncFailure = Schemas["SyncFailure"];
+export type SyncJobState = Schemas["SyncJobState"];
