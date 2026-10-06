@@ -1,0 +1,33 @@
+{
+  "run_id": "purchase-links-fixture-01",
+  "source": "rawg",
+  "started_at": "2026-10-06T14:08:35+00:00",
+  "limit": 3000,
+  "target": 3,
+  "fetched": 3,
+  "valid": 3,
+  "rejected_validation": 0,
+  "rejected_database": 0,
+  "links_kept": 3,
+  "links_dropped": 1,
+  "inserted": 3,
+  "updated": 0,
+  "unchanged": 0,
+  "fetch_seconds": 0.0,
+  "load_seconds": 0.0,
+  "total_seconds": 0.001,
+  "target_met": true,
+  "dry_run": true,
+  "reject_file": "",
+  "notes": [],
+  "dropped_links": [
+    {
+      "key": "rawg:3499",
+      "platform": "EPIC",
+      "url": "https://example.com/not-epic",
+      "reason": "host 'example.com' is not allowed for EPIC"
+    }
+  ],
+  "rejected": 0,
+  "loaded": 3
+}
