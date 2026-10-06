@@ -1,3 +1,5 @@
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { defineConfig } from 'vitest/config';
 
 /**
@@ -14,6 +16,8 @@ export default defineConfig({
   // .tsx test file fails at runtime with "React is not defined". `automatic` is the React
   // 17+ transform, which is what Next itself uses.
   esbuild: { jsx: 'automatic' },
+  // Mirrors tsconfig "paths". Pages import through `@/`, so testing one needs it.
+  resolve: { alias: { '@': dirname(fileURLToPath(import.meta.url)) } },
   test: {
     environment: 'node',
     // `.next` holds compiled copies of source files; without this, every test would be

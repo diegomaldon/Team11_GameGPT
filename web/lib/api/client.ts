@@ -15,6 +15,7 @@
 // it. A fetch added outside `request()` silently loses both.
 import {
   fixtureFeedback,
+  fixtureGetLibrary,
   fixtureGetSyncJob,
   fixtureRecommend,
   fixtureStartSync,
@@ -109,7 +110,8 @@ export async function sendFeedback(body: FeedbackRequest): Promise<void> {
 /** GET /api/library — the current user's owned games. */
 export async function getLibrary(): Promise<LibraryResponse> {
   if (USE_FIXTURES) {
-    return { items: [] };
+    await sleep(300);
+    return fixtureGetLibrary();
   }
   return (await request<LibraryResponse>("/api/library")) as LibraryResponse;
 }
