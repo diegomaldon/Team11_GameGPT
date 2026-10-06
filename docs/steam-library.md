@@ -97,9 +97,17 @@ object and refuses to write a file containing the key.
 
 | Fixture | Shape |
 | --- | --- |
-| `owned_games.json` | a public library with playtime, including a 0-minute title |
+| `owned_games.json` | a real public library, captured from the live API |
 | `private_profile.json` | `{"response": {}}` |
 | `empty_public_library.json` | `{"response": {"game_count": 0}}` |
+
+`owned_games.json` is a **trimmed** recording: 10 of the 70 entries the account
+actually returned, each kept byte-for-byte as Steam sent it, with `game_count`
+set to match. The 10 were picked to cover every case the suite asserts on —
+highest playtime, zero playtime (owned but never launched), the single title
+with `playtime_2weeks`, free-to-play titles, and non-Windows playtime. A full
+70-game capture would be ~1,500 lines of JSON nobody reads in review, and it
+would publish someone's entire library into a public repo for no test benefit.
 
 Tests never touch the network: `httpx.MockTransport` serves these files, and an
 injected `sleep`/`monotonic` makes backoff and pacing instant and deterministic.

@@ -107,29 +107,33 @@ class TestAC1OwnedAppidsWithPlaytime:
     async def test_returns_every_appid_from_the_recorded_fixture(self):
         client = _client(_serves(_load("owned_games.json")))
         games = await client.get_owned_games(STEAM_ID)
-        assert [g.appid for g in games] == [220, 620, 413150, 1091500, 570, 292030]
+        assert [g.appid for g in games] == [
+            252490, 730, 292030, 1551360, 252950, 383870, 2379780, 239030,
+            431960, 1659040,
+        ]
 
     async def test_playtime_is_carried_through_in_minutes(self):
         client = _client(_serves(_load("owned_games.json")))
         by_appid = {g.appid: g for g in await client.get_owned_games(STEAM_ID)}
-        assert by_appid[220].playtime_minutes == 1337
-        assert by_appid[292030].playtime_minutes == 8891
+        assert by_appid[252490].playtime_minutes == 129351   # Rust
+        assert by_appid[292030].playtime_minutes == 13136    # The Witcher 3
         # An owned-but-never-played game is 0 minutes, not missing and not None.
-        assert by_appid[1091500].playtime_minutes == 0
+        assert by_appid[431960].playtime_minutes == 0        # Wallpaper Engine
 
     async def test_names_and_recent_playtime_are_captured(self):
         client = _client(_serves(_load("owned_games.json")))
         by_appid = {g.appid: g for g in await client.get_owned_games(STEAM_ID)}
-        assert by_appid[413150].name == "Stardew Valley"
-        assert by_appid[413150].playtime_2weeks_minutes == 310
-        # playtime_2weeks is absent for games not played recently.
-        assert by_appid[220].playtime_2weeks_minutes == 0
+        assert by_appid[2379780].name == "Balatro"
+        # The one title in the recording with recent play.
+        assert by_appid[292030].playtime_2weeks_minutes == 41
+        # playtime_2weeks is absent entirely for games not played recently.
+        assert by_appid[252490].playtime_2weeks_minutes == 0
 
     async def test_playtime_hours_helper(self):
-        assert OwnedGame(appid=1, playtime_minutes=5420).playtime_hours == 90.3
+        assert OwnedGame(appid=1, playtime_minutes=13136).playtime_hours == 218.9
 
     async def test_free_games_included_by_default(self):
-        """Dota 2 is free-to-play; excluding it would make some libraries look empty."""
+        """CS2 and Rocket League are free-to-play; excluding them would drop real playtime."""
         seen: dict[str, str] = {}
 
         def handler(request: httpx.Request) -> httpx.Response:
@@ -273,7 +277,7 @@ class TestAC3RateLimits:
 
         sleep = RecordingSleep()
         games = await _client(handler, sleep=sleep).get_owned_games(STEAM_ID)
-        assert len(games) == 6
+        assert len(games) == 10
         assert sleep.calls == [7.0]  # server's number, not our backoff curve
 
     async def test_retries_are_paced_too(self):
