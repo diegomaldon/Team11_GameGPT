@@ -5,7 +5,7 @@ AC-04 asks for a *recorded* fixture, so the file under
 `api/tests/fixtures/steam/` should come from a real call rather than be written
 by hand. This captures one.
 
-    export STEAM_API_KEY=...            # steamcommunity.com/dev/apikey
+    echo 'STEAM_API_KEY=...' >> .env     # steamcommunity.com/dev/apikey
     python3 scripts/record_steam_fixture.py 76561197960287930
 
     # see what would be written, without touching the file
@@ -32,8 +32,35 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
 STEAM_URL = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
-FIXTURE_DIR = Path(__file__).resolve().parent.parent / "api" / "tests" / "fixtures" / "steam"
+FIXTURE_DIR = REPO_ROOT / "api" / "tests" / "fixtures" / "steam"
+
+
+def read_api_key() -> str:
+    """STEAM_API_KEY from the environment, else from the repo-root `.env`.
+
+    api/config.py uses python-dotenv for this, but this script is stdlib-only so
+    it can run without a virtualenv. Parsing the handful of lines we need keeps
+    `.env` the single place the key lives, instead of also needing an `export`.
+    An exported variable still wins, matching load_dotenv(override=False).
+    """
+    from_env = os.environ.get("STEAM_API_KEY", "").strip()
+    if from_env:
+        return from_env
+
+    dotenv = REPO_ROOT / ".env"
+    if not dotenv.is_file():
+        return ""
+    for line in dotenv.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        if key.strip() == "STEAM_API_KEY":
+            # Tolerate KEY="value" and KEY='value'.
+            return value.strip().strip("\"'")
+    return ""
 
 
 def fetch(api_key: str, steam_id: str, timeout: float = 15.0) -> dict:
@@ -93,9 +120,14 @@ def main(argv: list[str] | None = None) -> int:
                     help="print the summary and write nothing")
     args = ap.parse_args(argv)
 
-    api_key = os.environ.get("STEAM_API_KEY", "").strip()
+    api_key = read_api_key()
     if not api_key:
-        raise SystemExit("STEAM_API_KEY is not set. Get one at steamcommunity.com/dev/apikey")
+        raise SystemExit(
+            "STEAM_API_KEY not found.\n"
+            "  Put it in the repo-root .env:   echo 'STEAM_API_KEY=...' >> .env\n"
+            "  or export it for this shell:    export STEAM_API_KEY=...\n"
+            "  Get a key at https://steamcommunity.com/dev/apikey"
+        )
 
     steam_id = args.steam_id.strip()
     if len(steam_id) != 17 or not steam_id.isdigit():
