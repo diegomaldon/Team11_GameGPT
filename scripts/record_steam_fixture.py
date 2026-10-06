@@ -26,6 +26,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import ssl
 import sys
 import urllib.error
 import urllib.parse
@@ -63,6 +64,30 @@ def read_api_key() -> str:
     return ""
 
 
+def _ssl_context() -> "ssl.SSLContext":
+    """A context with a usable CA bundle, even on a stock python.org macOS build.
+
+    The python.org installer does not use the macOS keychain. It expects its own
+    `etc/openssl/cert.pem`, which only appears after you run
+    `/Applications/Python 3.x/Install Certificates.command`. Until then
+    `ssl.create_default_context()` holds **zero** CA certificates and every
+    HTTPS call dies with CERTIFICATE_VERIFY_FAILED.
+
+    certifi ships the same bundle that script installs and is almost always
+    already present, so fall back to it rather than making the script unusable.
+    Verification is never disabled — an unverified fixture pull is worse than
+    no fixture.
+    """
+    ctx = ssl.create_default_context()
+    if ctx.cert_store_stats()["x509_ca"] == 0:
+        try:
+            import certifi
+        except ImportError:
+            return ctx  # fetch() turns the resulting failure into advice
+        ctx.load_verify_locations(certifi.where())
+    return ctx
+
+
 def fetch(api_key: str, steam_id: str, timeout: float = 15.0) -> dict:
     query = urllib.parse.urlencode(
         {
@@ -74,8 +99,18 @@ def fetch(api_key: str, steam_id: str, timeout: float = 15.0) -> dict:
         }
     )
     try:
-        with urllib.request.urlopen(f"{STEAM_URL}?{query}", timeout=timeout) as resp:
+        with urllib.request.urlopen(
+            f"{STEAM_URL}?{query}", timeout=timeout, context=_ssl_context()
+        ) as resp:
             body = resp.read().decode("utf-8")
+    except ssl.SSLCertVerificationError as exc:
+        raise SystemExit(
+            f"TLS verification failed: {exc.verify_message or exc}\n"
+            "  This python has no CA bundle. One-time fix on macOS:\n"
+            f"    open '/Applications/Python {sys.version_info.major}."
+            f"{sys.version_info.minor}/Install Certificates.command'\n"
+            "  or:  python3 -m pip install --upgrade certifi"
+        ) from exc
     except urllib.error.HTTPError as exc:
         # Never print exc.url / exc.reason blindly — the URL carries the key.
         raise SystemExit(f"Steam returned HTTP {exc.code}. Check STEAM_API_KEY.") from exc
