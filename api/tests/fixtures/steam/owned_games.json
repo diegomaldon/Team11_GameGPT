@@ -1,0 +1,86 @@
+{
+  "response": {
+    "game_count": 6,
+    "games": [
+      {
+        "appid": 220,
+        "name": "Half-Life 2",
+        "playtime_forever": 1337,
+        "img_icon_url": "fcfb366051782b8ebf2aa297f3b746395858cb62",
+        "has_community_visible_stats": true,
+        "playtime_windows_forever": 1337,
+        "playtime_mac_forever": 0,
+        "playtime_linux_forever": 0,
+        "playtime_deck_forever": 0,
+        "rtime_last_played": 1663018830,
+        "playtime_disconnected": 0
+      },
+      {
+        "appid": 620,
+        "name": "Portal 2",
+        "playtime_forever": 742,
+        "img_icon_url": "a7e8b0ce1a4e8b2a99ba3ba6b0e2b5bfa1a2e1bd",
+        "has_community_visible_stats": true,
+        "playtime_windows_forever": 742,
+        "playtime_mac_forever": 0,
+        "playtime_linux_forever": 0,
+        "playtime_deck_forever": 0,
+        "rtime_last_played": 1701992451,
+        "playtime_disconnected": 0
+      },
+      {
+        "appid": 413150,
+        "name": "Stardew Valley",
+        "playtime_forever": 5420,
+        "playtime_2weeks": 310,
+        "img_icon_url": "6ea6ba0f9e2a1a1a2d0a4e8b0c7f2e1a9b3c4d5e",
+        "has_community_visible_stats": true,
+        "playtime_windows_forever": 5420,
+        "playtime_mac_forever": 0,
+        "playtime_linux_forever": 0,
+        "playtime_deck_forever": 1205,
+        "rtime_last_played": 1759104000,
+        "playtime_disconnected": 0
+      },
+      {
+        "appid": 1091500,
+        "name": "Cyberpunk 2077",
+        "playtime_forever": 0,
+        "img_icon_url": "f3f0f7f8a4b6c3d2e1a0b9c8d7e6f5a4b3c2d1e0",
+        "has_community_visible_stats": true,
+        "playtime_windows_forever": 0,
+        "playtime_mac_forever": 0,
+        "playtime_linux_forever": 0,
+        "playtime_deck_forever": 0,
+        "playtime_disconnected": 0
+      },
+      {
+        "appid": 570,
+        "name": "Dota 2",
+        "playtime_forever": 94,
+        "img_icon_url": "0bbb630d63262dd66d2fdd0f7d37e8661a410075",
+        "has_community_visible_stats": true,
+        "playtime_windows_forever": 94,
+        "playtime_mac_forever": 0,
+        "playtime_linux_forever": 0,
+        "playtime_deck_forever": 0,
+        "rtime_last_played": 1596038400,
+        "playtime_disconnected": 0
+      },
+      {
+        "appid": 292030,
+        "name": "The Witcher 3: Wild Hunt",
+        "playtime_forever": 8891,
+        "playtime_2weeks": 45,
+        "img_icon_url": "2f1e2a3b4c5d6e7f8091a2b3c4d5e6f708192a3b",
+        "has_community_visible_stats": true,
+        "playtime_windows_forever": 8891,
+        "playtime_mac_forever": 0,
+        "playtime_linux_forever": 0,
+        "playtime_deck_forever": 0,
+        "rtime_last_played": 1758499200,
+        "playtime_disconnected": 0
+      }
+    ]
+  }
+}

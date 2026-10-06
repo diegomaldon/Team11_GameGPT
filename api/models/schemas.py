@@ -139,6 +139,10 @@ class LibraryItem(BaseModel):
     title: str
     steam_appid: Optional[int] = None
     platform: str = "steam"
+    playtime_minutes: int = Field(
+        0, ge=0,
+        description="Lifetime minutes played. 0 means owned but never played (TM11-46).",
+    )
 
 
 class LibraryResponse(BaseModel):

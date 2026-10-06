@@ -129,9 +129,14 @@ jobs:
   # documentation, not a gate: nothing stops a PR from reintroducing a
   # raise_for_status() that writes an API key to the logs.
   #
-  # Only the observability tests run here. The rest of api/tests pulls in
+  # Only the torch-free tests run here. The rest of api/tests pulls in
   # sentence-transformers and torch — several minutes and ~500 MB of install,
   # which would blow the 5-minute budget every other job is held to.
+  #
+  # The Steam suites (TM11-46) are in that torch-free set and are gated here for
+  # the same reason as the redaction suite: SteamClient reaches an external API
+  # with a key in the query string, so "the key is never logged" and "a private
+  # profile is not silently an empty library" both need a gate, not just a file.
   # -------------------------------------------------------------------------
   api-tests:
     name: API tests
@@ -163,6 +168,13 @@ jobs:
       - name: Pytest — structured logging and redaction
         working-directory: .
         run: python -m pytest api/tests/test_observability.py -v
+
+      - name: Pytest — Steam library client and error contract
+        working-directory: .
+        run: |
+          python -m pytest \
+            api/tests/test_steam_client.py \
+            api/tests/test_library_router.py -v
 
   # -------------------------------------------------------------------------
   # Aggregate gate. Optional but worth having: point the ruleset at this one check
