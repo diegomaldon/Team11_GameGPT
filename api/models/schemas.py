@@ -107,6 +107,14 @@ class LibrarySyncResponse(BaseModel):
     total: int = Field(0, description="Titles the source returned (synced + failed).")
     failed: list[SyncFailure] = Field(default_factory=list,
                                       description="Per-title failures; they do not abort the run.")
+    # Title matching against the games catalogue. Absent when no import ran
+    # (the seed path reusing rows already in owned_games).
+    import_id: Optional[UUID] = None
+    matched: Optional[int] = Field(None, description="Imported titles joined to a games row.")
+    unmatched: Optional[int] = Field(
+        None, description="Titles with no games row; queued in unmatched_import_titles."
+    )
+    match_rate: Optional[float] = Field(None, ge=0, le=1, description="matched / total, 0..1.")
 
 
 class SyncJobState(str, Enum):
@@ -133,6 +141,14 @@ class LibrarySyncJob(BaseModel):
         description="Stable code the UI branches on, e.g. 'steam_profile_private'. "
         "Set when state is 'failed'.",
     )
+    # Title matching against the games catalogue. Absent when no import ran
+    # (the seed path reusing rows already in owned_games).
+    import_id: Optional[UUID] = None
+    matched: Optional[int] = Field(None, description="Imported titles joined to a games row.")
+    unmatched: Optional[int] = Field(
+        None, description="Titles with no games row; queued in unmatched_import_titles."
+    )
+    match_rate: Optional[float] = Field(None, ge=0, le=1, description="matched / total, 0..1.")
     started_at: datetime
     finished_at: Optional[datetime] = None
 

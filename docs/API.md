@@ -138,6 +138,23 @@ Import a public Steam library by steamID64.
 | `source` | `"steam"` \| `"seed"` | `"steam"` = real API call; `"seed"` = no-key fallback |
 | `total` | int | titles the source returned (`synced` + `failed`) |
 | `failed` | `SyncFailure[]` | per-title failures (TM11-49); they do not abort the run |
+| `import_id` | uuid \| null | `library_imports` row for this run |
+| `matched` | int \| null | imported titles joined to a `games` row |
+| `unmatched` | int \| null | titles with no `games` row, queued in `unmatched_import_titles` |
+| `match_rate` | float \| null | `matched / total`, 0..1 |
+
+The four matching fields are `null` when no import ran (seed path reusing rows
+already in `owned_games`). `LibrarySyncJob` carries the same four fields.
+
+**Title matching** (`api/services/title_matching.py`). Each imported title is
+matched against `games`, trying these in order:
+`appid` (steam_appid) → `exact` title → `normalised` title (case, punctuation,
+™/®/©, accents and `&`/"and" folded) → `edition` (suffixes such as
+"Game of the Year Edition" or "- Deluxe Edition" removed, matched to the base
+game). A tier that hits more than one row is recorded as `ambiguous`, not
+guessed. Unmatched titles are kept in `owned_games` with a NULL `game_id`.
+They are also upserted into `unmatched_import_titles` (`status = 'pending'`)
+for review.
 
 - With `STEAM_API_KEY` set: calls `IPlayerService/GetOwnedGames`, upserts
   `owned_games`, returns `source: "steam"`.

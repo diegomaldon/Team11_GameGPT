@@ -67,7 +67,7 @@ class FakeCursor:
         return None
 
     async def execute(self, sql: str, params: tuple) -> None:
-        user, platform, appid, title, playtime = params
+        user, platform, appid, title, playtime, _game_id = params
         if appid == self._conn.db.crash_on_appid:
             raise psycopg.OperationalError("server closed the connection unexpectedly")
         if appid in self._conn.db.bad_appids:
@@ -190,6 +190,16 @@ def fake_db(monkeypatch: pytest.MonkeyPatch) -> FakeDB:
         return await real(*args, **kwargs)
 
     monkeypatch.setattr(repositories, "import_owned_games", patched)
+
+    # Title matching reads the catalogue and records the run; no Postgres here.
+    async def no_catalogue() -> list:
+        return []
+
+    async def record_import(*args: Any, **kwargs: Any) -> UUID:
+        return uuid4()
+
+    monkeypatch.setattr(repositories, "list_catalogue_games", no_catalogue)
+    monkeypatch.setattr(repositories, "record_library_import", record_import)
     return db
 
 

@@ -450,6 +450,56 @@
             "title": "Error Code",
             "description": "Stable code the UI branches on, e.g. 'steam_profile_private'. Set when state is 'failed'."
           },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          },
+          "matched": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Matched",
+            "description": "Imported titles joined to a games row."
+          },
+          "unmatched": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unmatched",
+            "description": "Titles with no games row; queued in unmatched_import_titles."
+          },
+          "match_rate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Match Rate",
+            "description": "matched / total, 0..1."
+          },
           "started_at": {
             "type": "string",
             "format": "date-time",
@@ -518,6 +568,56 @@
             "type": "array",
             "title": "Failed",
             "description": "Per-title failures; they do not abort the run."
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          },
+          "matched": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Matched",
+            "description": "Imported titles joined to a games row."
+          },
+          "unmatched": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unmatched",
+            "description": "Titles with no games row; queued in unmatched_import_titles."
+          },
+          "match_rate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Match Rate",
+            "description": "matched / total, 0..1."
           }
         },
         "type": "object",

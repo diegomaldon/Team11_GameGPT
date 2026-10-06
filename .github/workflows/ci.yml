@@ -165,9 +165,9 @@ jobs:
             pytest==8.3.4 \
             pytest-asyncio==0.25.2
 
-      - name: Pytest — structured logging and redaction
+      - name: Pytest — structured logging, redaction, title matching
         working-directory: .
-        run: python -m pytest api/tests/test_observability.py -v
+        run: python -m pytest api/tests/test_observability.py api/tests/test_title_matching.py api/tests/test_library_sync_matching.py -v
 
       - name: Pytest — Steam library client and error contract
         working-directory: .
