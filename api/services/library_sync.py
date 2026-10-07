@@ -17,6 +17,11 @@ TM11-49 (import progress + partial failure):
 - A bad title is reported in `failed` and the run carries on.
 - The import is one transaction (repositories.import_owned_games): if the run
   itself fails, nothing is committed and the previous library is untouched.
+
+Title matching: every import is matched against the games catalogue
+(title_matching.py) so owned_games rows carry a game_id. Unmatched titles go to
+the review queue, and the match rate is logged, stored in library_imports and
+returned on the response and the job.
 """
 
 from __future__ import annotations
@@ -39,6 +44,7 @@ from api.models import (
     SyncJobState,
 )
 from api.services.steam_client import STEAM_LIMITER, OwnedGame, SteamClient, SteamError
+from api.services.title_matching import ImportedTitle, TitleMatcher, catalogue_from_rows
 
 log = logging.getLogger("gamegpt.library_sync")
 
@@ -121,6 +127,21 @@ class LibrarySyncService:
         invalid: list[SyncFailure],
         job: LibrarySyncJob,
     ) -> None:
+        # Match before writing so each owned_games row lands with its game_id.
+        catalogue = catalogue_from_rows(await repositories.list_catalogue_games())
+        report = TitleMatcher(catalogue).match_all(
+            ImportedTitle(title=r.get("title") or "", steam_appid=r.get("steam_appid"))
+            for r in rows
+        )
+        game_ids = {
+            m.imported.steam_appid: m.game_id
+            for m in report.matched
+            if m.imported.steam_appid is not None
+        }
+        # Unmatched rows are still written (game_id NULL) so appid-based dedup
+        # keeps working; they are also queued for review below, not dropped.
+        rows = [{**r, "game_id": game_ids.get(r.get("steam_appid"))} for r in rows]
+
         job.state = SyncJobState.importing
         job.total = len(rows) + len(invalid)
         job.failed = list(invalid)
@@ -135,6 +156,23 @@ class LibrarySyncService:
             user_id, rows, platform="steam", on_progress=on_progress
         )
         on_progress(len(rows), synced, failures)
+
+        job.matched = len(report.matched)
+        job.unmatched = len(report.unmatched)
+        job.match_rate = report.match_rate
+        try:
+            job.import_id = await repositories.record_library_import(
+                user_id, "steam", job.source or "steam", report
+            )
+        except Exception:
+            # The library is already committed; losing the report must not turn
+            # a good sync into a failed one. Logged loudly, not swallowed.
+            log.exception("library import report not recorded: user=%s", user_id)
+        log.info(
+            "title matching: user=%s matched=%d unmatched=%d match_rate=%.1f%% by_method=%s",
+            user_id, job.matched, job.unmatched, report.match_rate * 100,
+            report.counts_by_method(),
+        )
 
 
 # ─────────────────────────── helpers ───────────────────────────
@@ -200,6 +238,10 @@ def _finish(job: LibrarySyncJob) -> LibrarySyncResponse:
         source=job.source or "steam",
         total=job.total,
         failed=list(job.failed),
+        import_id=job.import_id,
+        matched=job.matched,
+        unmatched=job.unmatched,
+        match_rate=job.match_rate,
     )
 
 
