@@ -42,6 +42,8 @@ from api.services.steam_client import STEAM_LIMITER, OwnedGame, SteamClient, Ste
 
 log = logging.getLogger("gamegpt.library_sync")
 
+_STEAM_URL = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
+
 # Tiny built-in library used only when there is no Steam key AND no seed rows,
 # so the dedup step and the slice still have something to chew on offline.
 _FALLBACK_GAMES: list[dict[str, Any]] = [
@@ -77,64 +79,86 @@ class LibrarySyncService:
 
         Returns how many rows landed, which titles failed, and whether the
         source was the live Steam API ('steam') or the seeded fallback ('seed').
-        If `job` is given it is updated in place as the run progresses.
-        Raises if the run fails; nothing is committed in that case.
+        Every path through this method resolves the platform account first.
+        The steamID64 is the only thing that identifies which library these
+        rows came from, and once the upsert has run that information is gone,
+        so attribution has to happen before the write, not after it.
         """
-        job = job or new_job()
-        if self._settings.steam_api_key:
-            job.state = SyncJobState.fetching
-            job.source = "steam"
-            # SteamPrivateProfileError / SteamInvalidSteamIDError / SteamTransientError
-            # propagate on purpose: routers/library.py maps each to its own HTTP
-            # status and error code so the UI can explain what happened. Swallowing
-            # them here would turn "your profile is private" into "0 games synced".
-            games = await self._steam.get_owned_games(steam_id)
-            rows, invalid = _split_valid(games)
-            await self._import(user_id, rows, invalid, job)
-            log.info(
-                "steam sync: user=%s steam_id=%s synced=%d failed=%d",
-                user_id, steam_id, job.synced, len(job.failed),
-            )
-            return _finish(job)
+        account_id = await repositories.ensure_platform_account(
+            user_id, "steam", steam_id
+        )
 
-        job.source = "seed"
+        if self._settings.steam_api_key:
+            games = await self._fetch_steam_games(steam_id)
+            rows = [
+                {
+                    "steam_appid": g.get("appid"),
+                    "title": g.get("name"),
+                    # GetOwnedGames reports playtime_forever in minutes. It was
+                    # being read off the wire and dropped on the floor before
+                    # this ticket.
+                    "playtime_minutes": g.get("playtime_forever"),
+                }
+                for g in games
+                if g.get("appid") is not None
+            ]
+            synced = await repositories.upsert_owned_games(
+                user_id, rows, platform="steam", platform_account_id=account_id
+            )
+            log.info(
+                "steam sync: user=%s steam_id=%s account=%s synced=%d",
+                user_id, steam_id, account_id, synced,
+            )
+            return LibrarySyncResponse(synced=synced, source="steam")
+
         # No key: prefer whatever the DB seed (supabase/seed.sql) already holds.
         existing = await repositories.count_owned_games(user_id)
         if existing > 0:
-            log.info("seed sync: user=%s reusing %d seeded rows", user_id, existing)
-            job.total = job.processed = job.synced = existing
-            return _finish(job)
+            # Those rows were written before attribution existed and carry no
+            # account. Claim the unattributed ones for the account just linked
+            # so AC-03 holds for the seeded library too, not only for rows this
+            # sync wrote itself.
+            attached = await repositories.attach_orphan_owned_games(
+                user_id, account_id, platform="steam"
+            )
+            log.info(
+                "seed sync: user=%s reusing %d seeded rows, attached %d to account=%s",
+                user_id, existing, attached, account_id,
+            )
+            return LibrarySyncResponse(synced=existing, source="seed")
 
         # No key and no seed rows: plant the built-in fallback so dedup works.
-        await self._import(user_id, _FALLBACK_GAMES, [], job)
-        log.info("seed sync: user=%s inserted %d fallback rows", user_id, job.synced)
-        return _finish(job)
+        synced = await repositories.upsert_owned_games(
+            user_id, _FALLBACK_GAMES, platform="steam", platform_account_id=account_id
+        )
+        log.info("seed sync: user=%s inserted %d fallback rows", user_id, synced)
+        return LibrarySyncResponse(synced=synced, source="seed")
 
     async def list_owned(self, user_id: UUID) -> list[LibraryItem]:
         """Return the user's current owned-games library."""
         return await repositories.list_owned_games(user_id)
 
-    async def _import(
-        self,
-        user_id: UUID,
-        rows: list[Mapping[str, Any]],
-        invalid: list[SyncFailure],
-        job: LibrarySyncJob,
-    ) -> None:
-        job.state = SyncJobState.importing
-        job.total = len(rows) + len(invalid)
-        job.failed = list(invalid)
-        job.processed = len(invalid)
-
-        def on_progress(done: int, synced: int, failures: list) -> None:
-            job.processed = len(invalid) + done
-            job.synced = synced
-            job.failed = invalid + [_failure(r, reason) for r, reason in failures]
-
-        synced, failures = await repositories.import_owned_games(
-            user_id, rows, platform="steam", on_progress=on_progress
-        )
-        on_progress(len(rows), synced, failures)
+    # ── the one external call, kept behind the service so it can be faked ──
+    async def _fetch_steam_games(self, steam_id: str) -> list[dict[str, Any]]:
+        params = {
+            "key": self._settings.steam_api_key,
+            "steamid": steam_id,
+            "include_appinfo": 1,
+            "format": "json",
+        }
+        # NOT resp.raise_for_status(): httpx puts the full URL — including
+        # ?key=<STEAM_API_KEY> — into the exception message, which then lands in
+        # log.exception("library sync failed") upstairs. See observability/upstream.py.
+        if self._http_client is not None:
+            resp = await self._http_client.get(_STEAM_URL, params=params)
+            raise_for_status_safe(resp, "steam")
+            data = resp.json()
+        else:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.get(_STEAM_URL, params=params)
+                raise_for_status_safe(resp, "steam")
+                data = resp.json()
+        return data.get("response", {}).get("games", []) or []
 
 
 # ─────────────────────────── helpers ───────────────────────────

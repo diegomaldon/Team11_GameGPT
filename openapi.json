@@ -166,94 +166,9 @@
           }
         }
       }
-    },
-    "/api/library/sync/jobs": {
-      "post": {
-        "tags": [
-          "library"
-        ],
-        "summary": "Start Sync Job",
-        "description": "Start a background sync, or return the one already running for this user.",
-        "operationId": "start_sync_job_api_library_sync_jobs_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LibrarySyncRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "202": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LibrarySyncJob"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/library/sync/jobs/{job_id}": {
-      "get": {
-        "tags": [
-          "library"
-        ],
-        "summary": "Get Sync Job",
-        "operationId": "get_sync_job_api_library_sync_jobs__job_id__get",
-        "parameters": [
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Job Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LibrarySyncJob"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
-  "components": {
+"components": {
     "schemas": {
       "FeedbackRequest": {
         "properties": {
@@ -352,10 +267,23 @@
           },
           "playtime_minutes": {
             "type": "integer",
-            "minimum": 0.0,
+            "minimum": 0,
             "title": "Playtime Minutes",
-            "description": "Lifetime minutes played. 0 means owned but never played (TM11-46).",
-            "default": 0
+            "default": 0,
+            "description": "Lifetime minutes played. 0 means owned but never played."
+          },
+          "imported_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imported At",
+            "description": "When the most recent library sync last wrote this row."
           }
         },
         "type": "object",
@@ -381,101 +309,6 @@
         ],
         "title": "LibraryResponse",
         "description": "Body returned from GET /api/library."
-      },
-      "LibrarySyncJob": {
-        "properties": {
-          "job_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Job Id"
-          },
-          "state": {
-            "$ref": "#/components/schemas/SyncJobState"
-          },
-          "total": {
-            "type": "integer",
-            "title": "Total",
-            "default": 0
-          },
-          "processed": {
-            "type": "integer",
-            "title": "Processed",
-            "description": "Titles handled so far, imported or failed.",
-            "default": 0
-          },
-          "synced": {
-            "type": "integer",
-            "title": "Synced",
-            "default": 0
-          },
-          "failed": {
-            "items": {
-              "$ref": "#/components/schemas/SyncFailure"
-            },
-            "type": "array",
-            "title": "Failed"
-          },
-          "source": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Source"
-          },
-          "error": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Error",
-            "description": "Set when state is 'failed'."
-          },
-          "error_code": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Error Code",
-            "description": "Stable code the UI branches on, e.g. 'steam_profile_private'. Set when state is 'failed'."
-          },
-          "started_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Started At"
-          },
-          "finished_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Finished At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "job_id",
-          "state",
-          "started_at"
-        ],
-        "title": "LibrarySyncJob",
-        "description": "A background library sync, polled by the UI for progress. TM11-49."
       },
       "LibrarySyncRequest": {
         "properties": {
@@ -504,20 +337,6 @@
             "type": "string",
             "title": "Source",
             "description": "'steam' for a real API call, 'seed' for the fallback."
-          },
-          "total": {
-            "type": "integer",
-            "title": "Total",
-            "description": "Titles the source returned (synced + failed).",
-            "default": 0
-          },
-          "failed": {
-            "items": {
-              "$ref": "#/components/schemas/SyncFailure"
-            },
-            "type": "array",
-            "title": "Failed",
-            "description": "Per-title failures; they do not abort the run."
           }
         },
         "type": "object",
@@ -634,53 +453,6 @@
         ],
         "title": "Recommendation",
         "description": "One ranked recommendation returned to the client."
-      },
-      "SyncFailure": {
-        "properties": {
-          "steam_appid": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Steam Appid"
-          },
-          "title": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Title"
-          },
-          "reason": {
-            "type": "string",
-            "title": "Reason"
-          }
-        },
-        "type": "object",
-        "required": [
-          "reason"
-        ],
-        "title": "SyncFailure",
-        "description": "One title that could not be imported. The rest of the run still lands. TM11-49."
-      },
-      "SyncJobState": {
-        "type": "string",
-        "enum": [
-          "queued",
-          "fetching",
-          "importing",
-          "succeeded",
-          "failed"
-        ],
-        "title": "SyncJobState"
       },
       "ValidationError": {
         "properties": {

@@ -146,7 +146,11 @@ class LibraryItem(BaseModel):
     platform: str = "steam"
     playtime_minutes: int = Field(
         0, ge=0,
-        description="Lifetime minutes played. 0 means owned but never played (TM11-46).",
+        description="Lifetime minutes played. 0 means owned but never played.",
+    )
+    imported_at: Optional[datetime] = Field(
+        None,
+        description="When the most recent library sync last wrote this row.",
     )
 
 

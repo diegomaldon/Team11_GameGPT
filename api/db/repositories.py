@@ -116,6 +116,110 @@ async def insert_feedback(req: FeedbackRequest) -> None:
 
 # ─────────────────────────── library flow ───────────────────────────
 
+_UPSERT_OWNED_GAMES_SQL = (
+    "insert into owned_games "
+    "(user_id, platform, platform_account_id, steam_appid, title, "
+    " playtime_minutes, imported_at) "
+    "values (%s, %s, %s, %s, %s, %s, now()) "
+    # AC-02. The conflict target is the unique constraint declared in
+    # 0001_init.sql. It is what makes a re-sync update in place instead of
+    # inserting a second copy of the library, so the row count is stable across
+    # any number of runs.
+    "on conflict (user_id, platform, steam_appid) do update set "
+    # A sync that cannot name a title should not erase one we already have.
+    "title = coalesce(excluded.title, owned_games.title), "
+    # AC-03. coalesce, not a plain assignment: the keyless offline fallback has
+    # no account to attribute to, and it must not detach rows that a real sync
+    # already attributed correctly.
+    "platform_account_id = coalesce("
+    "    excluded.platform_account_id, owned_games.platform_account_id), "
+    # AC-02. Steam's playtime_forever is cumulative and never decreases, so a
+    # re-sync should move playtime forward and never backward. greatest() also
+    # means the 0-minute fallback rows cannot zero out real hours. The cost of
+    # this choice is that a genuine downward correction would not take; that
+    # trade is deliberate and written up in docs/library-sync-idempotency.md.
+    "playtime_minutes = greatest("
+    "    excluded.playtime_minutes, owned_games.playtime_minutes), "
+    # AC-01. Unconditional: "when did a sync last see this row" is only true if
+    # it moves on every run, including the runs that change nothing else.
+    "imported_at = now()"
+)
+
+
+def _playtime_minutes(row: Mapping[str, Any]) -> int:
+    """Coerce a row's playtime to a non-negative int.
+
+    Accepts either our own `playtime_minutes` or Steam's raw `playtime_forever`
+    so callers can hand over a GetOwnedGames payload unchanged. Anything
+    missing, null or unparseable becomes 0 — the column is NOT NULL, and a
+    title that reports no playtime is owned-but-never-played, not unknown.
+    """
+    raw = row.get("playtime_minutes")
+    if raw is None:
+        raw = row.get("playtime_forever")
+    try:
+        return max(int(raw), 0)
+    except (TypeError, ValueError):
+        return 0
+
+@retry(**_RETRY)
+async def ensure_platform_account(
+    user_id: UUID, platform: str, external_id: str
+) -> UUID:
+    """Upsert the platform_accounts row for one link and return its id.
+
+    AC-03 needs an account id before a single owned_games row is written, and
+    the sync is the first thing that knows the steamID64, so the row is created
+    here rather than assumed to exist.
+
+    `do update set external_id = excluded.external_id` is a deliberate no-op
+    write. `do nothing` would skip the row on conflict and RETURNING would hand
+    back zero rows, which is exactly the common case — a user re-syncing an
+    account they already linked.
+    """
+    async with connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "insert into platform_accounts (user_id, platform, external_id) "
+                "values (%s, %s, %s) "
+                "on conflict (user_id, platform, external_id) do update set "
+                "external_id = excluded.external_id "
+                "returning id",
+                (str(user_id), platform, str(external_id)),
+            )
+            row = await cur.fetchone()
+        await conn.commit()
+    account_id = _as_uuid(row[0]) if row else None
+    if account_id is None:  # pragma: no cover - RETURNING always yields a row
+        raise RuntimeError("ensure_platform_account did not return an id")
+    return account_id
+
+
+@retry(**_RETRY)
+async def attach_orphan_owned_games(
+    user_id: UUID, platform_account_id: UUID, platform: str = "steam"
+) -> int:
+    """Attribute this user's unattributed rows on `platform` to an account.
+
+    AC-03 for rows that predate attribution — the five seeded titles in
+    supabase/seed.sql, and anything written before this ticket. Only touches
+    rows where platform_account_id is null, so it can never move a row from one
+    account to another.
+
+    Returns how many rows were attached.
+    """
+    async with connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "update owned_games set platform_account_id = %s "
+                "where user_id = %s and platform = %s "
+                "and platform_account_id is null",
+                (str(platform_account_id), str(user_id), platform),
+            )
+            attached = cur.rowcount or 0
+        await conn.commit()
+    return int(attached)
+
 
 @retry(**_RETRY)
 async def count_owned_games(user_id: UUID) -> int:
@@ -136,10 +240,11 @@ async def list_owned_games(user_id: UUID) -> list[LibraryItem]:
     async with connection() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                "select game_id, title, steam_appid, platform, playtime_minutes "
+                "select game_id, title, steam_appid, platform, "
+                "playtime_minutes, imported_at "
                 "from owned_games where user_id = %s "
-                # Most-played first: the library view leads with what the user
-                # actually plays, not whatever sorts alphabetically.
+                # Most-played first: the library view should lead with what the
+                # user actually plays, not with whatever sorts alphabetically.
                 "order by playtime_minutes desc, title nulls last",
                 (str(user_id),),
             )
@@ -151,6 +256,7 @@ async def list_owned_games(user_id: UUID) -> list[LibraryItem]:
             steam_appid=r[2],
             platform=r[3] or "steam",
             playtime_minutes=r[4] or 0,
+            imported_at=r[5],
         )
         for r in rows
     ]
@@ -158,127 +264,37 @@ async def list_owned_games(user_id: UUID) -> list[LibraryItem]:
 
 @retry(**_RETRY)
 async def upsert_owned_games(
-    user_id: UUID, rows: Sequence[Mapping[str, Any]], platform: str = "steam"
+    user_id: UUID,
+    rows: Sequence[Mapping[str, Any]],
+    platform: str = "steam",
+    platform_account_id: UUID | None = None,
 ) -> int:
-    """Upsert owned_games rows for the user. Idempotent on (user, platform, appid)."""
+    """Upsert owned_games rows for the user. Idempotent on (user, platform, appid).
+
+    Re-running a sync updates the existing rows in place — playtime moves
+    forward, imported_at moves to now, and the row count does not change. See
+    `_UPSERT_OWNED_GAMES_SQL` above for the per-column rules.
+
+    `platform_account_id` is the account the library was imported from. It is
+    optional only because the keyless offline fallback has no real account to
+    name; every live sync path supplies one.
+    """
     if not rows:
         return 0
+    account = str(platform_account_id) if platform_account_id is not None else None
     params = [
         (
             str(user_id),
             platform,
+            account,
             row.get("steam_appid"),
             row.get("title"),
-            # TM11-46: Steam reports playtime_forever in minutes. Absent on a
-            # non-Steam import, so default rather than write NULL into a NOT NULL
-            # column. See 20261006120000_owned_games_playtime.sql.
-            int(row.get("playtime_minutes") or 0),
+            _playtime_minutes(row),
         )
         for row in rows
     ]
     async with connection() as conn:
         async with conn.cursor() as cur:
-            await cur.executemany(
-                "insert into owned_games "
-                "(user_id, platform, steam_appid, title, playtime_minutes) "
-                "values (%s, %s, %s, %s, %s) "
-                "on conflict (user_id, platform, steam_appid) do update set "
-                "title = excluded.title, "
-                # A re-sync should move playtime forward, never backward: Steam
-                # is the source of truth and playtime only grows. Taking the max
-                # also means a partial/failed sync cannot zero out real hours.
-                "playtime_minutes = greatest("
-                "    owned_games.playtime_minutes, excluded.playtime_minutes)",
-                params,
-            )
+            await cur.executemany(_UPSERT_OWNED_GAMES_SQL, params)
         await conn.commit()
     return len(params)
-
-
-# ─────────────────────── library import (TM11-49) ───────────────────────
-
-# Rows per savepoint. Progress is reported after each chunk, so this is also the
-# UI's update granularity: a 500-title library moves in 10 visible steps.
-IMPORT_CHUNK = 50
-
-# Same playtime rule as upsert_owned_games: a re-sync only moves it forward.
-_OWNED_UPSERT = (
-    "insert into owned_games (user_id, platform, steam_appid, title, playtime_minutes) "
-    "values (%s, %s, %s, %s, %s) "
-    "on conflict (user_id, platform, steam_appid) do update set "
-    "title = excluded.title, "
-    "playtime_minutes = greatest("
-    "    owned_games.playtime_minutes, excluded.playtime_minutes)"
-)
-
-# A bad title (out-of-range id, bad text, constraint) — isolate it and carry on.
-# Connection-level errors (OperationalError / InterfaceError) are NOT in here:
-# they abort the run, and the outer transaction rolls everything back.
-_ROW_ERRORS = (psycopg.DataError, psycopg.IntegrityError, psycopg.ProgrammingError)
-
-ImportProgress = Callable[[int, int, list[tuple[Mapping[str, Any], str]]], None]
-
-
-def _row_error_reason(exc: Exception) -> str:
-    diag = getattr(exc, "diag", None)
-    msg = getattr(diag, "message_primary", None) or next(iter(str(exc).splitlines()), "")
-    return f"{type(exc).__name__}: {msg}" if msg else type(exc).__name__
-
-
-async def import_owned_games(
-    user_id: UUID,
-    rows: Sequence[Mapping[str, Any]],
-    platform: str = "steam",
-    *,
-    chunk_size: int = IMPORT_CHUNK,
-    on_progress: ImportProgress | None = None,
-    conn_factory: Callable[[], Any] | None = None,
-) -> tuple[int, list[tuple[Mapping[str, Any], str]]]:
-    """Import a whole library in ONE transaction, isolating per-title failures.
-
-    - Each chunk runs in a savepoint. If it fails, the chunk is replayed row by
-      row (each in its own savepoint) so only the offending titles are dropped.
-    - Nothing commits until every chunk is done. Any other error (connection
-      lost, server gone) propagates out of the outer block, which rolls back:
-      a failed run leaves the user's previous library exactly as it was.
-
-    Returns (synced, failures) where failures is [(row, reason)]. Not wrapped
-    in @retry: a retry would replay progress callbacks the UI already showed.
-    """
-    factory = conn_factory or connection
-    synced = 0
-    failures: list[tuple[Mapping[str, Any], str]] = []
-
-    def params(row: Mapping[str, Any]) -> tuple:
-        return (
-            str(user_id),
-            platform,
-            row.get("steam_appid"),
-            row.get("title"),
-            int(row.get("playtime_minutes") or 0),  # absent on the seed fallback
-        )
-
-    async with factory() as conn:
-        async with conn.transaction():
-            for start in range(0, len(rows), chunk_size):
-                chunk = rows[start : start + chunk_size]
-                try:
-                    async with conn.transaction():
-                        async with conn.cursor() as cur:
-                            await cur.executemany(_OWNED_UPSERT, [params(r) for r in chunk])
-                    synced += len(chunk)
-                except _ROW_ERRORS:
-                    for row in chunk:
-                        try:
-                            async with conn.transaction():
-                                async with conn.cursor() as cur:
-                                    await cur.execute(_OWNED_UPSERT, params(row))
-                            synced += 1
-                        except _ROW_ERRORS as exc:
-                            reason = _row_error_reason(exc)
-                            log.warning("owned_games import: skip appid=%s: %s",
-                                        row.get("steam_appid"), reason)
-                            failures.append((row, reason))
-                if on_progress is not None:
-                    on_progress(start + len(chunk), synced, failures)
-    return synced, failures
