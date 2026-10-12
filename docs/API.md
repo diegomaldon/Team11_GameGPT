@@ -206,3 +206,89 @@ Poll an import. The web client polls every 750 ms (`runLibrarySync` in
   treats a 404 mid-poll as "lost track". An import that was cut off by a restart
   never committed.
 
+---
+
+## `POST /api/library/csv/preview`
+
+Review a library CSV before anything is saved (TM11-55, REQ004). For platforms
+with no library API (Epic, Xbox), or any list the user keeps themselves.
+
+The browser reads the file and sends its text; the server checks everything.
+
+**Request**
+```json
+{ "platform": "epic", "csv_text": "title,steam_appid\nHades,1145360\nCeleste,\n" }
+```
+| Field | Type | Notes |
+|-------|------|-------|
+| `platform` | `"steam"` \| `"xbox"` \| `"epic"` | every row is owned on this platform |
+| `csv_text` | string | the whole file, at most 1 MB |
+
+**File format.** Comma-separated, UTF-8, header row first. A `title` column is
+required; `steam_appid` is optional; other columns are ignored. At most 2,000
+games and 200 characters per title.
+
+**200** (nothing written)
+```json
+{
+  "platform": "epic",
+  "rows": [
+    { "row_number": 2, "title": "Hades", "status": "matched",
+      "game_id": "7b0d…", "game_title": "Hades", "message": null },
+    { "row_number": 3, "title": "Celeste?", "status": "unmatched",
+      "game_id": null, "game_title": null,
+      "message": "No game found with this title. Saved for review." }
+  ],
+  "matched": 1, "needs_review": 1, "skipped": 0
+}
+```
+| `status` | Meaning |
+|----------|---------|
+| `matched` | will be added on commit |
+| `already_owned` | already in the library on this platform; skipped |
+| `duplicate` | same game or title as an earlier row; skipped |
+| `ambiguous` | matches several games; goes to the review queue |
+| `unmatched` | no game found; goes to the review queue |
+| `invalid` | the row itself is bad (empty or overlong title, bad `steam_appid`); `message` says why |
+
+`row_number` is the spreadsheet row (the header is row 1). Matching is the same
+as for Steam imports (see Title matching above).
+
+## `POST /api/library/csv/commit`
+
+Add the matched rows the user kept.
+
+**Request:** the preview body plus the rows the user unticked.
+```json
+{ "platform": "epic", "csv_text": "title,steam_appid\nHades,1145360\nCeleste,\n",
+  "excluded_rows": [3] }
+```
+
+**200**
+```json
+{ "added": 1, "needs_review": 0, "skipped": 1, "import_id": "5c1e…" }
+```
+| Field | Notes |
+|-------|-------|
+| `added` | games newly added to `owned_games` |
+| `needs_review` | ambiguous and unmatched rows written to `unmatched_import_titles` |
+| `skipped` | unticked, already owned, duplicate and invalid rows |
+| `import_id` | `library_imports` row (`source = 'csv'`); `null` if only the report failed to save |
+
+The server runs the whole review again on `csv_text`, so the commit adds exactly
+what a preview of the same file would have shown as `matched`. The client can
+only leave rows out. A game already owned is never added twice, even when two
+uploads race (`owned_games_user_platform_manual_game_key`).
+
+**Errors (both routes)**
+| Status | `error` | When |
+|--------|---------|------|
+| 413 | `request_too_large` | body over 4 MB (any route) |
+| 422 | `file_too_large`, `too_many_rows` | over 1 MB or 2,000 games |
+| 422 | `empty_file`, `no_rows`, `not_text` | nothing to read, or a binary file |
+| 422 | `missing_title_column`, `duplicate_column`, `malformed_csv` | bad header or broken quoting |
+| 422 | `review_mismatch` | `excluded_rows` names a row the file doesn't have |
+| 503 | `csv_import_failed` | anything else; the cause is only logged |
+
+`message` is always safe to show and never repeats the file's contents. Logs
+carry counts only, never titles.

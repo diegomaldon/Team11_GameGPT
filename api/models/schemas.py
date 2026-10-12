@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -170,3 +170,74 @@ class LibraryResponse(BaseModel):
     """Body returned from GET /api/library."""
 
     items: list[LibraryItem]
+
+
+# ───────────────────── /api/library/csv (TM11-55) ─────────────────────
+
+# Same value as library_csv.MAX_CSV_BYTES; test_csv_import.py keeps them equal.
+# Repeated rather than imported because api.services imports this module.
+_MAX_CSV_TEXT = 1_000_000
+_MAX_CSV_ROWS = 2_000
+
+CsvPlatform = Literal["steam", "xbox", "epic"]
+
+
+class CsvImportRequest(BaseModel):
+    """A library CSV to review. The browser sends the file's text, not the file."""
+
+    platform: CsvPlatform = Field(
+        ..., description="Every row in the file is owned on this platform."
+    )
+    csv_text: str = Field(..., max_length=_MAX_CSV_TEXT,
+                          description="The whole file, header row first.")
+
+
+class CsvCommitRequest(CsvImportRequest):
+    """The same file again, plus the rows the user unticked during review."""
+
+    excluded_rows: list[int] = Field(
+        default_factory=list, max_length=_MAX_CSV_ROWS,
+        description="Spreadsheet row numbers to leave out of the import.",
+    )
+
+
+class CsvRowStatus(str, Enum):
+    matched = "matched"              # will be added
+    already_owned = "already_owned"  # in the library already; skipped
+    duplicate = "duplicate"          # same game as an earlier row; skipped
+    ambiguous = "ambiguous"          # matches several games; sent to the review queue
+    unmatched = "unmatched"          # no game found; sent to the review queue
+    invalid = "invalid"              # the row itself is bad, see message
+
+
+class CsvRowResult(BaseModel):
+    """The review outcome for one CSV row."""
+
+    row_number: int = Field(
+        ..., ge=2, description="As shown in a spreadsheet; row 1 is the header."
+    )
+    title: str
+    status: CsvRowStatus
+    game_id: Optional[UUID] = None
+    game_title: Optional[str] = Field(None, description="The catalogue title the row matched.")
+    message: Optional[str] = Field(None, description="Why the row won't be added. Safe to show.")
+
+
+class CsvPreviewResponse(BaseModel):
+    """Per-row results of a CSV. Nothing has been written yet."""
+
+    platform: CsvPlatform
+    rows: list[CsvRowResult]
+    matched: int = Field(..., ge=0)
+    needs_review: int = Field(..., ge=0, description="Ambiguous plus unmatched rows.")
+    skipped: int = Field(..., ge=0, description="Already owned, duplicate or invalid rows.")
+
+
+class CsvCommitResponse(BaseModel):
+    """What a confirmed CSV import changed."""
+
+    added: int = Field(..., ge=0, description="Games newly added to the library.")
+    needs_review: int = Field(..., ge=0, description="Rows sent to the review queue.")
+    skipped: int = Field(..., ge=0,
+                         description="Rows left out: unticked, already owned, duplicate, invalid.")
+    import_id: Optional[UUID] = Field(None, description="library_imports row for this upload.")

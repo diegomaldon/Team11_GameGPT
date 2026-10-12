@@ -369,3 +369,53 @@ async def record_library_import(
                 )
         await conn.commit()
     return import_id
+
+
+# ─────────────────────── CSV library import (TM11-55) ───────────────────────
+
+
+@retry(**_RETRY)
+async def list_owned_game_ids(user_id: UUID, platform: str) -> set[UUID]:
+    """game_ids the user already owns on `platform`, for duplicate checks."""
+    async with connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "select game_id from owned_games "
+                "where user_id = %s and platform = %s and game_id is not null",
+                (str(user_id), platform),
+            )
+            rows = await cur.fetchall()
+    return {game_id for game_id in (_as_uuid(r[0]) for r in rows) if game_id is not None}
+
+
+@retry(**_RETRY)
+async def add_owned_games(
+    user_id: UUID, platform: str, games: Sequence[tuple[UUID, str]]
+) -> int:
+    """Add (game_id, title) pairs the user imported by hand. Returns how many were new.
+
+    A game already in the library is skipped, never overwritten: `on conflict
+    do nothing` relies on owned_games_user_platform_manual_game_key, so two
+    uploads racing each other still can't add the same game twice. One
+    statement, so the whole batch lands or none of it does. Safe to retry.
+    """
+    if not games:
+        return 0
+    async with connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "insert into owned_games (user_id, platform, game_id, title) "
+                "select %s, %s, g.game_id, g.title "
+                "from unnest(%s::uuid[], %s::text[]) as g(game_id, title) "
+                "on conflict do nothing "
+                "returning game_id",
+                (
+                    str(user_id),
+                    platform,
+                    [str(game_id) for game_id, _ in games],
+                    [title for _, title in games],
+                ),
+            )
+            added = await cur.fetchall()
+        await conn.commit()
+    return len(added)

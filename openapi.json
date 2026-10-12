@@ -251,10 +251,320 @@
           }
         }
       }
+    },
+    "/api/library/csv/preview": {
+      "post": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Preview Csv Import",
+        "description": "Per-row match results for a CSV. Writes nothing.",
+        "operationId": "preview_csv_import_api_library_csv_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CsvImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CsvPreviewResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/library/csv/commit": {
+      "post": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Commit Csv Import",
+        "description": "Re-check the CSV and add the matched rows the user kept.",
+        "operationId": "commit_csv_import_api_library_csv_commit_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CsvCommitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CsvCommitResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "CsvCommitRequest": {
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "steam",
+              "xbox",
+              "epic"
+            ],
+            "title": "Platform",
+            "description": "Every row in the file is owned on this platform."
+          },
+          "csv_text": {
+            "type": "string",
+            "maxLength": 1000000,
+            "title": "Csv Text",
+            "description": "The whole file, header row first."
+          },
+          "excluded_rows": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "maxItems": 2000,
+            "title": "Excluded Rows",
+            "description": "Spreadsheet row numbers to leave out of the import."
+          }
+        },
+        "type": "object",
+        "required": [
+          "platform",
+          "csv_text"
+        ],
+        "title": "CsvCommitRequest",
+        "description": "The same file again, plus the rows the user unticked during review."
+      },
+      "CsvCommitResponse": {
+        "properties": {
+          "added": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Added",
+            "description": "Games newly added to the library."
+          },
+          "needs_review": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Needs Review",
+            "description": "Rows sent to the review queue."
+          },
+          "skipped": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Skipped",
+            "description": "Rows left out: unticked, already owned, duplicate, invalid."
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id",
+            "description": "library_imports row for this upload."
+          }
+        },
+        "type": "object",
+        "required": [
+          "added",
+          "needs_review",
+          "skipped"
+        ],
+        "title": "CsvCommitResponse",
+        "description": "What a confirmed CSV import changed."
+      },
+      "CsvImportRequest": {
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "steam",
+              "xbox",
+              "epic"
+            ],
+            "title": "Platform",
+            "description": "Every row in the file is owned on this platform."
+          },
+          "csv_text": {
+            "type": "string",
+            "maxLength": 1000000,
+            "title": "Csv Text",
+            "description": "The whole file, header row first."
+          }
+        },
+        "type": "object",
+        "required": [
+          "platform",
+          "csv_text"
+        ],
+        "title": "CsvImportRequest",
+        "description": "A library CSV to review. The browser sends the file's text, not the file."
+      },
+      "CsvPreviewResponse": {
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "steam",
+              "xbox",
+              "epic"
+            ],
+            "title": "Platform"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/CsvRowResult"
+            },
+            "type": "array",
+            "title": "Rows"
+          },
+          "matched": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Matched"
+          },
+          "needs_review": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Needs Review",
+            "description": "Ambiguous plus unmatched rows."
+          },
+          "skipped": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Skipped",
+            "description": "Already owned, duplicate or invalid rows."
+          }
+        },
+        "type": "object",
+        "required": [
+          "platform",
+          "rows",
+          "matched",
+          "needs_review",
+          "skipped"
+        ],
+        "title": "CsvPreviewResponse",
+        "description": "Per-row results of a CSV. Nothing has been written yet."
+      },
+      "CsvRowResult": {
+        "properties": {
+          "row_number": {
+            "type": "integer",
+            "minimum": 2.0,
+            "title": "Row Number",
+            "description": "As shown in a spreadsheet; row 1 is the header."
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CsvRowStatus"
+          },
+          "game_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Game Id"
+          },
+          "game_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Game Title",
+            "description": "The catalogue title the row matched."
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message",
+            "description": "Why the row won't be added. Safe to show."
+          }
+        },
+        "type": "object",
+        "required": [
+          "row_number",
+          "title",
+          "status"
+        ],
+        "title": "CsvRowResult",
+        "description": "The review outcome for one CSV row."
+      },
+      "CsvRowStatus": {
+        "type": "string",
+        "enum": [
+          "matched",
+          "already_owned",
+          "duplicate",
+          "ambiguous",
+          "unmatched",
+          "invalid"
+        ],
+        "title": "CsvRowStatus"
+      },
       "FeedbackRequest": {
         "properties": {
           "query_id": {
