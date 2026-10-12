@@ -4,7 +4,12 @@
 // Enable it by setting `NEXT_PUBLIC_USE_FIXTURES=1` in web/.env.local (or the
 // shell env). When set, every client call resolves locally instead of hitting
 // the network, still simulating the ~1.5s recommend latency.
+import { ApiError } from "./apiError";
 import type {
+  CsvCommitResponse,
+  CsvPlatform,
+  CsvPreviewResponse,
+  CsvRowResult,
   FeedbackRequest,
   LibraryItem,
   LibraryResponse,
@@ -168,4 +173,54 @@ export function fixtureGetSyncJob(jobId: string): LibrarySyncJob {
     }
   }
   return { ...job, failed: [...(job.failed ?? [])] };
+}
+
+// ── Fixture CSV upload (TM11-55) ──
+//
+// A rough stand-in so the review screen can be tried without an API: titles in
+// FIXTURE_CSV_CATALOGUE match, everything else is unmatched. The real parsing,
+// limits and matching live in api/services/library_csv.py and csv_import.py.
+const FIXTURE_CSV_CATALOGUE = ["Hades", "Celeste", "Hollow Knight", "Halo Infinite"];
+
+export function fixturePreviewCsv(platform: CsvPlatform, csvText: string): CsvPreviewResponse {
+  const lines = csvText.split(/\r?\n/);
+  if (lines[0]?.trim().toLowerCase() !== "title") {
+    throw new ApiError("fixture preview failed", 422, null, "missing_title_column",
+      'The first row must be a header with a "title" column, separated by commas.');
+  }
+  const rows: CsvRowResult[] = [];
+  lines.slice(1).forEach((line, i) => {
+    const title = line.trim();
+    if (!title) {
+      return;
+    }
+    const known = FIXTURE_CSV_CATALOGUE.find((t) => t.toLowerCase() === title.toLowerCase());
+    rows.push({
+      row_number: i + 2,
+      title,
+      status: known ? "matched" : "unmatched",
+      game_id: known ? `00000000-0000-4000-8000-00000000000${rows.length % 10}` : null,
+      game_title: known ?? null,
+      message: known ? null : "No game found with this title. Saved for review.",
+    });
+  });
+  const matched = rows.filter((r) => r.status === "matched").length;
+  return { platform, rows, matched, needs_review: rows.length - matched, skipped: 0 };
+}
+
+export function fixtureCommitCsv(
+  platform: CsvPlatform,
+  csvText: string,
+  excludedRows: number[],
+): CsvCommitResponse {
+  const kept = fixturePreviewCsv(platform, csvText).rows.filter(
+    (r) => !excludedRows.includes(r.row_number),
+  );
+  const added = kept.filter((r) => r.status === "matched").length;
+  return {
+    added,
+    needs_review: kept.length - added,
+    skipped: excludedRows.length,
+    import_id: null,
+  };
 }
