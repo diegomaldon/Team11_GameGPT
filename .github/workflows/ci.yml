@@ -187,6 +187,12 @@ jobs:
             api/tests/test_library_csv_router.py \
             api/tests/test_request_size.py -v
 
+      # TM11-54. "Duplicate entry prevented" and "stored as MANUAL on the right
+      # platform" are acceptance criteria, so they get a gate too.
+      - name: Pytest — manual title entry
+        working-directory: .
+        run: python -m pytest api/tests/test_library_manual.py -v
+
   # -------------------------------------------------------------------------
   # Aggregate gate. Optional but worth having: point the ruleset at this one check
   # instead of three, and adding a fourth job later needs no ruleset edit. `needs`

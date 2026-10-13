@@ -21,3 +21,7 @@ export type CsvPreviewResponse = Schemas["CsvPreviewResponse"];
 export type CsvCommitResponse = Schemas["CsvCommitResponse"];
 export type CsvRowResult = Schemas["CsvRowResult"];
 export type CsvRowStatus = Schemas["CsvRowStatus"];
+export type GameSearchResult = Schemas["GameSearchResult"];
+export type GameSearchResponse = Schemas["GameSearchResponse"];
+export type ManualPlatform = Schemas["ManualAddRequest"]["platform"];
+export type ManualAddResponse = Schemas["ManualAddResponse"];

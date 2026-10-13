@@ -2,9 +2,11 @@
 
 // Library: one list of everything the user owns, across platforms (TM11-50).
 //
-// Imported games come from GET /api/library; hand-added ones from the mock
-// store. lib/library/unified.ts merges them so a game owned on two platforms is
-// one row with two badges, and VirtualList keeps a 1000+ game library smooth.
+// Every owned game comes from GET /api/library, including games added by hand
+// (TM11-54, AddGameModal). Games added by hand before TM11-54 still live in the
+// mock store and are shown too. lib/library/unified.ts merges them so a game
+// owned on two platforms is one row with two badges, and VirtualList keeps a
+// 1000+ game library smooth.
 //
 // TM11-51: sort by title or playtime and search by title, both client-side (see
 // lib/library/view.ts for why). The view is saved per tab, so leaving the page
@@ -14,7 +16,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useMock } from "@/lib/mock/store";
 import {
-  CATALOG,
   GAME_PLATFORM_LABEL,
   PLATFORMS,
   type GamePlatform,
@@ -38,17 +39,10 @@ import {
   type LibraryView,
   type PlatformFilter,
 } from "@/lib/library/view";
+import { AddGameModal } from "@/components/library/AddGameModal";
 import { CsvImportModal } from "@/components/library/CsvImportModal";
 import { VirtualList } from "@/components/library/VirtualList";
-import {
-  Button,
-  Field,
-  Modal,
-  PageHeader,
-  Select,
-  TextInput,
-  cx,
-} from "@/components/ui";
+import { Button, PageHeader, Select, TextInput, cx } from "@/components/ui";
 import {
   Check,
   Library as LibraryIcon,
@@ -92,7 +86,7 @@ function PlatformTag({ platform }: { platform: GamePlatform }) {
 }
 
 export default function LibraryPage() {
-  const { state, hydrated, addGame, removeGame } = useMock();
+  const { state, hydrated, removeGame } = useMock();
   const [remote, setRemote] = useState<Remote>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
   // The server render has no sessionStorage; it only ever shows the loading
@@ -317,10 +311,10 @@ export default function LibraryPage() {
       <AddGameModal
         open={open}
         onClose={() => setOpen(false)}
-        onAdd={(game) => {
-          addGame(game);
+        onAdded={(game) => {
           setOpen(false);
           flash(`Added ${game.title}`);
+          retry();
         }}
       />
 
@@ -401,134 +395,5 @@ function EmptyLibrary({ onAdd }: { onAdd: () => void }) {
         </Button>
       </div>
     </div>
-  );
-}
-
-function AddGameModal({
-  open,
-  onClose,
-  onAdd,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onAdd: (g: { title: string; platform: GamePlatform; appid?: number }) => void;
-}) {
-  const [title, setTitle] = useState("");
-  const [platform, setPlatform] = useState<GamePlatform>("steam");
-  const [appid, setAppid] = useState("");
-  const [error, setError] = useState<string | null>(null);
-
-  function reset() {
-    setTitle("");
-    setPlatform("steam");
-    setAppid("");
-    setError(null);
-  }
-
-  function submit() {
-    if (!title.trim()) {
-      setError("Enter a game title.");
-      return;
-    }
-    onAdd({
-      title: title.trim(),
-      platform,
-      appid: appid ? Number(appid) : undefined,
-    });
-    reset();
-  }
-
-  const suggestions = title
-    ? CATALOG.filter(
-        (c) =>
-          c.title.toLowerCase().includes(title.toLowerCase()) &&
-          c.title.toLowerCase() !== title.toLowerCase(),
-      ).slice(0, 4)
-    : [];
-
-  return (
-    <Modal
-      open={open}
-      onClose={() => {
-        reset();
-        onClose();
-      }}
-      title="Add a game"
-      footer={
-        <>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              reset();
-              onClose();
-            }}
-          >
-            Cancel
-          </Button>
-          <Button size="sm" onClick={submit}>
-            Add to library
-          </Button>
-        </>
-      }
-    >
-      <div className="flex flex-col gap-4">
-        <Field label="Title" htmlFor="game-title" error={error ?? undefined}>
-          <TextInput
-            id="game-title"
-            placeholder="Start typing a game name…"
-            value={title}
-            autoFocus
-            onChange={(e) => {
-              setTitle(e.target.value);
-              setError(null);
-            }}
-          />
-        </Field>
-
-        {suggestions.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {suggestions.map((s) => (
-              <button
-                key={s.title}
-                type="button"
-                onClick={() => {
-                  setTitle(s.title);
-                  if (s.appid) setAppid(String(s.appid));
-                }}
-                className="rounded-full border border-[var(--border)] bg-white px-3 py-1 text-[13px] text-[var(--ink-soft)] hover:border-accent-200 hover:bg-accent-50 hover:text-accent-700"
-              >
-                {s.title}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Platform" htmlFor="game-platform">
-            <Select
-              id="game-platform"
-              value={platform}
-              onChange={(e) => setPlatform(e.target.value as GamePlatform)}
-            >
-              {(Object.keys(GAME_PLATFORM_LABEL) as GamePlatform[]).map((p) => (
-                <option key={p} value={p}>
-                  {GAME_PLATFORM_LABEL[p]}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Steam AppID" htmlFor="game-appid" hint="Optional">
-            <TextInput
-              id="game-appid"
-              inputMode="numeric"
-              placeholder="e.g. 413150"
-              value={appid}
-              onChange={(e) => setAppid(e.target.value.replace(/\D/g, ""))}
-            />
-          </Field>
-        </div>
-      </div>
-    </Modal>
   );
 }

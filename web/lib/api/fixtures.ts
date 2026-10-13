@@ -11,10 +11,13 @@ import type {
   CsvPreviewResponse,
   CsvRowResult,
   FeedbackRequest,
+  GameSearchResponse,
   LibraryItem,
   LibraryResponse,
   LibrarySyncJob,
   LibrarySyncResponse,
+  ManualAddResponse,
+  ManualPlatform,
   RecommendResponse,
 } from "./types";
 
@@ -120,7 +123,7 @@ function fixtureImported(): boolean {
 }
 
 export function fixtureGetLibrary(): LibraryResponse {
-  if (!fixtureImported()) return { items: [] };
+  if (!fixtureImported()) return { items: [...fixtureManual] };
   const size = Number(process.env.NEXT_PUBLIC_FIXTURE_LIBRARY_SIZE) || 0;
   const padding: LibraryItem[] = [];
   for (let i = FIXTURE_LIBRARY.length; i < size; i++) {
@@ -131,7 +134,7 @@ export function fixtureGetLibrary(): LibraryResponse {
       playtime_minutes: (i * 37) % 600,
     });
   }
-  return { items: [...FIXTURE_LIBRARY, ...padding] };
+  return { items: [...FIXTURE_LIBRARY, ...padding, ...fixtureManual] };
 }
 
 // Fixture-mode import job (TM11-49): advances one chunk per poll and includes one
@@ -223,4 +226,48 @@ export function fixtureCommitCsv(
     skipped: excludedRows.length,
     import_id: null,
   };
+}
+
+// ── Fixture manual title entry (TM11-54) ──
+//
+// A small catalogue to search, and an in-memory list of what was added, so the
+// Add game dialog works end to end without an API. Adding the same game twice
+// on one platform answers 409 like the real route. The list is per page load.
+const FIXTURE_GAMES = [
+  "Hades", "Hades II", "Hollow Knight", "Celeste", "Elden Ring", "Stardew Valley",
+  "Halo Infinite", "Forza Horizon 5", "Fortnite", "Rocket League", "Alan Wake 2",
+  "Baldur's Gate 3", "Slay the Spire", "Disco Elysium",
+].map((title, i) => ({
+  game_id: `00000000-0000-4000-9000-${String(i + 1).padStart(12, "0")}`,
+  title,
+  steam_appid: null,
+}));
+
+const fixtureManual: LibraryItem[] = [];
+
+export function fixtureSearchGames(query: string, limit = 8): GameSearchResponse {
+  const q = query.trim().toLowerCase();
+  if (q.length < 2) return { items: [] };
+  const hits = FIXTURE_GAMES.filter((g) => g.title.toLowerCase().includes(q));
+  // Same order as the API: prefix matches first, then shorter titles.
+  hits.sort(
+    (a, b) =>
+      Number(b.title.toLowerCase().startsWith(q)) - Number(a.title.toLowerCase().startsWith(q)) ||
+      a.title.length - b.title.length,
+  );
+  return { items: hits.slice(0, limit) };
+}
+
+export function fixtureAddManualGame(platform: ManualPlatform, gameId: string): ManualAddResponse {
+  const game = FIXTURE_GAMES.find((g) => g.game_id === gameId);
+  if (!game) {
+    throw new ApiError("fixture add failed", 404, null, "game_not_found",
+      "That game isn't in the catalogue. Pick one from the suggestions.");
+  }
+  if (fixtureManual.some((g) => g.game_id === gameId && g.platform === platform)) {
+    throw new ApiError("fixture add failed", 409, null, "already_owned",
+      "That game is already in your library on this platform.");
+  }
+  fixtureManual.push({ game_id: gameId, title: game.title, platform, playtime_minutes: 0 });
+  return { game_id: gameId, title: game.title, platform, import_method: "MANUAL" };
 }

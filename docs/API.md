@@ -296,3 +296,58 @@ uploads race (`owned_games_user_platform_manual_game_key`).
 
 `message` is always safe to show and never repeats the file's contents. Logs
 carry counts only, never titles.
+
+---
+
+## `GET /api/games/search`
+
+Catalogue games for the Add game autocomplete (TM11-54, REQ004). Writes nothing.
+
+| Query | Type | Notes |
+|-------|------|-------|
+| `q` | string, required | part of a title, at most 100 characters; under 2 characters (after trimming) returns no items |
+| `limit` | integer | 1–20, default 8 |
+
+**200**
+```json
+{ "items": [
+  { "game_id": "7b0d…", "title": "Hades", "steam_appid": 1145360 },
+  { "game_id": "a41c…", "title": "Hades II", "steam_appid": null }
+] }
+```
+Case-insensitive substring match on `games.title`. Titles that start with `q`
+come first, then shorter titles. `%` and `_` are matched literally.
+
+- **422**: `q` missing or too long, `limit` out of range.
+- **503** `search_failed`: anything else; the cause is only logged.
+
+## `POST /api/library/manual`
+
+Add one catalogue game to the library by hand (TM11-54, REQ004). For platforms
+with no library API.
+
+**Request**
+```json
+{ "platform": "epic", "game_id": "7b0d…" }
+```
+| Field | Type | Notes |
+|-------|------|-------|
+| `platform` | `"epic"` \| `"xbox"` | where the user owns the game. Steam has its own import |
+| `game_id` | uuid | from `GET /api/games/search`. Free-typed titles can't be added; a CSV upload queues those for review |
+
+**201**
+```json
+{ "game_id": "7b0d…", "title": "Hades", "platform": "epic", "import_method": "MANUAL" }
+```
+The row is written to `owned_games` with `import_method = 'MANUAL'`. Every
+other write keeps the column default, `OAUTH`.
+
+**Errors**
+| Status | `error` | When |
+|--------|---------|------|
+| 404 | `game_not_found` | `game_id` isn't in the catalogue |
+| 409 | `already_owned` | already in the library on this platform, including a race between two adds (`owned_games_user_platform_manual_game_key`) |
+| 422 | | `platform` not `epic`/`xbox`, or `game_id` not a uuid |
+| 503 | `manual_import_failed` | anything else; the cause is only logged |
+
+The same game on two platforms is two entries, not a duplicate.
