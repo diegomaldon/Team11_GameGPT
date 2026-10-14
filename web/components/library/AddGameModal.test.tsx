@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ApiError, addManualGame, searchGames } from "@/lib/api/client";
 import { AddGameModal } from "./AddGameModal";
@@ -27,6 +27,16 @@ async function typeTitle(text: string, user = userEvent.setup()) {
   return user;
 }
 
+/**
+ * The suggestions, once loaded. Scoped to the listbox: the Platform select's
+ * own <option>s are on the page from the start, so a page-wide "option" query
+ * would resolve to those before any suggestion arrives.
+ */
+async function findSuggestions() {
+  const list = await screen.findByRole("listbox", { name: "Matching games" });
+  return within(list).findAllByRole("option");
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(searchGames).mockResolvedValue({ items: [HADES, HADES_II] });
@@ -44,7 +54,7 @@ describe("AddGameModal: autocomplete against the games table (TM11-54)", () => {
     renderModal();
     await typeTitle("hades");
 
-    const options = await screen.findAllByRole("option");
+    const options = await findSuggestions();
     expect(options.map((o) => o.textContent)).toEqual(["Hades", "Hades II"]);
     // Debounced: one search for the whole word, not one per keystroke.
     expect(searchGames).toHaveBeenCalledTimes(1);
@@ -69,7 +79,7 @@ describe("AddGameModal: autocomplete against the games table (TM11-54)", () => {
   it("supports picking with the keyboard", async () => {
     renderModal();
     const user = await typeTitle("hades");
-    await screen.findAllByRole("option");
+    await findSuggestions();
     await user.keyboard("{ArrowDown}{Enter}");
 
     expect(screen.getByRole("combobox", { name: "Title" })).toHaveProperty("value", "Hades II");
@@ -93,7 +103,7 @@ describe("AddGameModal: stored against the right platform (TM11-54)", () => {
   ])("adds the picked game on %s", async (label, platform) => {
     renderModal();
     const user = await typeTitle("hades");
-    await user.click((await screen.findAllByRole("option"))[0]);
+    await user.click((await findSuggestions())[0]);
     await user.selectOptions(screen.getByLabelText("Platform"), label);
     await user.click(screen.getByRole("button", { name: "Add to library" }));
 
@@ -118,7 +128,7 @@ describe("AddGameModal: duplicate entry prevented (TM11-54)", () => {
     );
     renderModal();
     const user = await typeTitle("hades");
-    await user.click((await screen.findAllByRole("option"))[0]);
+    await user.click((await findSuggestions())[0]);
     await user.click(screen.getByRole("button", { name: "Add to library" }));
 
     expect(
@@ -132,7 +142,7 @@ describe("AddGameModal: duplicate entry prevented (TM11-54)", () => {
     vi.mocked(addManualGame).mockRejectedValue(new Error("network down"));
     renderModal();
     const user = await typeTitle("hades");
-    await user.click((await screen.findAllByRole("option"))[0]);
+    await user.click((await findSuggestions())[0]);
     await user.click(screen.getByRole("button", { name: "Add to library" }));
 
     expect(await screen.findByText("Something went wrong. Nothing was changed.")).toBeTruthy();
