@@ -23,6 +23,7 @@ import {
   mergeLibrary,
   type UnifiedGame,
 } from "@/lib/library/unified";
+import { CsvImportModal } from "@/components/library/CsvImportModal";
 import { VirtualList } from "@/components/library/VirtualList";
 import {
   Button,
@@ -73,6 +74,7 @@ export default function LibraryPage() {
   const [attempt, setAttempt] = useState(0);
   const [filter, setFilter] = useState<"all" | GamePlatform>("all");
   const [open, setOpen] = useState(false);
+  const [isCsvOpen, setIsCsvOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -123,10 +125,15 @@ export default function LibraryPage() {
         title="Your library"
         subtitle="Games you own across platforms. Owned games are skipped in recommendations."
         action={
-          <Button size="sm" onClick={() => setOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Add game
-          </Button>
+          <div className="flex shrink-0 gap-2">
+            <Button size="sm" variant="secondary" onClick={() => setIsCsvOpen(true)}>
+              Import CSV
+            </Button>
+            <Button size="sm" onClick={() => setOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Add game
+            </Button>
+          </div>
         }
       />
 
@@ -214,6 +221,17 @@ export default function LibraryPage() {
           addGame(game);
           setOpen(false);
           flash(`Added ${game.title}`);
+        }}
+      />
+
+      {/* TM11-55: the modal owns the whole upload; the page only reloads after. */}
+      <CsvImportModal
+        open={isCsvOpen}
+        onClose={() => setIsCsvOpen(false)}
+        onImported={(result) => {
+          if (result.added > 0) {
+            retry();
+          }
         }}
       />
     </>

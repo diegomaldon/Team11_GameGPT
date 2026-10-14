@@ -5,6 +5,12 @@ frontend's generated types all agree on one shape.
 """
 
 from api.models.schemas import (
+    CsvCommitRequest,
+    CsvCommitResponse,
+    CsvImportRequest,
+    CsvPreviewResponse,
+    CsvRowResult,
+    CsvRowStatus,
     FeedbackRequest,
     GameCandidate,
     LibraryItem,
@@ -21,6 +27,12 @@ from api.models.schemas import (
 )
 
 __all__ = [
+    "CsvCommitRequest",
+    "CsvCommitResponse",
+    "CsvImportRequest",
+    "CsvPreviewResponse",
+    "CsvRowResult",
+    "CsvRowStatus",
     "FeedbackRequest",
     "GameCandidate",
     "LibraryItem",
