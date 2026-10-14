@@ -176,6 +176,17 @@ jobs:
             api/tests/test_steam_client.py \
             api/tests/test_library_router.py -v
 
+      # TM11-55. User-uploaded files: the parser's limits, the request-size cap
+      # and the "commit re-checks the file" rule need a gate, not just a file.
+      - name: Pytest — CSV library upload
+        working-directory: .
+        run: |
+          python -m pytest \
+            api/tests/test_library_csv.py \
+            api/tests/test_csv_import.py \
+            api/tests/test_library_csv_router.py \
+            api/tests/test_request_size.py -v
+
   # -------------------------------------------------------------------------
   # Aggregate gate. Optional but worth having: point the ruleset at this one check
   # instead of three, and adding a fourth job later needs no ruleset edit. `needs`
