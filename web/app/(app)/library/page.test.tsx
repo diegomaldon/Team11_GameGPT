@@ -128,6 +128,12 @@ it("does not leave focus on another game's Remove button after a removal", async
   expect(document.activeElement?.getAttribute("aria-label")).not.toBe("Remove Celeste");
 });
 
+it("opens the CSV import from the header (TM11-55)", async () => {
+  setup();
+  await userEvent.click(await screen.findByRole("button", { name: "Import CSV" }));
+  expect(screen.getByRole("dialog", { name: "Import from a CSV file" })).toBeTruthy();
+});
+
 describe("Library page: empty state prompts linking a platform", () => {
   it("links to Settings when nothing is owned anywhere", async () => {
     setup();

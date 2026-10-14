@@ -11,6 +11,8 @@ import {
 } from "@/lib/account/delete";
 import { PLATFORMS, type Platform } from "@/lib/mock/data";
 import { describeSteamResult } from "@/lib/auth/steam";
+import { describeXboxResult } from "@/lib/auth/xboxMessages";
+import { completeXboxLink } from "@/lib/auth/xboxClient";
 import { useLibrarySync } from "@/lib/library/useLibrarySync";
 import { SyncProgress } from "@/components/library/SyncProgress";
 import {
@@ -31,6 +33,11 @@ import { Check, LogOut } from "@/components/icons";
 function startSteamLink() {
   // Full navigation, not a router push — the next stop is steamcommunity.com, off-site.
   window.location.assign("/api/steam/login?next=/settings");
+}
+
+/** Kicks off the real Microsoft / Xbox Live sign-in. REQ014 · TM11-53. */
+function startXboxLink() {
+  window.location.assign("/api/xbox/login?next=/settings");
 }
 
 export default function SettingsPage() {
@@ -140,7 +147,9 @@ function LinkedAccountsCard() {
     },
     [startLibrarySync],
   );
-  const banner = useSteamCallbackResult(linkAccount, startSync);
+  const steamBanner = useSteamCallbackResult(linkAccount, startSync);
+  const xboxBanner = useXboxCallbackResult(linkAccount);
+  const banner = xboxBanner ?? steamBanner;
 
   return (
     <SectionCard
@@ -209,7 +218,11 @@ function LinkedAccountsCard() {
                 <Button
                   size="sm"
                   onClick={() =>
-                    acc.platform === "steam" ? startSteamLink() : setConnecting(acc.platform)
+                    acc.platform === "steam"
+                      ? startSteamLink()
+                      : acc.platform === "xbox"
+                        ? startXboxLink()
+                        : setConnecting(acc.platform)
                   }
                 >
                   Connect
@@ -266,6 +279,47 @@ function useSteamCallbackResult(
     // Drop steam/steamid/reason so a reload does not re-run this or leak the id in the URL.
     router.replace("/settings");
   }, [result, params, linkAccount, router, startSync]);
+
+  return banner;
+}
+
+/**
+ * Reads the `?xbox=` result /api/xbox/callback redirects back with. On `verified` the
+ * callback has sealed the Xbox identity in an httpOnly cookie; this asks the server to write
+ * the platform_accounts row for the signed-in user (POST /api/xbox/link), then shows the
+ * outcome. Waits for the session to load so the request carries the user's token.
+ * REQ014 · TM11-53.
+ */
+function useXboxCallbackResult(linkAccount: (platform: Platform, handle: string) => void) {
+  const router = useRouter();
+  const params = useSearchParams();
+  const { status, session } = useAuth();
+  const result = params.get("xbox");
+  const reason = params.get("reason");
+  const [banner, setBanner] = useState<ReturnType<typeof describeXboxResult>>(null);
+  const handled = useRef(false);
+
+  useEffect(() => {
+    if (!result || handled.current || status === "loading") return;
+    handled.current = true;
+
+    if (result === "verified") {
+      setBanner({ tone: "info", message: "Finishing your Xbox connection…" });
+      completeXboxLink(fetch, session?.access_token ?? null).then((outcome) => {
+        if (outcome.status === "linked") {
+          linkAccount("xbox", outcome.gamertag);
+          setBanner(describeXboxResult("linked", null, outcome.gamertag));
+        } else {
+          setBanner(describeXboxResult("error", outcome.reason));
+        }
+      });
+    } else {
+      setBanner(describeXboxResult(result, reason));
+    }
+
+    // Drop xbox/reason so a reload does not replay the outcome.
+    router.replace("/settings");
+  }, [result, reason, status, session, linkAccount, router]);
 
   return banner;
 }

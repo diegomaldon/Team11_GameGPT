@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.config import get_settings
 from api.observability import configure_logging, init_sentry
 from api.observability import install as install_observability
+from api.request_size import RequestSizeLimitMiddleware
 from api.routers import errors, feedback, health, recommend
 
 log = logging.getLogger("gamegpt.startup")
@@ -40,9 +41,9 @@ async def lifespan(app: FastAPI):
     yield
 
 try:  # Wired by Agent C in Phase 2; absent in the Phase 0 slice.
-    from api.routers import library  # type: ignore
+    from api.routers import library, library_csv  # type: ignore
 except Exception:  # pragma: no cover - Phase 0 has no library router yet
-    library = None  # type: ignore
+    library = library_csv = None  # type: ignore
 
 
 def create_app() -> FastAPI:
@@ -53,6 +54,13 @@ def create_app() -> FastAPI:
 
     settings = get_settings()
     app = FastAPI(title="GameGPT API", version="0.1.0", lifespan=lifespan)
+
+    # TM11-55: refuse oversized bodies before a route reads them into memory.
+    # Added first so it sits innermost, next to the routes. The observability
+    # middleware wraps `receive` in a task group; from outside it, the 413
+    # raised mid-body would arrive wrapped and FastAPI would answer a generic
+    # 400. Inside, the 413 still gets a request id and its CORS headers.
+    app.add_middleware(RequestSizeLimitMiddleware)
 
     # Installed before CORS deliberately. Starlette's add_middleware inserts at
     # the front of the stack, so the *later* call ends up outermost — CORS wraps
@@ -78,6 +86,7 @@ def create_app() -> FastAPI:
     app.include_router(errors.router, prefix="/api")
     if library is not None:
         app.include_router(library.router, prefix="/api")
+        app.include_router(library_csv.router, prefix="/api")
 
     return app
 
