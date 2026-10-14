@@ -14,12 +14,14 @@
 // server log line can name the user and be traced back to the click that caused
 // it. A fetch added outside `request()` silently loses both.
 import {
+  fixtureAddManualGame,
   fixtureCommitCsv,
   fixtureFeedback,
   fixtureGetLibrary,
   fixtureGetSyncJob,
   fixturePreviewCsv,
   fixtureRecommend,
+  fixtureSearchGames,
   fixtureStartSync,
   fixtureSyncLibrary,
 } from "./fixtures";
@@ -31,9 +33,12 @@ import type {
   CsvPlatform,
   CsvPreviewResponse,
   FeedbackRequest,
+  GameSearchResponse,
   LibraryResponse,
   LibrarySyncJob,
   LibrarySyncResponse,
+  ManualAddResponse,
+  ManualPlatform,
   RecommendResponse,
 } from "./types";
 
@@ -229,4 +234,42 @@ export async function commitCsvImport(
     method: "POST",
     body: JSON.stringify({ platform, csv_text: csvText, excluded_rows: excludedRows }),
   })) as CsvCommitResponse;
+}
+
+// ── Manual title entry (TM11-54) ──
+//
+// The Add game dialog searches the games catalogue as the user types, then adds
+// the game they pick. A failed add throws ApiError: 409 `already_owned` means
+// the game is already in the library on that platform, 404 `game_not_found`
+// that it isn't in the catalogue.
+
+/** GET /api/games/search — catalogue games whose title contains `query`. */
+export async function searchGames(
+  query: string,
+  { limit, signal }: { limit?: number; signal?: AbortSignal } = {},
+): Promise<GameSearchResponse> {
+  if (USE_FIXTURES) {
+    await sleep(150);
+    return fixtureSearchGames(query, limit);
+  }
+  const params = new URLSearchParams({ q: query });
+  if (limit !== undefined) params.set("limit", String(limit));
+  return (await request<GameSearchResponse>(`/api/games/search?${params}`, {
+    signal,
+  })) as GameSearchResponse;
+}
+
+/** POST /api/library/manual — add one catalogue game, stored as MANUAL. */
+export async function addManualGame(
+  platform: ManualPlatform,
+  gameId: string,
+): Promise<ManualAddResponse> {
+  if (USE_FIXTURES) {
+    await sleep(300);
+    return fixtureAddManualGame(platform, gameId);
+  }
+  return (await request<ManualAddResponse>("/api/library/manual", {
+    method: "POST",
+    body: JSON.stringify({ platform, game_id: gameId }),
+  })) as ManualAddResponse;
 }

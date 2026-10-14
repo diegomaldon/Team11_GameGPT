@@ -243,3 +243,46 @@ class CsvCommitResponse(BaseModel):
     skipped: int = Field(..., ge=0,
                          description="Rows left out: unticked, already owned, duplicate, invalid.")
     import_id: Optional[UUID] = Field(None, description="library_imports row for this upload.")
+
+
+# ──────────────── /api/games/search, /api/library/manual (TM11-54) ────────────────
+
+# Platforms with no library API, so the user adds games by hand. Steam has its
+# own import. Xbox stays here until its own link ships (TM11-53), and after:
+# a manual copy and an imported copy are told apart by import_method.
+ManualPlatform = Literal["epic", "xbox"]
+
+GAME_SEARCH_MIN_LENGTH = 2
+GAME_SEARCH_MAX_LENGTH = 100
+GAME_SEARCH_DEFAULT_LIMIT = 8
+GAME_SEARCH_MAX_LIMIT = 20
+
+
+class GameSearchResult(BaseModel):
+    """One autocomplete suggestion: a row from the games catalogue."""
+
+    game_id: UUID
+    title: str
+    steam_appid: Optional[int] = None
+
+
+class GameSearchResponse(BaseModel):
+    """Body returned from GET /api/games/search."""
+
+    items: list[GameSearchResult]
+
+
+class ManualAddRequest(BaseModel):
+    """Add one catalogue game to the library by hand."""
+
+    platform: ManualPlatform = Field(..., description="Where the user owns the game.")
+    game_id: UUID = Field(..., description="A game_id from GET /api/games/search.")
+
+
+class ManualAddResponse(BaseModel):
+    """The game that was added."""
+
+    game_id: UUID
+    title: str
+    platform: ManualPlatform
+    import_method: Literal["MANUAL"] = "MANUAL"

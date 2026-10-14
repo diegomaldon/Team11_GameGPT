@@ -335,6 +335,106 @@
           }
         }
       }
+    },
+    "/api/games/search": {
+      "get": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Search Games",
+        "description": "Catalogue games for the add-a-game autocomplete. Fewer than 2 characters returns none.",
+        "operationId": "search_games_api_games_search_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "description": "Part of a game title.",
+              "title": "Q"
+            },
+            "description": "Part of a game title."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 20,
+              "minimum": 1,
+              "default": 8,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameSearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/library/manual": {
+      "post": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Add Manual Game",
+        "description": "Add one catalogue game to the library, stored with import_method MANUAL.",
+        "operationId": "add_manual_game_api_library_manual_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualAddRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManualAddResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -609,6 +709,54 @@
         ],
         "title": "FeedbackRequest",
         "description": "Body for POST /api/feedback. Returns 204, persists a row."
+      },
+      "GameSearchResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/GameSearchResult"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "GameSearchResponse",
+        "description": "Body returned from GET /api/games/search."
+      },
+      "GameSearchResult": {
+        "properties": {
+          "game_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Game Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "steam_appid": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Steam Appid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "game_id",
+          "title"
+        ],
+        "title": "GameSearchResult",
+        "description": "One autocomplete suggestion: a row from the games catalogue."
       },
       "HTTPValidationError": {
         "properties": {
@@ -934,6 +1082,67 @@
         ],
         "title": "LibrarySyncResponse",
         "description": "Result of a sync: how many rows landed and where they came from."
+      },
+      "ManualAddRequest": {
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "epic",
+              "xbox"
+            ],
+            "title": "Platform",
+            "description": "Where the user owns the game."
+          },
+          "game_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Game Id",
+            "description": "A game_id from GET /api/games/search."
+          }
+        },
+        "type": "object",
+        "required": [
+          "platform",
+          "game_id"
+        ],
+        "title": "ManualAddRequest",
+        "description": "Add one catalogue game to the library by hand."
+      },
+      "ManualAddResponse": {
+        "properties": {
+          "game_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Game Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "epic",
+              "xbox"
+            ],
+            "title": "Platform"
+          },
+          "import_method": {
+            "type": "string",
+            "const": "MANUAL",
+            "title": "Import Method",
+            "default": "MANUAL"
+          }
+        },
+        "type": "object",
+        "required": [
+          "game_id",
+          "title",
+          "platform"
+        ],
+        "title": "ManualAddResponse",
+        "description": "The game that was added."
       },
       "RecommendRequest": {
         "properties": {

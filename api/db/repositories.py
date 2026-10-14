@@ -419,3 +419,74 @@ async def add_owned_games(
             added = await cur.fetchall()
         await conn.commit()
     return len(added)
+
+
+# ─────────────────── manual title entry (TM11-54) ───────────────────
+
+# "!" rather than a backslash, so the escape survives Python and SQL quoting
+# without doubling.
+_LIKE_ESCAPE = "!"
+
+
+def _like_pattern(text: str) -> str:
+    """Escape LIKE wildcards so a user typing "100%" searches for it literally."""
+    for ch in (_LIKE_ESCAPE, "%", "_"):
+        text = text.replace(ch, _LIKE_ESCAPE + ch)
+    return text
+
+
+@retry(**_RETRY)
+async def search_catalogue_games(query: str, limit: int) -> list[dict[str, Any]]:
+    """Games whose title contains `query`, for the add-a-game autocomplete.
+
+    Titles that start with the query come first, then shorter titles, so
+    "hades" offers "Hades" before "Hades II" and both before "Shades of Doom".
+    """
+    pattern = _like_pattern(query)
+    async with connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "select game_id, title, steam_appid from public.games "
+                "where title ilike %s escape '!' "
+                "order by (title ilike %s escape '!') desc, length(title), title "
+                "limit %s",
+                (f"%{pattern}%", f"{pattern}%", limit),
+            )
+            rows = await cur.fetchall()
+    return [{"game_id": r[0], "title": r[1], "steam_appid": r[2]} for r in rows]
+
+
+@retry(**_RETRY)
+async def get_catalogue_game(game_id: UUID) -> dict[str, Any] | None:
+    """One games row's game_id, title and steam_appid, or None."""
+    async with connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "select game_id, title, steam_appid from public.games where game_id = %s",
+                (str(game_id),),
+            )
+            row = await cur.fetchone()
+    if row is None:
+        return None
+    return {"game_id": row[0], "title": row[1], "steam_appid": row[2]}
+
+
+@retry(**_RETRY)
+async def add_manual_game(user_id: UUID, platform: str, game_id: UUID, title: str) -> bool:
+    """Add one hand-picked game with import_method MANUAL. False if already owned.
+
+    `on conflict do nothing` relies on owned_games_user_platform_manual_game_key
+    (TM11-55), so two adds racing each other still store one row. Safe to retry.
+    """
+    async with connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "insert into owned_games (user_id, platform, game_id, title, import_method) "
+                "values (%s, %s, %s, %s, 'MANUAL') "
+                "on conflict do nothing "
+                "returning game_id",
+                (str(user_id), platform, str(game_id), title),
+            )
+            added = await cur.fetchone()
+        await conn.commit()
+    return added is not None
