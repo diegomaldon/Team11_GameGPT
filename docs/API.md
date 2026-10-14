@@ -221,7 +221,7 @@ The browser reads the file and sends its text; the server checks everything.
 ```
 | Field | Type | Notes |
 |-------|------|-------|
-| `platform` | `"steam"` \| `"xbox"` \| `"epic"` | every row is owned on this platform |
+| `platform` | `"xbox"` \| `"epic"` | every row is owned on this platform. Steam uses `POST /api/library/sync` |
 | `csv_text` | string | the whole file, at most 1 MB |
 
 **File format.** Comma-separated, UTF-8, header row first. A `title` column is

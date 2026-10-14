@@ -26,7 +26,6 @@ type Step =
 const PLATFORM_OPTIONS: { value: CsvPlatform; label: string }[] = [
   { value: "epic", label: "Epic Games" },
   { value: "xbox", label: "Xbox" },
-  { value: "steam", label: "Steam" },
 ];
 
 const STATUS_LABEL: Record<CsvRowStatus, string> = {

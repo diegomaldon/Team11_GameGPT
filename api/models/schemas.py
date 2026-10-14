@@ -179,7 +179,9 @@ class LibraryResponse(BaseModel):
 _MAX_CSV_TEXT = 1_000_000
 _MAX_CSV_ROWS = 2_000
 
-CsvPlatform = Literal["steam", "xbox", "epic"]
+# No Steam: it has a real sync, and CSV rows carry no steam_appid, so the sync's
+# upsert wouldn't see them and would add the same games again.
+CsvPlatform = Literal["xbox", "epic"]
 
 
 class CsvImportRequest(BaseModel):

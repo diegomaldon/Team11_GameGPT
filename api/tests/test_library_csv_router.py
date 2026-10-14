@@ -80,7 +80,9 @@ def test_stale_review_is_a_422(client):
     assert resp.json()["detail"]["error"] == "review_mismatch"
 
 
-@pytest.mark.parametrize("platform", ["playstation", "STEAM", "", "steam; drop table owned_games"])
+@pytest.mark.parametrize(
+    "platform", ["steam", "playstation", "STEAM", "", "steam; drop table owned_games"]
+)
 def test_only_supported_platforms_are_accepted(client, platform):
     resp = client.post(
         "/api/library/csv/preview", json={"platform": platform, "csv_text": "title\nHades\n"}

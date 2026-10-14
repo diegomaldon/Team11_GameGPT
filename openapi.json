@@ -344,7 +344,6 @@
           "platform": {
             "type": "string",
             "enum": [
-              "steam",
               "xbox",
               "epic"
             ],
@@ -423,7 +422,6 @@
           "platform": {
             "type": "string",
             "enum": [
-              "steam",
               "xbox",
               "epic"
             ],
@@ -450,7 +448,6 @@
           "platform": {
             "type": "string",
             "enum": [
-              "steam",
               "xbox",
               "epic"
             ],
