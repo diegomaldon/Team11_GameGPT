@@ -5,6 +5,10 @@
 // Imported games come from GET /api/library; hand-added ones from the mock
 // store. lib/library/unified.ts merges them so a game owned on two platforms is
 // one row with two badges, and VirtualList keeps a 1000+ game library smooth.
+//
+// TM11-51: sort by title or playtime and search by title, both client-side (see
+// lib/library/view.ts for why). The view is saved per tab, so leaving the page
+// and coming back keeps the sort, search and platform filter.
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -23,6 +27,17 @@ import {
   mergeLibrary,
   type UnifiedGame,
 } from "@/lib/library/unified";
+import {
+  DEFAULT_VIEW,
+  loadView,
+  saveView,
+  searchRows,
+  SORT_OPTIONS,
+  sortRows,
+  type LibrarySort,
+  type LibraryView,
+  type PlatformFilter,
+} from "@/lib/library/view";
 import { CsvImportModal } from "@/components/library/CsvImportModal";
 import { VirtualList } from "@/components/library/VirtualList";
 import {
@@ -34,9 +49,17 @@ import {
   TextInput,
   cx,
 } from "@/components/ui";
-import { Check, Library as LibraryIcon, Plus, Spinner, Trash } from "@/components/icons";
+import {
+  Check,
+  Library as LibraryIcon,
+  Plus,
+  Search,
+  Spinner,
+  Trash,
+  X,
+} from "@/components/icons";
 
-const FILTERS: { key: "all" | GamePlatform; label: string }[] = [
+const FILTERS: { key: PlatformFilter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "steam", label: "Steam" },
   { key: "xbox", label: "Xbox" },
@@ -72,7 +95,11 @@ export default function LibraryPage() {
   const { state, hydrated, addGame, removeGame } = useMock();
   const [remote, setRemote] = useState<Remote>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
-  const [filter, setFilter] = useState<"all" | GamePlatform>("all");
+  // The server render has no sessionStorage; it only ever shows the loading
+  // state, so starting it from the default can't cause a hydration mismatch.
+  const [view, setView] = useState<LibraryView>(() =>
+    typeof window === "undefined" ? DEFAULT_VIEW : loadView(),
+  );
   const [open, setOpen] = useState(false);
   const [isCsvOpen, setIsCsvOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -88,18 +115,30 @@ export default function LibraryPage() {
     };
   }, [attempt]);
 
+  useEffect(() => saveView(view), [view]);
+
+  function updateView(patch: Partial<LibraryView>) {
+    setView((prev) => ({ ...prev, ...patch }));
+  }
+
   const rows = useMemo(
     () => mergeLibrary(remote.status === "ready" ? remote.items : [], state.games),
     [remote, state.games],
   );
   const counts = useMemo(() => countByPlatform(rows), [rows]);
 
+  // Sorted once per sort change, so typing a search only filters.
+  const sorted = useMemo(() => sortRows(rows, view.sort), [rows, view.sort]);
+
   // A filter whose last game was just removed falls back to All.
+  const filter = view.platform;
   const active = filter !== "all" && counts[filter] === 0 ? "all" : filter;
-  const shown = useMemo(
-    () => (active === "all" ? rows : rows.filter((r) => r.platforms.includes(active))),
-    [rows, active],
-  );
+  const shown = useMemo(() => {
+    const onPlatform =
+      active === "all" ? sorted : sorted.filter((r) => r.platforms.includes(active));
+    return searchRows(onPlatform, view.query);
+  }, [sorted, active, view.query]);
+  const searching = view.query.trim() !== "";
 
   const loading = !hydrated || remote.status === "loading";
   const failed = remote.status === "error";
@@ -176,6 +215,59 @@ export default function LibraryPage() {
         !failed && <EmptyLibrary onAdd={() => setOpen(true)} />
       ) : (
         <>
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+            <div className="relative flex-1">
+              <label htmlFor="library-search" className="sr-only">
+                Search your library
+              </label>
+              <Search
+                className={cx(
+                  "pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2",
+                  "text-[var(--ink-faint)]",
+                )}
+                aria-hidden="true"
+              />
+              <TextInput
+                id="library-search"
+                type="search"
+                placeholder="Search by title"
+                autoComplete="off"
+                value={view.query}
+                onChange={(e) => updateView({ query: e.target.value })}
+                className="pl-10 pr-10 [&::-webkit-search-cancel-button]:hidden"
+              />
+              {view.query && (
+                <button
+                  type="button"
+                  onClick={() => updateView({ query: "" })}
+                  aria-label="Clear search"
+                  className={cx(
+                    "absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center",
+                    "justify-center rounded-lg text-[var(--ink-faint)] hover:bg-neutral-100",
+                  )}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <div className="sm:w-48">
+              <label htmlFor="library-sort" className="sr-only">
+                Sort by
+              </label>
+              <Select
+                id="library-sort"
+                value={view.sort}
+                onChange={(e) => updateView({ sort: e.target.value as LibrarySort })}
+              >
+                {SORT_OPTIONS.map((o) => (
+                  <option key={o.key} value={o.key}>
+                    {o.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
+
           {/* Filters */}
           <div className="mb-5 flex flex-wrap gap-2">
             {FILTERS.map((f) => {
@@ -187,7 +279,7 @@ export default function LibraryPage() {
                   key={f.key}
                   type="button"
                   aria-pressed={on}
-                  onClick={() => setFilter(f.key)}
+                  onClick={() => updateView({ platform: f.key })}
                   className={cx(
                     "rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors",
                     on
@@ -203,6 +295,14 @@ export default function LibraryPage() {
               );
             })}
           </div>
+
+          {searching && (
+            <p role="status" className="mb-3 text-[13px] text-[var(--ink-faint)]">
+              {shown.length === 0
+                ? `No games match “${view.query.trim()}”.`
+                : `${shown.length.toLocaleString("en-US")} ${matchNoun(shown.length)}`}
+            </p>
+          )}
 
           <VirtualList
             items={shown}
@@ -236,6 +336,10 @@ export default function LibraryPage() {
       />
     </>
   );
+}
+
+function matchNoun(count: number): string {
+  return count === 1 ? "game matches" : "games match";
 }
 
 function GameRow({ row, onRemove }: { row: UnifiedGame; onRemove: () => void }) {

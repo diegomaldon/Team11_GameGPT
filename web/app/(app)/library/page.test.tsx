@@ -34,7 +34,11 @@ function setup({
 
 const rowFor = (title: string) => screen.getByText(title).closest("li")!;
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  // The page saves its view per tab; don't let one test's sort leak into the next.
+  window.sessionStorage.clear();
+});
 afterEach(cleanup);
 
 describe("Library page: owned titles with per-platform badges", () => {
@@ -196,5 +200,131 @@ describe("Library page: renders 1000+ entries without freezing", () => {
     const mounted = within(list).getAllByRole("listitem");
     expect(mounted.length).toBeLessThan(40);
     expect(mounted[0].getAttribute("aria-setsize")).toBe("1500");
+  });
+});
+
+// TM11-51: sorting, title search and a view that survives navigation.
+
+const STEAM_LIBRARY: LibraryItem[] = [
+  { title: "Rust", steam_appid: 252490, platform: "steam", playtime_minutes: 129351 },
+  { title: "Celeste", steam_appid: 504230, platform: "steam", playtime_minutes: 0 },
+  { title: "Hades", steam_appid: 1145360, platform: "steam", playtime_minutes: 3000 },
+];
+
+async function shownTitles() {
+  const list = await screen.findByRole("list", { name: "Owned games" });
+  return within(list)
+    .queryAllByRole("listitem")
+    .map((li) => li.querySelector("p")?.textContent);
+}
+
+describe("Library page: AC1 sortable by title and playtime", () => {
+  it("defaults to most played and re-sorts from the Sort menu", async () => {
+    setup({ imported: STEAM_LIBRARY });
+    expect(await shownTitles()).toEqual(["Rust", "Hades", "Celeste"]);
+
+    const sort = screen.getByRole("combobox", { name: "Sort by" });
+    await userEvent.selectOptions(sort, "Title A–Z");
+    expect(await shownTitles()).toEqual(["Celeste", "Hades", "Rust"]);
+
+    await userEvent.selectOptions(sort, "Least played");
+    expect(await shownTitles()).toEqual(["Celeste", "Hades", "Rust"]);
+
+    await userEvent.selectOptions(sort, "Title Z–A");
+    expect(await shownTitles()).toEqual(["Rust", "Hades", "Celeste"]);
+  });
+});
+
+describe("Library page: AC2 title search", () => {
+  it("filters as the user types and counts the matches", async () => {
+    setup({
+      imported: STEAM_LIBRARY,
+      manual: [{ id: "g1", title: "Halo Infinite", platform: "xbox" }],
+    });
+    const search = await screen.findByRole("searchbox", { name: "Search your library" });
+    await userEvent.type(search, "ha");
+    expect(await shownTitles()).toEqual(["Hades", "Halo Infinite"]);
+    expect(screen.getByText("2 games match")).toBeTruthy();
+  });
+
+  it("searches within the selected platform", async () => {
+    setup({
+      imported: STEAM_LIBRARY,
+      manual: [{ id: "g1", title: "Halo Infinite", platform: "xbox" }],
+    });
+    await userEvent.click(await screen.findByRole("button", { name: /^Xbox/ }));
+    await userEvent.type(screen.getByRole("searchbox"), "ha");
+    expect(await shownTitles()).toEqual(["Halo Infinite"]);
+  });
+
+  it("says when nothing matches, and clearing the search brings the list back", async () => {
+    setup({ imported: STEAM_LIBRARY });
+    await userEvent.type(await screen.findByRole("searchbox"), "zelda");
+    expect(screen.getByText(/No games match .zelda./)).toBeTruthy();
+    expect(await shownTitles()).toEqual([]);
+
+    await userEvent.click(screen.getByRole("button", { name: "Clear search" }));
+    expect(await shownTitles()).toEqual(["Rust", "Hades", "Celeste"]);
+    expect((screen.getByRole("searchbox") as HTMLInputElement).value).toBe("");
+  });
+});
+
+describe("Library page: AC3 stays virtualised at real library sizes", () => {
+  it("keeps only a window of rows mounted after sorting and searching 1,500 games", async () => {
+    const imported = Array.from({ length: 1500 }, (_, i) => ({
+      title: `Game ${String(i).padStart(4, "0")}`,
+      steam_appid: 10_000 + i,
+      platform: "steam",
+      playtime_minutes: i,
+    }));
+    setup({ imported });
+    const list = await screen.findByRole("list", { name: "Owned games" });
+
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Sort by" }), "Title Z–A");
+    let mounted = within(list).getAllByRole("listitem");
+    expect(mounted.length).toBeLessThan(40);
+    expect(mounted[0].textContent).toContain("Game 1499");
+
+    // "Game 1" matches Game 1000–1999 that exist: 500 titles, still windowed.
+    await userEvent.type(screen.getByRole("searchbox"), "game 1");
+    mounted = within(list).getAllByRole("listitem");
+    expect(mounted.length).toBeLessThan(40);
+    expect(mounted[0].getAttribute("aria-setsize")).toBe("500");
+  });
+});
+
+describe("Library page: AC4 view survives navigating away and back", () => {
+  it("restores sort, search and platform filter after the page remounts", async () => {
+    const manual: OwnedGame[] = [{ id: "g1", title: "Hades", platform: "xbox" }];
+    const first = setup({ imported: STEAM_LIBRARY, manual });
+    await userEvent.selectOptions(
+      await screen.findByRole("combobox", { name: "Sort by" }),
+      "Title A–Z",
+    );
+    await userEvent.click(screen.getByRole("button", { name: /^Steam/ }));
+    await userEvent.type(screen.getByRole("searchbox"), "e");
+
+    // Navigating to another page unmounts this one; coming back mounts it fresh.
+    first.unmount();
+    setup({ imported: STEAM_LIBRARY, manual });
+
+    expect(await shownTitles()).toEqual(["Celeste", "Hades"]);
+    expect((screen.getByRole("combobox", { name: "Sort by" }) as HTMLSelectElement).value).toBe(
+      "title-asc",
+    );
+    expect((screen.getByRole("searchbox") as HTMLInputElement).value).toBe("e");
+    expect(screen.getByRole("button", { name: /^Steam/ }).getAttribute("aria-pressed")).toBe(
+      "true",
+    );
+  });
+
+  it("falls back to All when the saved platform no longer has games", async () => {
+    window.sessionStorage.setItem(
+      "gamegpt.library.view.v1",
+      JSON.stringify({ sort: "playtime-desc", query: "", platform: "epic" }),
+    );
+    setup({ imported: STEAM_LIBRARY });
+    expect(await shownTitles()).toEqual(["Rust", "Hades", "Celeste"]);
+    expect(screen.getByRole("button", { name: /^All/ }).getAttribute("aria-pressed")).toBe("true");
   });
 });

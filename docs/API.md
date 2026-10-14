@@ -107,6 +107,10 @@ Persist a thumbs up/down. Stored only — does not affect ranking in the skeleto
 
 The dev user's owned games (dedup source for recommendations).
 
+Returns the whole library, most played first, with no paging or filter
+parameters. The web library view sorts and searches it client-side (TM11-51,
+see `docs/FRONTEND.md`).
+
 **200**
 ```json
 {

@@ -10,6 +10,7 @@ modern, light design system with one solid indigo accent — no gradients.
 - [Structure](#structure)
 - [API client & types](#api-client--types)
 - [Mock store](#mock-store)
+- [Library sort, search & paging](#library-sort-search--paging)
 - [Fixture mode](#fixture-mode-run-without-an-api)
 - [Commands](#commands)
 
@@ -21,7 +22,7 @@ modern, light design system with one solid indigo accent — no gradients.
 |-------|------|---------|
 | `/signin` | `app/signin/page.tsx` | Demo sign-in (Google/email, simulated) |
 | `/` | `app/(app)/page.tsx` | **Discover** — query box, ranked cards, 👍/👎 |
-| `/library` | `app/(app)/library/page.tsx` | Owned games, platform filters, manual **Add game** |
+| `/library` | `app/(app)/library/page.tsx` | Owned games, title search, sort, platform filters, manual **Add game** |
 | `/settings` | `app/(app)/settings/page.tsx` | Profile, linked accounts, preferences, danger zone |
 
 `(app)` is a route group (no URL segment). Its `layout.tsx` wraps the three
@@ -109,6 +110,35 @@ const { state, signIn, signOut, updateProfile,
 
 Seed data and types live in `lib/mock/data.ts` (dev profile, four platform
 accounts, a starter library, and a small catalog for Add-game suggestions).
+
+---
+
+## Library sort, search & paging
+
+TM11-51. Logic in `lib/library/view.ts`; the page wires it up.
+
+- **Search is client-side.** `GET /api/library` returns the whole library in
+  one response, and hand-added games exist only in the mock store, so a
+  server-side search would miss them. The title filter runs over the merged
+  list from `lib/library/unified.ts`, on every keystroke, with no request.
+  Matching is a substring match after `normalizeTitle`, so case, `™`/`®`,
+  Latin accents, punctuation and spaces are ignored (`doom` finds `DOOM™`,
+  `pokemon` finds `Pokémon`, `assassins creed` finds `Assassin's Creed`,
+  `halflife` finds `Half-Life 2`). It searches within the selected platform filter.
+- **Sort:** Most played (default, same order the API returns), Least played,
+  Title A–Z, Title Z–A. Playtime ties fall back to A–Z. Titles compare with
+  `Intl.Collator` `numeric`, so `Game 2` sorts before `Game 10`.
+- **Paging:** none needed; the list is virtualised (`components/library/VirtualList.tsx`,
+  TM11-50). Only rows near the viewport are mounted, so 5,000 games render
+  like 20, after any sort or search.
+- **Saved view:** sort, search and platform filter are saved to
+  `sessionStorage` (key `gamegpt.library.view.v1`), so leaving the page and
+  coming back in the same tab restores them. A new tab starts from the
+  default. Each field is validated on load, and blocked storage just means
+  the view isn't remembered. Scroll position isn't saved.
+
+If the library moves server-side (real auth, no mock store), search and sort
+should move with it into `GET /api/library` query params, with real paging.
 
 ---
 
