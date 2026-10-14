@@ -152,3 +152,19 @@ describe("AC2 — the state nonce", () => {
     expect(buildVerificationBody(params).has("state")).toBe(false);
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("TM11-52 — saving the link", () => {
+  it("lands on /settings?steam=verified with no steamID64 in the URL", () => {
+    expect(linkedAccountsResult("verified")).toBe("/settings?steam=verified");
+  });
+
+  it("explains each way saving the link can fail", () => {
+    expect(describeSteamResult("verified")).toMatchObject({ tone: "info" });
+    expect(describeSteamResult("error", "config")?.message).toMatch(/isn't set up/i);
+    expect(describeSteamResult("error", "expired")?.message).toMatch(/timed out/i);
+    expect(describeSteamResult("error", "taken")?.message).toMatch(/another GameGPT account/i);
+    expect(describeSteamResult("error", "session")?.message).toMatch(/sign in again/i);
+    expect(describeSteamResult("error", "save")?.message).toMatch(/couldn't save/i);
+  });
+});

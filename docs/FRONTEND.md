@@ -23,7 +23,7 @@ modern, light design system with one solid indigo accent — no gradients.
 | `/signin` | `app/signin/page.tsx` | Demo sign-in (Google/email, simulated) |
 | `/` | `app/(app)/page.tsx` | **Discover** — query box, ranked cards, 👍/👎 |
 | `/library` | `app/(app)/library/page.tsx` | Owned games, title search, sort, platform filters, manual **Add game** |
-| `/settings` | `app/(app)/settings/page.tsx` | Profile, linked accounts, preferences, danger zone |
+| `/settings` | `app/(app)/settings/page.tsx` | Profile, linked accounts (`components/account/LinkedAccountsCard.tsx`), preferences, danger zone |
 
 `(app)` is a route group (no URL segment). Its `layout.tsx` wraps the three
 authenticated pages in `AppShell` (desktop sidebar + mobile bottom nav) and
@@ -38,7 +38,7 @@ redirects to `/signin` when signed out.
 | **Discover** (recommend + feedback) | 🟢 **Live** — calls the real API at `NEXT_PUBLIC_API_URL` |
 | Sign-in / sign-out | 🟡 Mock — sets a flag in `localStorage` |
 | Library (list / add / remove) | 🟡 Mock — `localStorage` store |
-| Linked accounts (Steam/Xbox/Epic/PlayStation) | 🟡 Mock — simulated connect flow |
+| Linked accounts (Steam/Xbox/Epic/PlayStation) | 🟢 **Live** — `platform_accounts` via supabase-js, under RLS (TM11-52). Steam and Xbox sign in for real; Epic links by typed account name; PlayStation is shown but can't be linked (no `platform_type` value) |
 | Profile / preferences | 🟡 Mock — `localStorage` store |
 
 The mock exists to demonstrate the **full product UI** without an auth/accounts
@@ -110,6 +110,10 @@ const { state, signIn, signOut, updateProfile,
 
 Seed data and types live in `lib/mock/data.ts` (dev profile, four platform
 accounts, a starter library, and a small catalog for Add-game suggestions).
+
+Since TM11-52 no page reads the store's `accounts`, `linkAccount` or `unlinkAccount`:
+Settings → Linked accounts reads `platform_accounts` instead. They are left in place
+until the rest of the mock store is retired.
 
 ---
 
