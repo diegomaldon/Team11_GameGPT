@@ -6,6 +6,13 @@ import {
   linkedAccountsResult,
 } from "@/lib/auth/steam";
 import { originFromRequest } from "@/lib/auth/request-origin";
+import {
+  STEAM_LINK_COOKIE,
+  STEAM_LINK_COOKIE_PATH,
+  STEAM_LINK_TTL_SECONDS,
+  sealSteamId,
+  steamLinkSecretFromEnv,
+} from "@/lib/auth/steamLink";
 
 /**
  * GameGPT · E2 Platform Linking & Library Sync
@@ -16,6 +23,11 @@ import { originFromRequest } from "@/lib/auth/request-origin";
  * outcome ends in a redirect back to the linked-accounts page carrying a result the page
  * turns into a message (AC3). Nothing here trusts the claimed identity until Steam confirms
  * it via check_authentication (AC1).
+ *
+ * TM11-52: the verified steamID64 no longer travels in the URL. It is sealed into a
+ * short-lived httpOnly cookie and the page redirects with `steam=verified`; the settings
+ * page then calls POST /api/steam/link, which writes platform_accounts for the signed-in
+ * user. See lib/auth/steamLink.ts.
  */
 
 export const dynamic = "force-dynamic";
@@ -63,5 +75,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return clearState(back(linkedAccountsResult("error", { reason: "identity", next })));
   }
 
-  return clearState(back(linkedAccountsResult("linked", { steamId, next })));
+  const secret = steamLinkSecretFromEnv();
+  if (!secret) {
+    return clearState(back(linkedAccountsResult("error", { reason: "config", next })));
+  }
+
+  const response = clearState(back(linkedAccountsResult("verified", { next })));
+  response.cookies.set(STEAM_LINK_COOKIE, sealSteamId(steamId, secret), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: origin.startsWith("https://"),
+    path: STEAM_LINK_COOKIE_PATH,
+    maxAge: STEAM_LINK_TTL_SECONDS,
+  });
+  return response;
 }
