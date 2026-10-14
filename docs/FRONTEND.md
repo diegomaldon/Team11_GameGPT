@@ -122,8 +122,9 @@ TM11-51. Logic in `lib/library/view.ts`; the page wires it up.
   server-side search would miss them. The title filter runs over the merged
   list from `lib/library/unified.ts`, on every keystroke, with no request.
   Matching is a substring match after `normalizeTitle`, so case, `™`/`®`,
-  Latin accents and punctuation are ignored (`doom` finds `DOOM™`, `pokemon`
-  finds `Pokémon`). It searches within the selected platform filter.
+  Latin accents, punctuation and spaces are ignored (`doom` finds `DOOM™`,
+  `pokemon` finds `Pokémon`, `assassins creed` finds `Assassin's Creed`,
+  `halflife` finds `Half-Life 2`). It searches within the selected platform filter.
 - **Sort:** Most played (default, same order the API returns), Least played,
   Title A–Z, Title Z–A. Playtime ties fall back to A–Z. Titles compare with
   `Intl.Collator` `numeric`, so `Game 2` sorts before `Game 10`.

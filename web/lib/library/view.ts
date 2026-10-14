@@ -58,16 +58,24 @@ export function sortRows(rows: UnifiedGame[], sort: LibrarySort): UnifiedGame[] 
   }
 }
 
+/** normalizeTitle with the spaces removed, so word breaks don't matter. */
+function searchKey(title: string): string {
+  return normalizeTitle(title).replace(/ /g, "");
+}
+
 /**
  * Rows whose title contains `query`. Both sides go through normalizeTitle, so
- * "doom" finds "DOOM™" and "pokemon" finds "Pokémon". A blank query keeps all.
+ * "doom" finds "DOOM™" and "pokemon" finds "Pokémon". Spaces are dropped too:
+ * normalizeTitle turns punctuation into a space, so without that "assassins
+ * creed" would miss "Assassin's Creed" and "halflife" would miss "Half-Life 2".
+ * A blank query keeps all.
  */
 export function searchRows(rows: UnifiedGame[], query: string): UnifiedGame[] {
-  const needle = normalizeTitle(query);
+  const needle = searchKey(query);
   if (!needle) {
     return rows;
   }
-  return rows.filter((r) => normalizeTitle(r.title).includes(needle));
+  return rows.filter((r) => searchKey(r.title).includes(needle));
 }
 
 const SORTS = new Set<string>(SORT_OPTIONS.map((o) => o.key));

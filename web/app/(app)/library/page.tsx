@@ -214,7 +214,10 @@ export default function LibraryPage() {
                 Search your library
               </label>
               <Search
-                className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-faint)]"
+                className={cx(
+                  "pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2",
+                  "text-[var(--ink-faint)]",
+                )}
                 aria-hidden="true"
               />
               <TextInput
@@ -231,7 +234,10 @@ export default function LibraryPage() {
                   type="button"
                   onClick={() => updateView({ query: "" })}
                   aria-label="Clear search"
-                  className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-neutral-100"
+                  className={cx(
+                    "absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center",
+                    "justify-center rounded-lg text-[var(--ink-faint)] hover:bg-neutral-100",
+                  )}
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -287,7 +293,7 @@ export default function LibraryPage() {
             <p role="status" className="mb-3 text-[13px] text-[var(--ink-faint)]">
               {shown.length === 0
                 ? `No games match “${view.query.trim()}”.`
-                : `${shown.length.toLocaleString("en-US")} ${shown.length === 1 ? "game matches" : "games match"}`}
+                : `${shown.length.toLocaleString("en-US")} ${matchNoun(shown.length)}`}
             </p>
           )}
 
@@ -312,6 +318,10 @@ export default function LibraryPage() {
       />
     </>
   );
+}
+
+function matchNoun(count: number): string {
+  return count === 1 ? "game matches" : "games match";
 }
 
 function GameRow({ row, onRemove }: { row: UnifiedGame; onRemove: () => void }) {

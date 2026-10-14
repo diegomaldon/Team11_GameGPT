@@ -81,6 +81,13 @@ describe("searchRows: AC2 title search, client-side", () => {
     expect(titles(searchRows(rows, "half life"))).toEqual(["Half-Life 2"]);
   });
 
+  it("matches across apostrophes, hyphens and missing spaces", () => {
+    const rows = [game("Assassin's Creed"), game("Half-Life 2"), game("Celeste")];
+    expect(titles(searchRows(rows, "assassins creed"))).toEqual(["Assassin's Creed"]);
+    expect(titles(searchRows(rows, "halflife"))).toEqual(["Half-Life 2"]);
+    expect(titles(searchRows(rows, "half life 2"))).toEqual(["Half-Life 2"]);
+  });
+
   it("keeps everything for a blank or punctuation-only query", () => {
     expect(searchRows(LIBRARY, "")).toBe(LIBRARY);
     expect(searchRows(LIBRARY, "   ")).toBe(LIBRARY);
