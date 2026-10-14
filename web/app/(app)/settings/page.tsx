@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useMock } from "@/lib/mock/store";
 import { useAuth } from "@/lib/auth/session";
 import {
@@ -9,15 +9,9 @@ import {
   deleteMyAccount,
   DELETE_CONFIRMATION,
 } from "@/lib/account/delete";
-import { PLATFORMS, type Platform } from "@/lib/mock/data";
-import { describeSteamResult } from "@/lib/auth/steam";
-import { describeXboxResult } from "@/lib/auth/xboxMessages";
-import { completeXboxLink } from "@/lib/auth/xboxClient";
-import { useLibrarySync } from "@/lib/library/useLibrarySync";
-import { SyncProgress } from "@/components/library/SyncProgress";
+import { LinkedAccountsCard } from "@/components/account/LinkedAccountsCard";
 import {
   Avatar,
-  Badge,
   Button,
   Card,
   Field,
@@ -28,17 +22,6 @@ import {
   cx,
 } from "@/components/ui";
 import { Check, LogOut } from "@/components/icons";
-
-/** Kicks off the real Steam OpenID redirect. REQ010 · TM11-44. */
-function startSteamLink() {
-  // Full navigation, not a router push — the next stop is steamcommunity.com, off-site.
-  window.location.assign("/api/steam/login?next=/settings");
-}
-
-/** Kicks off the real Microsoft / Xbox Live sign-in. REQ014 · TM11-53. */
-function startXboxLink() {
-  window.location.assign("/api/xbox/login?next=/settings");
-}
 
 export default function SettingsPage() {
   const { state } = useMock();
@@ -130,272 +113,6 @@ function ProfileCard() {
         )}
       </div>
     </SectionCard>
-  );
-}
-
-function LinkedAccountsCard() {
-  const { state, linkAccount, unlinkAccount } = useMock();
-  const [connecting, setConnecting] = useState<Platform | null>(null);
-  // TM11-49: the import runs in the background; this tracks its progress.
-  const librarySync = useLibrarySync();
-  const [lastSteamId, setLastSteamId] = useState<string | null>(null);
-  const { start: startLibrarySync } = librarySync;
-  const startSync = useCallback(
-    (steamId: string) => {
-      setLastSteamId(steamId);
-      startLibrarySync(steamId);
-    },
-    [startLibrarySync],
-  );
-  const steamBanner = useSteamCallbackResult(linkAccount, startSync);
-  const xboxBanner = useXboxCallbackResult(linkAccount);
-  const banner = xboxBanner ?? steamBanner;
-
-  return (
-    <SectionCard
-      title="Linked accounts"
-      description="Connect a platform to import your owned games automatically."
-    >
-      {banner && (
-        <div
-          role={banner.tone === "error" ? "alert" : "status"}
-          className={cx(
-            "mb-4 rounded-xl px-3 py-2.5 text-[13px]",
-            banner.tone === "success" && "bg-emerald-50 text-emerald-800",
-            banner.tone === "info" && "bg-neutral-100 text-[var(--ink-soft)]",
-            banner.tone === "error" && "bg-rose-50 text-rose-700",
-          )}
-        >
-          {banner.message}
-        </div>
-      )}
-      <ul className="flex flex-col divide-y divide-[var(--border)]">
-        {state.accounts.map((acc) => {
-          const meta = PLATFORMS[acc.platform];
-          const { Icon, label } = meta;
-          return (
-            <li key={acc.platform} className="flex items-center gap-3 py-3.5 first:pt-0 last:pb-0">
-              <span
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white"
-                style={{ backgroundColor: meta.tint }}
-              >
-                <Icon className="h-5 w-5" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold">{label}</p>
-                {acc.connected ? (
-                  <p className="truncate text-xs text-[var(--ink-faint)]">
-                    Connected{acc.handle ? ` · ${acc.handle}` : ""}
-                  </p>
-                ) : (
-                  <p className="text-xs text-[var(--ink-faint)]">Not connected</p>
-                )}
-              </div>
-              {acc.connected ? (
-                <div className="flex items-center gap-2">
-                  <Badge tone="success">
-                    <Check className="h-3 w-3" /> Linked
-                  </Badge>
-                  {acc.platform === "steam" && acc.handle && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      loading={librarySync.running}
-                      onClick={() => startSync(acc.handle!)}
-                    >
-                      {librarySync.running ? "Syncing" : "Sync now"}
-                    </Button>
-                  )}
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => unlinkAccount(acc.platform)}
-                  >
-                    Disconnect
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  size="sm"
-                  onClick={() =>
-                    acc.platform === "steam"
-                      ? startSteamLink()
-                      : acc.platform === "xbox"
-                        ? startXboxLink()
-                        : setConnecting(acc.platform)
-                  }
-                >
-                  Connect
-                </Button>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-
-      <SyncProgress
-        job={librarySync.job}
-        error={librarySync.error}
-        onRetry={lastSteamId ? () => startSync(lastSteamId) : undefined}
-      />
-
-      <ConnectModal
-        platform={connecting}
-        onClose={() => setConnecting(null)}
-      />
-    </SectionCard>
-  );
-}
-
-/**
- * Reads the `?steam=` result the callback route redirects back with, turns it into a banner,
- * and on success records the link and kicks off a library import. Runs once per outcome, then
- * strips the params from the URL so a refresh does not replay it. REQ010 · TM11-44 (AC3).
- */
-function useSteamCallbackResult(
-  linkAccount: (platform: Platform, handle: string) => void,
-  startSync: (steamId: string) => void,
-) {
-  const router = useRouter();
-  const params = useSearchParams();
-  const result = params.get("steam");
-  const banner = describeSteamResult(result, params.get("reason"));
-  const handled = useRef(false);
-
-  useEffect(() => {
-    if (!result || handled.current) return;
-    handled.current = true;
-
-    if (result === "linked") {
-      const steamId = params.get("steamid");
-      if (steamId) {
-        linkAccount("steam", steamId);
-        // The link is recorded whether or not the import succeeds; progress and any
-        // per-title failures show under the account list (TM11-49).
-        startSync(steamId);
-      }
-    }
-
-    // Drop steam/steamid/reason so a reload does not re-run this or leak the id in the URL.
-    router.replace("/settings");
-  }, [result, params, linkAccount, router, startSync]);
-
-  return banner;
-}
-
-/**
- * Reads the `?xbox=` result /api/xbox/callback redirects back with. On `verified` the
- * callback has sealed the Xbox identity in an httpOnly cookie; this asks the server to write
- * the platform_accounts row for the signed-in user (POST /api/xbox/link), then shows the
- * outcome. Waits for the session to load so the request carries the user's token.
- * REQ014 · TM11-53.
- */
-function useXboxCallbackResult(linkAccount: (platform: Platform, handle: string) => void) {
-  const router = useRouter();
-  const params = useSearchParams();
-  const { status, session } = useAuth();
-  const result = params.get("xbox");
-  const reason = params.get("reason");
-  const [banner, setBanner] = useState<ReturnType<typeof describeXboxResult>>(null);
-  const handled = useRef(false);
-
-  useEffect(() => {
-    if (!result || handled.current || status === "loading") return;
-    handled.current = true;
-
-    if (result === "verified") {
-      setBanner({ tone: "info", message: "Finishing your Xbox connection…" });
-      completeXboxLink(fetch, session?.access_token ?? null).then((outcome) => {
-        if (outcome.status === "linked") {
-          linkAccount("xbox", outcome.gamertag);
-          setBanner(describeXboxResult("linked", null, outcome.gamertag));
-        } else {
-          setBanner(describeXboxResult("error", outcome.reason));
-        }
-      });
-    } else {
-      setBanner(describeXboxResult(result, reason));
-    }
-
-    // Drop xbox/reason so a reload does not replay the outcome.
-    router.replace("/settings");
-  }, [result, reason, status, session, linkAccount, router]);
-
-  return banner;
-}
-
-function ConnectModal({
-  platform,
-  onClose,
-}: {
-  platform: Platform | null;
-  onClose: () => void;
-}) {
-  const { linkAccount } = useMock();
-  const [handle, setHandle] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  if (!platform) return null;
-  const meta = PLATFORMS[platform];
-  const isSteam = platform === "steam";
-  const fieldLabel = isSteam ? "steamID64" : `${meta.label} username`;
-
-  function connect() {
-    setBusy(true);
-    // Simulate the OAuth / lookup round-trip.
-    window.setTimeout(() => {
-      linkAccount(platform!, handle.trim() || "you");
-      setBusy(false);
-      setHandle("");
-      onClose();
-    }, 900);
-  }
-
-  return (
-    <Modal
-      open={!!platform}
-      onClose={() => {
-        setHandle("");
-        onClose();
-      }}
-      title={`Connect ${meta.label}`}
-      footer={
-        <>
-          <Button variant="secondary" size="sm" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button size="sm" onClick={connect} loading={busy}>
-            {busy ? "Connecting" : "Connect"}
-          </Button>
-        </>
-      }
-    >
-      <div className="flex items-center gap-3 rounded-xl bg-neutral-50 p-3">
-        <span
-          className="flex h-10 w-10 items-center justify-center rounded-xl text-white"
-          style={{ backgroundColor: meta.tint }}
-        >
-          <meta.Icon className="h-5 w-5" />
-        </span>
-        <p className="text-[13px] text-[var(--ink-soft)]">
-          {isSteam
-            ? "Paste a public steamID64 to import owned games."
-            : `You'll be redirected to ${meta.label} to authorize access. (Demo — no real redirect.)`}
-        </p>
-      </div>
-      <div className="mt-4">
-        <Field label={fieldLabel} htmlFor="handle">
-          <TextInput
-            id="handle"
-            autoFocus
-            inputMode={isSteam ? "numeric" : "text"}
-            placeholder={isSteam ? "76561197960287930" : "your-handle"}
-            value={handle}
-            onChange={(e) => setHandle(e.target.value)}
-          />
-        </Field>
-      </div>
-    </Modal>
   );
 }
 

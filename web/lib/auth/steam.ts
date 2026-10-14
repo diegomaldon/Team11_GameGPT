@@ -77,7 +77,13 @@ export type SteamErrorReason =
   | "mode" // openid.mode was not the id_res we expect
   | "identity" // claimed_id missing or not a Steam identity URL
   | "verify" // Steam did not confirm the assertion
-  | "network"; // the verification POST itself failed
+  | "network" // the verification POST itself failed
+  // TM11-52: saving the verified identity to platform_accounts (POST /api/steam/link).
+  | "config" // STEAM_LINK_SECRET is not set on the server
+  | "expired" // the sealed identity cookie is missing, tampered with or past its TTL
+  | "taken" // another GameGPT user already linked this Steam account
+  | "session" // no signed-in user to attach the account to
+  | "save"; // the platform_accounts write failed for another reason
 
 /**
  * Reads what Steam sent to /api/steam/callback and decides what to do with it, without yet
@@ -177,7 +183,7 @@ const LINKED_ACCOUNTS_PATH = "/settings";
  * user off-site.
  */
 export function linkedAccountsResult(
-  result: "linked" | "cancelled" | "error",
+  result: "verified" | "linked" | "cancelled" | "error",
   extra?: { steamId?: string; reason?: SteamErrorReason; next?: string | null },
 ): string {
   const url = new URL(LINKED_ACCOUNTS_PATH, "http://placeholder.invalid");
@@ -200,6 +206,8 @@ export function describeSteamResult(
   reason?: string | null,
 ): { tone: "success" | "info" | "error"; message: string } | null {
   switch (result) {
+    case "verified":
+      return { tone: "info", message: "Finishing your Steam connection…" };
     case "linked":
       return { tone: "success", message: "Steam connected. Your library will import shortly." };
     case "cancelled":
@@ -225,6 +233,16 @@ function describeSteamErrorReason(reason?: string | null): string {
       return "That Steam link is incomplete or already used. Start again from Connect.";
     case "network":
       return "Couldn't reach Steam to finish connecting. Check your connection and try again.";
+    case "config":
+      return "Steam linking isn't set up on this server yet. Nothing on your side to fix.";
+    case "expired":
+      return "That Steam sign-in timed out before it was saved. Start again from Connect.";
+    case "taken":
+      return "That Steam account is already linked to another GameGPT account.";
+    case "session":
+      return "Your session ended before Steam was saved. Sign in again, then connect.";
+    case "save":
+      return "Steam signed you in, but we couldn't save the link. Try again in a moment.";
     default:
       return "Steam connection didn't finish. Try again from Connect.";
   }
