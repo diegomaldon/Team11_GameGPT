@@ -14,16 +14,22 @@
 // server log line can name the user and be traced back to the click that caused
 // it. A fetch added outside `request()` silently loses both.
 import {
+  fixtureCommitCsv,
   fixtureFeedback,
   fixtureGetLibrary,
   fixtureGetSyncJob,
+  fixturePreviewCsv,
   fixtureRecommend,
   fixtureStartSync,
   fixtureSyncLibrary,
 } from "./fixtures";
+import { ApiError, readErrorDetail } from "./apiError";
 import { getAccessToken } from "../auth/token";
 import { newRequestId, setLastRequestId } from "../observability";
 import type {
+  CsvCommitResponse,
+  CsvPlatform,
+  CsvPreviewResponse,
   FeedbackRequest,
   LibraryResponse,
   LibrarySyncJob,
@@ -34,19 +40,10 @@ import type {
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const USE_FIXTURES = process.env.NEXT_PUBLIC_USE_FIXTURES === "1";
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+// Re-exported so existing `import { ApiError } from "./client"` keeps working.
+export { ApiError };
 
-export class ApiError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-    /** Quote this in a bug report; it matches a server log line. */
-    readonly requestId: string | null = null,
-  ) {
-    super(message);
-    this.name = "ApiError";
-  }
-}
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function request<TResponse>(
   path: string,
@@ -74,10 +71,13 @@ async function request<TResponse>(
   setLastRequestId(res.headers.get("x-request-id") ?? requestId);
 
   if (!res.ok) {
+    const { code, userMessage } = await readErrorDetail(res);
     throw new ApiError(
       `${init.method ?? "GET"} ${path} failed`,
       res.status,
       res.headers.get("x-request-id"),
+      code,
+      userMessage,
     );
   }
   return res.status === 204 ? null : ((await res.json()) as TResponse);
@@ -192,4 +192,41 @@ export async function runLibrarySync(
     onUpdate(job);
   }
   return job;
+}
+
+// ── CSV library upload (TM11-55) ──
+//
+// The browser reads the file (lib/library/csvFile.ts) and sends its text. The
+// server checks everything; on a bad file it answers 422 with a message for the
+// user, which arrives here as ApiError.userMessage.
+
+/** POST /api/library/csv/preview — per-row match results. Writes nothing. */
+export async function previewCsvImport(
+  platform: CsvPlatform,
+  csvText: string,
+): Promise<CsvPreviewResponse> {
+  if (USE_FIXTURES) {
+    await sleep(400);
+    return fixturePreviewCsv(platform, csvText);
+  }
+  return (await request<CsvPreviewResponse>("/api/library/csv/preview", {
+    method: "POST",
+    body: JSON.stringify({ platform, csv_text: csvText }),
+  })) as CsvPreviewResponse;
+}
+
+/** POST /api/library/csv/commit — add the matched rows that weren't unticked. */
+export async function commitCsvImport(
+  platform: CsvPlatform,
+  csvText: string,
+  excludedRows: number[],
+): Promise<CsvCommitResponse> {
+  if (USE_FIXTURES) {
+    await sleep(400);
+    return fixtureCommitCsv(platform, csvText, excludedRows);
+  }
+  return (await request<CsvCommitResponse>("/api/library/csv/commit", {
+    method: "POST",
+    body: JSON.stringify({ platform, csv_text: csvText, excluded_rows: excludedRows }),
+  })) as CsvCommitResponse;
 }
