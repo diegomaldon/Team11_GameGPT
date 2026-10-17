@@ -1,0 +1,303 @@
+{
+  "run_at": "2026-10-17T18:31:37+00:00",
+  "model": "sentence-transformers/all-MiniLM-L6-v2",
+  "k": 10,
+  "repeats_per_query": 10,
+  "recall_at_k": 1.0,
+  "hits": 20,
+  "queries": 20,
+  "search_ms": {
+    "p50": 99.59,
+    "p95": 115.78,
+    "max": 126.38,
+    "runs": 200
+  },
+  "embed_query_ms": {
+    "p50": 23.57,
+    "p95": 25.87
+  },
+  "mean_hit_rank": 1,
+  "index_exists": true,
+  "index_bytes": 352256,
+  "table_bytes": 1032192,
+  "catalogue_games": 167,
+  "embedded_rows": 167,
+  "duplicate_rows": 0,
+  "planner_uses_index": false,
+  "index_usable_when_seqscan_off": true,
+  "db_execution_ms": {
+    "planner_choice": 0.756,
+    "hnsw_index": 0.22
+  },
+  "open_connection_ms_p50": 41.47,
+  "results": [
+    {
+      "query": "farm life sim where you grow crops and make friends in town",
+      "expected": [
+        "Dinkum",
+        "My Time at Portia",
+        "Stardew Valley"
+      ],
+      "hit": true,
+      "rank": 1,
+      "top_3": [
+        "Stardew Valley",
+        "Dinkum",
+        "RimWorld"
+      ]
+    },
+    {
+      "query": "first-person puzzles with a portal gun",
+      "expected": [
+        "Portal",
+        "Portal 2"
+      ],
+      "hit": true,
+      "rank": 1,
+      "top_3": [
+        "Portal 2",
+        "Portal",
+        "Hitman 3"
+      ]
+    },
+    {
+      "query": "metroidvania in a ruined bug kingdom",
+      "expected": [
+        "Hollow Knight"
+      ],
+      "hit": true,
+      "rank": 1,
+      "top_3": [
+        "Hollow Knight",
+        "Dead Cells",
+        "Cave Story+"
+      ]
+    },
+    {
+      "query": "hard platformer about climbing a mountain",
+      "expected": [
+        "Celeste"
+      ],
+      "hit": true,
+      "rank": 1,
+      "top_3": [
+        "Celeste",
+        "A Short Hike",
+        "Journey"
+      ]
+    },
+    {
+      "query": "roguelike where you fight your way out of the underworld",
+      "expected": [
+        "Hades",
+        "Hades II"
+      ],
+      "hit": true,
+      "rank": 1,
+      "top_3": [
+        "Hades",
+        "Vampire Survivors",
+        "Dead Cells"
+      ]
+    },
+    {
+      "query": "deckbuilding roguelike card game",
+      "expected": [
+        "Slay the Spire"
+      ],
+      "hit": true,
+      "rank": 1,
+      "top_3": [
+        "Slay the Spire",
+        "Balatro",
+        "Loop Hero"
+      ]
+    },
+    {
+      "query": "build automated factories with conveyor belts",
+      "expected": [
+        "Factorio",
+        "Satisfactory"
+      ],
+      "hit": true,
+      "rank": 1,
+      "top_3": [
+        "Factorio",
+        "Satisfactory",
+        "Recettear: An Item Shop's Tale"
+      ]
+    },
+    {
+      "query": "survive under the ocean on an alien planet",
+      "expected": [
+        "Subnautica"
+      ],
+      "hit": true,
+      "rank": 1,
+      "top_3": [
+        "Subnautica",
+        "Raft",
+        "Sea of Thieves"
+      ]
+    },
+    {
+      "query": "four player co-op zombie shooter",
+      "expected": [
+        "Left 4 Dead",
+        "Left 4 Dead 2"
+      ],
+      "hit": true,
+      "rank": 1,
+      "top_3": [
+        "Left 4 Dead",
+        "Left 4 Dead 2",
+        "Killing Floor 2"
+      ]
+    },
+    {
+      "query": "check passports at a border checkpoint",
+      "expected": [
+        "Papers, Please"
+      ],
+      "hit": true,
+      "rank": 1,
+      "top_3": [
+        "Papers, Please",
+        "Dead Cells",
+        "Outlast"
+      ]
+    },
+    {
+      "query": "figure out what happened to the crew of a ghost ship",
+      "expected": [
+        "Return of the Obra Dinn"
+      ],
+      "hit": true,
+      "rank": 1,
+      "top_3": [
+        "Return of the Obra Dinn",
+        "Among Us",
+        "Cozy Grove"
+      ]
+    },
+    {
+      "query": "fire lookout in the woods talking to someone over a radio",
+      "expected": [
+        "Firewatch"
+      ],
+      "hit": true,
+      "rank": 1,
+      "top_3": [
+        "Firewatch",
+        "Night in the Woods",
+        "The Long Dark"
+      ]
+    },
+    {
+      "query": "hide from an alien hunting you on a space station",
+      "expected": [
+        "Alien: Isolation"
+      ],
+      "hit": true,
+      "rank": 1,
+      "top_3": [
+        "Alien: Isolation",
+        "Prey (2017)",
+        "XCOM: Enemy Unknown"
+      ]
+    },
+    {
+      "query": "city builder with zoning and traffic",
+      "expected": [
+        "Cities: Skylines"
+      ],
+      "hit": true,
+      "rank": 1,
+      "top_3": [
+        "Cities: Skylines",
+        "Anno 1800",
+        "Dinkum"
+      ]
+    },
+    {
+      "query": "medieval dynasty strategy with marriages and scheming",
+      "expected": [
+        "Crusader Kings III"
+      ],
+      "hit": true,
+      "rank": 1,
+      "top_3": [
+        "Crusader Kings III",
+        "Mount & Blade II: Bannerlord",
+        "Kingdom Come: Deliverance"
+      ]
+    },
+    {
+      "query": "story game two players have to play together",
+      "expected": [
+        "A Way Out",
+        "It Takes Two",
+        "Unravel Two"
+      ],
+      "hit": true,
+      "rank": 1,
+      "top_3": [
+        "A Way Out",
+        "It Takes Two",
+        "Team Fortress 2"
+      ]
+    },
+    {
+      "query": "calm game about unpacking boxes in a new home",
+      "expected": [
+        "Unpacking"
+      ],
+      "hit": true,
+      "rank": 1,
+      "top_3": [
+        "Unpacking",
+        "Satisfactory",
+        "Gone Home"
+      ]
+    },
+    {
+      "query": "chaotic co-op cooking in a busy kitchen",
+      "expected": [
+        "Overcooked! 2"
+      ],
+      "hit": true,
+      "rank": 1,
+      "top_3": [
+        "Overcooked! 2",
+        "Killing Floor 2",
+        "Unravel Two"
+      ]
+    },
+    {
+      "query": "dwarves mining caves and fighting bugs with friends",
+      "expected": [
+        "Deep Rock Galactic"
+      ],
+      "hit": true,
+      "rank": 1,
+      "top_3": [
+        "Deep Rock Galactic",
+        "Valheim",
+        "Stardew Valley"
+      ]
+    },
+    {
+      "query": "tactical competitive shooter where every bullet counts",
+      "expected": [
+        "Counter-Strike 2"
+      ],
+      "hit": true,
+      "rank": 1,
+      "top_3": [
+        "Counter-Strike 2",
+        "Enter the Gungeon",
+        "Team Fortress 2"
+      ]
+    }
+  ]
+}

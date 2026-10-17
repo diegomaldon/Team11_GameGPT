@@ -203,6 +203,12 @@ jobs:
             api/tests/test_embedding_pipeline.py \
             api/tests/test_embed_catalogue.py -v
 
+      # TM11-40. The partial HNSW index only serves a query that repeats its cast
+      # and model filter, so the SQL VectorStore sends is pinned here. DB faked.
+      - name: Pytest — vector store on both schemas
+        working-directory: .
+        run: python -m pytest api/tests/test_vector_store.py -v
+
   # -------------------------------------------------------------------------
   # Aggregate gate. Optional but worth having: point the ruleset at this one check
   # instead of three, and adding a fourth job later needs no ruleset edit. `needs`
