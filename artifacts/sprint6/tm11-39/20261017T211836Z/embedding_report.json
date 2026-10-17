@@ -1,0 +1,15 @@
+{
+  "run_id": "20261017T211836Z",
+  "model": "sentence-transformers/all-MiniLM-L6-v2",
+  "games_to_embed": 16,
+  "embedded_count": 16,
+  "failed_game_ids": [],
+  "batch_count": 1,
+  "token_count": 3812,
+  "truncated_count": 5,
+  "catalogue_count": 16,
+  "embedded_total": 16,
+  "duration_seconds": 10.1,
+  "estimated_cost_usd": 0.0,
+  "is_complete": true
+}
