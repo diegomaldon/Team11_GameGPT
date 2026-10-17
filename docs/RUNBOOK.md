@@ -85,7 +85,7 @@ Set `NEXT_PUBLIC_API_URL` if the API isn't on `http://localhost:8000`.
 |--------|--------------|-------------|
 | `scripts/seed_games.py` | Inserts ~150 games from `scripts/fixtures/games.json` (or RAWG if `RAWG_API_KEY` set) | Upserts on `steam_appid`; re-run = updates, no dupes |
 | `scripts/embed_games.py` | Embeds `title + description + genres` → `embedding` column | Only embeds `NULL` rows; `--all` re-embeds everything |
-| `scripts/embed_catalogue.py` | Embeds the Supabase catalogue into `game_embeddings` in batches (TM11-39) | Only games with no vector from the model; `--all` re-embeds everything |
+| `scripts/embed_catalogue.py` | Embeds the Supabase catalogue into `game_embeddings` in batches (TM11-39) | Only new games and games whose text changed (TM11-41); `--all` re-embeds everything |
 | `supabase/seed.sql` | 5 `owned_games` for the dev user | `ON CONFLICT DO NOTHING` |
 
 **Re-embed after changing the model** (dimension or `EMBEDDING_MODEL`):
@@ -104,7 +104,7 @@ them. If you also changed the dimension, run migration `0002` (or recreate the D
 
 ```bash
 # DATABASE_URL = the Supabase connection string (service role), in .env only
-python scripts/embed_catalogue.py                  # games with no vector yet
+python scripts/embed_catalogue.py                  # new and changed games only
 python scripts/embed_catalogue.py --batch-size 64
 python scripts/embed_catalogue.py --all            # after changing the document text
 ```
@@ -115,7 +115,13 @@ python scripts/embed_catalogue.py --all            # after changing the document
 - **Batches and retry:** each batch is tried 3 times, then skipped. Its games
   are listed in the report, and the rest of the catalogue still gets embedded.
 - **Resumable:** every batch is saved as soon as it's done. After a failure or
-  Ctrl-C, run the same command again; it only picks up games with no vector.
+  Ctrl-C, run the same command again; it only picks up games that still need one.
+- **Only changed games (TM11-41):** each run hashes the text a game would be
+  embedded from and compares it to the stored `document_hash`. A match is skipped,
+  so a catalogue refresh only re-embeds the games whose title, description or
+  genres changed. The summary and report count `new`, `changed` and
+  `unchanged_skipped`. Changing the document template itself changes every hash,
+  so the next run re-embeds everything without needing `--all`.
 - **Counted:** each batch logs the running token total and cost (the local
   model is free; an unknown model logs `unknown`). The run ends by counting the
   catalogue against the stored vectors.
