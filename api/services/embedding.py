@@ -7,6 +7,9 @@ hashed vector so tests and the pipeline still run without torch.
 
 The model is loaded lazily and cached on the class so the ~90 MB weights load
 once per process, not per request.
+
+`embed_documents` is the batch job's path (TM11-39): it never falls back to the
+stub, and reports each document's token count.
 """
 
 from __future__ import annotations
@@ -15,10 +18,14 @@ import asyncio
 import hashlib
 import math
 import os
+from dataclasses import dataclass
 
 from api.config import get_settings
 
 EMBEDDING_DIM = 384  # all-MiniLM-L6-v2
+
+# Recorded as the model of stub vectors, so they can't pass for real ones.
+STUB_MODEL_NAME = "stub/sha256-hash"
 
 _UNSET = object()
 
@@ -47,6 +54,15 @@ def hashed_embedding(text: str, dim: int = EMBEDDING_DIM) -> list[float]:
     return [x / norm for x in vec]
 
 
+@dataclass(frozen=True)
+class EmbeddedText:
+    """One document's vector, and what the batch job logs about it."""
+
+    vector: list[float]
+    token_count: int
+    is_truncated: bool  # longer than the model reads, so the end was ignored
+
+
 class EmbeddingService:
     # Cache the loaded SentenceTransformer across instances in this process.
     _shared_model = None  # type: ignore[var-annotated]
@@ -63,6 +79,11 @@ class EmbeddingService:
         """True when the deterministic stub is used instead of the real model."""
         return self._force_stub
 
+    @property
+    def model_name(self) -> str:
+        """The model whose vectors embed_documents returns."""
+        return STUB_MODEL_NAME if self._force_stub else self._model_name
+
     def _load(self):
         if EmbeddingService._shared_model is None:
             from sentence_transformers import SentenceTransformer
@@ -72,7 +93,9 @@ class EmbeddingService:
 
     def _encode(self, texts: list[str]) -> list[list[float]]:
         model = self._load()
-        arr = model.encode(texts, normalize_embeddings=True, convert_to_numpy=True)
+        arr = model.encode(
+            texts, normalize_embeddings=True, convert_to_numpy=True, show_progress_bar=False
+        )
         return arr.tolist()
 
     async def embed_query(self, text: str) -> list[float]:
@@ -92,3 +115,26 @@ class EmbeddingService:
         except Exception:
             # sentence-transformers/torch unavailable or load failed → stub.
             return [hashed_embedding(t) for t in texts]
+
+    async def embed_documents(self, texts: list[str]) -> list[EmbeddedText]:
+        """Embed a batch for storage. Order-preserving.
+
+        Unlike embed_texts, a model failure raises instead of returning stub
+        vectors, so a batch job can retry rather than store fake vectors.
+        """
+        if not texts:
+            return []
+        if self._force_stub:
+            return [EmbeddedText(hashed_embedding(t), len(t.split()), False) for t in texts]
+        return await asyncio.to_thread(self._encode_documents, texts)
+
+    def _encode_documents(self, texts: list[str]) -> list[EmbeddedText]:
+        model = self._load()
+        vectors = self._encode(texts)
+        # verbose=False: counting a long text is fine; encode() truncates it.
+        token_ids = model.tokenizer(texts, verbose=False)["input_ids"]
+        token_counts = [len(ids) for ids in token_ids]
+        return [
+            EmbeddedText(vector, count, count > model.max_seq_length)
+            for vector, count in zip(vectors, token_counts)
+        ]
