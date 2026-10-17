@@ -85,6 +85,7 @@ Set `NEXT_PUBLIC_API_URL` if the API isn't on `http://localhost:8000`.
 |--------|--------------|-------------|
 | `scripts/seed_games.py` | Inserts ~150 games from `scripts/fixtures/games.json` (or RAWG if `RAWG_API_KEY` set) | Upserts on `steam_appid`; re-run = updates, no dupes |
 | `scripts/embed_games.py` | Embeds `title + description + genres` → `embedding` column | Only embeds `NULL` rows; `--all` re-embeds everything |
+| `scripts/embed_catalogue.py` | Embeds the Supabase catalogue into `game_embeddings` in batches (TM11-39) | Only games with no vector from the model; `--all` re-embeds everything |
 | `supabase/seed.sql` | 5 `owned_games` for the dev user | `ON CONFLICT DO NOTHING` |
 
 **Re-embed after changing the model** (dimension or `EMBEDDING_MODEL`):
@@ -93,6 +94,38 @@ python scripts/embed_games.py --all
 ```
 Existing vectors made by a different model are incompatible — `--all` regenerates
 them. If you also changed the dimension, run migration `0002` (or recreate the DB).
+
+### Embedding the Supabase catalogue (TM11-39)
+
+`embed_games.py` above fills the old `games.embedding` column of the local
+`0001_init.sql` slice. The hosted catalogue (`public.games`, filled by
+`ingest_games.py`) is embedded into its own table, `public.game_embeddings`, by
+`embed_catalogue.py`. Run migration `20261017120000_game_embeddings.sql` first.
+
+```bash
+# DATABASE_URL = the Supabase connection string (service role), in .env only
+python scripts/embed_catalogue.py                  # games with no vector yet
+python scripts/embed_catalogue.py --batch-size 64
+python scripts/embed_catalogue.py --all            # after changing the document text
+```
+
+- **One row per game per model:** model, dimensions, the vector, a SHA-256 of
+  the exact text embedded, and its token count. A check keeps `dimensions`
+  equal to the vector's real size.
+- **Batches and retry:** each batch is tried 3 times, then skipped. Its games
+  are listed in the report, and the rest of the catalogue still gets embedded.
+- **Resumable:** every batch is saved as soon as it's done. After a failure or
+  Ctrl-C, run the same command again; it only picks up games with no vector.
+- **Counted:** each batch logs the running token total and cost (the local
+  model is free; an unknown model logs `unknown`). The run ends by counting the
+  catalogue against the stored vectors.
+- **Report:** `artifacts/embeddings/<run id>/embedding_report.json`. Exit code 0
+  means every game has a vector, 1 means some are missing (rerun), and 2 means
+  `DATABASE_URL` isn't set.
+- **Truncation:** all-MiniLM-L6-v2 reads the first 256 tokens. Longer documents
+  are still embedded, from their start, and counted as `truncated_count`.
+- `EMBEDDING_STUB=1` stores hash vectors under the model `stub/sha256-hash`, so
+  they never mix with real ones.
 
 ---
 

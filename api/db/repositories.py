@@ -26,6 +26,7 @@ from api.db import connection
 from api.models import FeedbackRequest, LibraryItem, Recommendation
 
 if TYPE_CHECKING:  # runtime import would cycle through api.services.__init__
+    from api.services.embedding_pipeline import GameEmbedding
     from api.services.title_matching import MatchReport
 
 log = logging.getLogger("gamegpt.db")
@@ -490,3 +491,76 @@ async def add_manual_game(user_id: UUID, platform: str, game_id: UUID, title: st
             added = await cur.fetchone()
         await conn.commit()
     return added is not None
+
+
+# ─────────────────── game embeddings (TM11-39) ───────────────────
+
+
+@retry(**_RETRY)
+async def list_games_to_embed(
+    model: str, *, include_embedded: bool = False
+) -> list[dict[str, Any]]:
+    """Catalogue games with no vector from `model` yet, or every game.
+
+    Ordered by game_id, so reruns walk the catalogue in the same order.
+    """
+    async with connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "select g.game_id, g.title, g.description, g.genres, g.tags "
+                "from public.games g "
+                "where %s or not exists ("
+                "  select 1 from public.game_embeddings e "
+                "  where e.game_id = g.game_id and e.model = %s"
+                ") "
+                "order by g.game_id",
+                (include_embedded, model),
+            )
+            rows = await cur.fetchall()
+    return [
+        {"game_id": r[0], "title": r[1], "description": r[2], "genres": r[3], "tags": r[4]}
+        for r in rows
+    ]
+
+
+@retry(**_RETRY)
+async def upsert_game_embeddings(rows: Sequence[GameEmbedding]) -> None:
+    """Store a batch of vectors in one transaction. Re-embedding replaces the row.
+
+    The primary key (game_id, model) keeps one row per game per model.
+    """
+    async with connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.executemany(
+                "insert into public.game_embeddings "
+                "(game_id, model, dimensions, embedding, document_hash, token_count) "
+                "values (%s, %s, %s, %s, %s, %s) "
+                "on conflict (game_id, model) do update set "
+                "dimensions = excluded.dimensions, "
+                "embedding = excluded.embedding, "
+                "document_hash = excluded.document_hash, "
+                "token_count = excluded.token_count, "
+                "embedded_at = now()",
+                [
+                    (
+                        str(row.game_id), row.model, row.dimensions, row.embedding,
+                        row.document_hash, row.token_count,
+                    )
+                    for row in rows
+                ],
+            )
+        await conn.commit()
+
+
+@retry(**_RETRY)
+async def count_game_embeddings(model: str) -> tuple[int, int]:
+    """(games in the catalogue, games with a vector from `model`)."""
+    async with connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "select (select count(*) from public.games), "
+                "(select count(*) from public.game_embeddings where model = %s)",
+                (model,),
+            )
+            catalogue_count, embedded_count = await cur.fetchone()
+    return catalogue_count, embedded_count

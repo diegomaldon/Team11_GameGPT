@@ -102,6 +102,11 @@ indexed with an IVFFlat cosine index. Migration `0002_embedding_dim_384.sql`
 migrates a DB created before the switch from OpenAI's 1536-dim column (it clears
 incompatible vectors and requires a re-embed).
 
+On the hosted Supabase schema, vectors live in their own table,
+**`game_embeddings`** (TM11-39): one row per `(game_id, model)` with `dimensions`,
+`embedding`, `document_hash` and `token_count`. `scripts/embed_catalogue.py` fills
+it in batches (see RUNBOOK). The similarity index on it is TM11-40.
+
 ---
 
 ## Providers

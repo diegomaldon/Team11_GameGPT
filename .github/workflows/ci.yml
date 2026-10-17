@@ -193,6 +193,16 @@ jobs:
         working-directory: .
         run: python -m pytest api/tests/test_library_manual.py -v
 
+      # TM11-39. Retry, resume after failure and "model and dimensions on every
+      # row" are acceptance criteria. The model and DB are faked, so no torch here.
+      - name: Pytest — batch embedding pipeline
+        working-directory: .
+        run: |
+          python -m pytest \
+            api/tests/test_embedding.py \
+            api/tests/test_embedding_pipeline.py \
+            api/tests/test_embed_catalogue.py -v
+
   # -------------------------------------------------------------------------
   # Aggregate gate. Optional but worth having: point the ruleset at this one check
   # instead of three, and adding a fourth job later needs no ruleset edit. `needs`
