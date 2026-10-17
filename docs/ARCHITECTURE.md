@@ -105,8 +105,10 @@ incompatible vectors and requires a re-embed).
 On the hosted Supabase schema, vectors live in their own table,
 **`game_embeddings`** (TM11-39): one row per `(game_id, model)` with `dimensions`,
 `embedding`, `document_hash` and `token_count`. `scripts/embed_catalogue.py` fills
-it in batches (see RUNBOOK). Each run re-embeds only games whose `document_hash`
-no longer matches their current text (TM11-41). The similarity index on it is TM11-40.
+it in batches (see RUNBOOK). The similarity index on it is TM11-40.
+
+Incremental runs (TM11-41): each run re-embeds only new games and games whose
+`document_hash` no longer matches their current text; unchanged games are skipped.
 
 ---
 
