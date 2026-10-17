@@ -105,7 +105,9 @@ incompatible vectors and requires a re-embed).
 On the hosted Supabase schema, vectors live in their own table,
 **`game_embeddings`** (TM11-39): one row per `(game_id, model)` with `dimensions`,
 `embedding`, `document_hash` and `token_count`. `scripts/embed_catalogue.py` fills
-it in batches (see RUNBOOK). The similarity index on it is TM11-40.
+it in batches (see RUNBOOK). TM11-40 indexes it: a partial HNSW cosine index per model,
+`game_embeddings_minilm_hnsw` on `(embedding::vector(384)) where model =
+'sentence-transformers/all-MiniLM-L6-v2'` (decision: `docs/adr/0002-vector-store.md`).
 
 ---
 
@@ -130,9 +132,16 @@ it in batches (see RUNBOOK). The similarity index on it is TM11-40.
   reaches logs).
 
 ### Vector search (`VectorStore`)
-- pgvector cosine search: `embedding <=> query::vector` ordered ascending, `k=20`.
-  `similarity = 1 − distance`, clamped to `[0, 1]`. Dimension-agnostic (binds the
-  query vector as a `[...]::vector` literal).
+- pgvector cosine search ordered by distance ascending, `k=20`.
+  `similarity = 1 − distance`, clamped to `[0, 1]`.
+- Reads whichever schema `DATABASE_URL` has (`api/db/schema.py`, checked once per
+  process): on **hosted** Supabase it searches `game_embeddings` joined to `games`,
+  filtered to the configured model and cast to its size so the partial HNSW index
+  can serve it (TM11-40). On the **legacy** `0001_init.sql` slice it searches
+  `games.embedding` as before. `DeduplicationService` follows the same switch:
+  hosted drops candidates by `owned_games.game_id`, legacy by `steam_appid` then title.
+- Recall, latency and index size: `scripts/eval_vector_index.py` →
+  `artifacts/sprint6/tm11-40-vector-index.md`.
 
 ### Steam (`LibrarySyncService`)
 - Real `IPlayerService/GetOwnedGames` call via httpx (needs only an API key +
