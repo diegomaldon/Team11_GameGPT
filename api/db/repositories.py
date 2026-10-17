@@ -497,28 +497,27 @@ async def add_manual_game(user_id: UUID, platform: str, game_id: UUID, title: st
 
 
 @retry(**_RETRY)
-async def list_games_to_embed(
-    model: str, *, include_embedded: bool = False
-) -> list[dict[str, Any]]:
-    """Catalogue games with no vector from `model` yet, or every game.
+async def list_games_with_document_hash(model: str) -> list[dict[str, Any]]:
+    """Every catalogue game, with the hash of the text last embedded for `model`.
 
+    `document_hash` is None for a game with no vector from `model` yet. The
+    pipeline compares it to a fresh hash to skip unchanged games (TM11-41).
     Ordered by game_id, so reruns walk the catalogue in the same order.
     """
     async with connection() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                "select g.game_id, g.title, g.description, g.genres, g.tags "
+                "select g.game_id, g.title, g.description, g.genres, g.tags, e.document_hash "
                 "from public.games g "
-                "where %s or not exists ("
-                "  select 1 from public.game_embeddings e "
-                "  where e.game_id = g.game_id and e.model = %s"
-                ") "
+                "left join public.game_embeddings e "
+                "  on e.game_id = g.game_id and e.model = %s "
                 "order by g.game_id",
-                (include_embedded, model),
+                (model,),
             )
             rows = await cur.fetchall()
     return [
-        {"game_id": r[0], "title": r[1], "description": r[2], "genres": r[3], "tags": r[4]}
+        {"game_id": r[0], "title": r[1], "description": r[2], "genres": r[3], "tags": r[4],
+         "document_hash": r[5]}
         for r in rows
     ]
 
