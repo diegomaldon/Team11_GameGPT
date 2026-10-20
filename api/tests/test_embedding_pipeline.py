@@ -38,10 +38,10 @@ class FakeCatalogue:
         self.rows: dict = {}  # (game_id, model) -> GameEmbedding
         self.writes_to_fail = 0
 
-    async def list_games_to_embed(self, model, *, include_embedded=False):
+    async def list_games_with_document_hash(self, model):
         return [
-            g for g in self.games
-            if include_embedded or (g["game_id"], model) not in self.rows
+            {**g, "document_hash": getattr(self.rows.get((g["game_id"], model)), "document_hash", None)}
+            for g in self.games
         ]
 
     async def upsert_game_embeddings(self, rows):
@@ -78,7 +78,9 @@ class FakeEmbedder:
 @pytest.fixture
 def catalogue(monkeypatch):
     fake = FakeCatalogue([make_game(f"Game {n}") for n in range(7)])
-    monkeypatch.setattr(repositories, "list_games_to_embed", fake.list_games_to_embed)
+    monkeypatch.setattr(
+        repositories, "list_games_with_document_hash", fake.list_games_with_document_hash
+    )
     monkeypatch.setattr(repositories, "upsert_game_embeddings", fake.upsert_game_embeddings)
     monkeypatch.setattr(repositories, "count_game_embeddings", fake.count_game_embeddings)
     monkeypatch.setattr(embedding_pipeline, "RETRY_WAIT_SECONDS", 0)
@@ -285,3 +287,97 @@ async def test_document_skips_missing_parts():
 async def test_batch_size_must_be_positive(batch_size):
     with pytest.raises(ValueError):
         EmbeddingPipeline(FakeEmbedder(), batch_size=batch_size)
+
+
+# ── TM11-41: re-embed only changed games ────────────────────────────────────
+
+
+async def test_every_row_has_a_content_hash_of_its_document(catalogue):
+    await EmbeddingPipeline(FakeEmbedder()).run()
+
+    for game in catalogue.games:
+        row = catalogue.rows[(game["game_id"], MODEL)]
+        assert row.document_hash == embedding_pipeline.document_hash(build_game_document(game))
+
+
+async def test_a_rerun_skips_every_unchanged_game(catalogue):
+    await EmbeddingPipeline(FakeEmbedder()).run()
+    second = FakeEmbedder()
+
+    report = await EmbeddingPipeline(second).run()
+
+    assert second.batches == []
+    assert report.unchanged_skipped == 7
+    assert report.new_count == report.changed_count == 0
+
+
+async def test_a_rerun_with_one_modified_game_embeds_only_that_game(catalogue):
+    await EmbeddingPipeline(FakeEmbedder()).run()
+    modified = catalogue.games[2]
+    old_hash = catalogue.rows[(modified["game_id"], MODEL)].document_hash
+    modified["description"] = "Now a cozy farming game."
+    second = FakeEmbedder()
+
+    report = await EmbeddingPipeline(second).run()
+
+    assert second.batches == [[build_game_document(modified)]]
+    assert (report.changed_count, report.unchanged_skipped, report.new_count) == (1, 6, 0)
+    assert report.embedded_count == 1
+    new_row = catalogue.rows[(modified["game_id"], MODEL)]
+    assert new_row.document_hash != old_hash
+    assert new_row.document_hash == embedding_pipeline.document_hash(build_game_document(modified))
+    assert report.is_complete
+
+
+async def test_a_change_to_text_that_is_not_embedded_is_not_a_change(catalogue):
+    """Tags are fetched but not part of the document today, so editing them costs nothing."""
+    await EmbeddingPipeline(FakeEmbedder()).run()
+    catalogue.games[0]["tags"] = ["Something", "Else"]
+    second = FakeEmbedder()
+
+    report = await EmbeddingPipeline(second).run()
+
+    assert second.batches == []
+    assert report.unchanged_skipped == 7
+
+
+async def test_new_and_changed_games_are_counted_separately(catalogue):
+    await EmbeddingPipeline(FakeEmbedder()).run()
+    catalogue.games[0]["title"] = "Game 0: Remastered"
+    catalogue.games.append(make_game("Brand New Game"))
+
+    report = await EmbeddingPipeline(FakeEmbedder()).run()
+
+    assert (report.new_count, report.changed_count, report.unchanged_skipped) == (1, 1, 6)
+    assert report.embedded_count == 2
+
+
+async def test_re_embed_all_ignores_unchanged_hashes(catalogue):
+    await EmbeddingPipeline(FakeEmbedder()).run()
+    second = FakeEmbedder()
+
+    report = await EmbeddingPipeline(second).run(re_embed_all=True)
+
+    assert sum(len(b) for b in second.batches) == 7
+    assert report.unchanged_skipped == 0
+
+
+async def test_a_changed_game_whose_batch_fails_is_retried_next_run(catalogue):
+    await EmbeddingPipeline(FakeEmbedder()).run()
+    catalogue.games[4]["description"] = "Rewritten."
+    first = await EmbeddingPipeline(FakeEmbedder(poison="Rewritten.")).run()
+    assert first.failed_game_ids == [catalogue.games[4]["game_id"]]
+
+    report = await EmbeddingPipeline(FakeEmbedder()).run()
+
+    assert report.changed_count == 1  # the old hash is still stored, so it is still changed
+    assert report.embedded_count == 1
+
+
+async def test_the_report_carries_the_skip_counts(catalogue):
+    await EmbeddingPipeline(FakeEmbedder()).run()
+
+    data = (await EmbeddingPipeline(FakeEmbedder()).run()).to_dict()
+
+    assert data["unchanged_skipped"] == 7
+    assert data["changed_count"] == 0 and data["new_count"] == 0

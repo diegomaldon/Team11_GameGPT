@@ -101,7 +101,7 @@ them. If you also changed the dimension, run migration `0002` (or recreate the D
 
 ```bash
 # DATABASE_URL = the Supabase connection string (service role), in .env only
-python scripts/embed_catalogue.py                  # games with no vector yet
+python scripts/embed_catalogue.py                  # new and changed games only
 python scripts/embed_catalogue.py --batch-size 64
 python scripts/embed_catalogue.py --all            # after changing the document text
 ```
@@ -112,7 +112,13 @@ python scripts/embed_catalogue.py --all            # after changing the document
 - **Batches and retry:** each batch is tried 3 times, then skipped. Its games
   are listed in the report, and the rest of the catalogue still gets embedded.
 - **Resumable:** every batch is saved as soon as it's done. After a failure or
-  Ctrl-C, run the same command again; it only picks up games with no vector.
+  Ctrl-C, run the same command again; it only picks up games that still need one.
+- **Only changed games (TM11-41):** each run hashes the text a game would be
+  embedded from and compares it to the stored `document_hash`. A match is skipped,
+  so a catalogue refresh only re-embeds the games whose title, description or
+  genres changed. The summary and report count `new`, `changed` and
+  `unchanged_skipped`. Changing the document template itself changes every hash,
+  so the next run re-embeds everything without needing `--all`.
 - **Counted:** each batch logs the running token total and cost (the local
   model is free; an unknown model logs `unknown`). The run ends by counting the
   catalogue against the stored vectors.
@@ -123,6 +129,18 @@ python scripts/embed_catalogue.py --all            # after changing the document
   are still embedded, from their start, and counted as `truncated_count`.
 - `EMBEDDING_STUB=1` stores hash vectors under the model `stub/sha256-hash`, so
   they never mix with real ones.
+
+**Vector index (TM11-40).** Migration `20261018120000_game_embeddings_hnsw_index.sql`
+adds the HNSW index for all-MiniLM-L6-v2 rows. It can run before or after the first
+embed. To check recall, latency and index size after embedding:
+
+```bash
+python scripts/eval_vector_index.py              # writes artifacts/sprint6/tm11-40-vector-index.md
+python scripts/eval_vector_index.py --repeats 20
+```
+
+It needs the real model (it refuses `EMBEDDING_STUB=1`) and the hosted schema. Exit
+code 1 means the index is missing or a `(game_id, model)` row is duplicated.
 
 ---
 
