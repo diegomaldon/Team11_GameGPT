@@ -54,7 +54,7 @@ Description: A physics-driven sci-fi shooter where you fight an alien occupation
 
 `title description genres`, joined with spaces. No tags, no labels.
 Rows embedded before TM11-38 were backfilled as `v0` by
-`20261020120000_game_embeddings_template_version.sql`.
+`20261020130000_game_embeddings_template_version.sql`.
 
 ## Changing the template
 

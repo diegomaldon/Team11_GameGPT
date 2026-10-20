@@ -122,7 +122,7 @@ python scripts/embed_catalogue.py --all            # re-embed every game, e.g. f
   [docs/embedding-documents.md](embedding-documents.md). Every row stores the
   `template_version` it was embedded with, and a row from an older version
   counts as changed, so bumping the version re-embeds everything without
-  `--all`. Run migration `20261020120000_game_embeddings_template_version.sql`
+  `--all`. Run migration `20261020130000_game_embeddings_template_version.sql`
   first.
 - **Counted:** each batch logs the running token total and cost (the local
   model is free; an unknown model logs `unknown`). The run ends by counting the

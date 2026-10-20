@@ -1,5 +1,5 @@
 -- =============================================================================
--- GameGPT :: 20261020120000 :: game_embeddings_template_version
+-- GameGPT :: 20261020130000 :: game_embeddings_template_version
 -- TM11-38 Compose per-game embedding documents (REQ011)
 -- AC: template versioned so re-embedding is traceable
 -- =============================================================================
