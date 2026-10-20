@@ -1,17 +1,20 @@
 """EmbeddingPipeline: embed the whole games catalogue in batches (TM11-39, REQ011).
 
-  run  find games with no vector from this model yet, embed them a batch at a
-       time, and store one public.game_embeddings row per game.
+  run  find games with no vector from this model yet, or whose text changed
+       since it was embedded, embed them a batch at a time, and store one
+       public.game_embeddings row per game.
 
 Each batch is saved as soon as it is embedded, so a run that stops halfway
-loses nothing: the next run only picks up games that still have no vector. A
+loses nothing: the next run only picks up games that still need a vector. A
 batch is retried before it counts as failed. A failed batch is skipped and its
 games reported, and the rest of the catalogue still gets embedded. A model that
 can't load stops the run at once, since every batch would fail the same way.
 
 Every row records the model, the vector's dimensions, a SHA-256 of the exact
-text embedded (for TM11-41) and its token count. Token totals and cost are
-logged per batch. Logs carry counts only.
+text embedded and its token count. On the next run, a game whose text still
+hashes the same is skipped (TM11-41), so a catalogue update only pays for the
+games it touched. Token totals and cost are logged per batch. Logs carry
+counts only.
 """
 
 from __future__ import annotations
@@ -69,6 +72,9 @@ class GameEmbedding:
 class EmbeddingRunReport:
     model: str
     games_to_embed: int = 0
+    new_count: int = 0  # games with no vector from this model before the run
+    changed_count: int = 0  # games whose text no longer matches the stored hash
+    unchanged_skipped: int = 0  # games whose text matches; not re-embedded
     embedded_count: int = 0
     failed_game_ids: list[UUID] = field(default_factory=list)
     batch_count: int = 0
@@ -98,6 +104,11 @@ class EmbeddingRunReport:
         return data
 
 
+def document_hash(document: str) -> str:
+    """SHA-256 hex of the exact text embedded, as stored in document_hash."""
+    return hashlib.sha256(document.encode("utf-8")).hexdigest()
+
+
 def build_game_document(game: Mapping[str, Any]) -> str:
     """The text embedded for a game: title, description, then genres.
 
@@ -116,18 +127,25 @@ class EmbeddingPipeline:
         self._batch_size = batch_size
 
     async def run(self, *, re_embed_all: bool = False) -> EmbeddingRunReport:
-        """Embed every game missing a vector from this model, or all of them."""
+        """Embed games that are new or changed for this model, or all of them."""
         started_at = time.monotonic()
         model = self._embedder.model_name
         report = EmbeddingRunReport(model=model)
 
-        games = await repositories.list_games_to_embed(model, include_embedded=re_embed_all)
+        games = select_games_to_embed(
+            await repositories.list_games_with_document_hash(model), report,
+            re_embed_all=re_embed_all,
+        )
         report.games_to_embed = len(games)
         batches = [
             games[start:start + self._batch_size]
             for start in range(0, len(games), self._batch_size)
         ]
-        log.info("embedding %d games in %d batches with %s", len(games), len(batches), model)
+        log.info(
+            "embedding %d games (%d new, %d changed, %d unchanged skipped) in %d batches with %s",
+            len(games), report.new_count, report.changed_count, report.unchanged_skipped,
+            len(batches), model,
+        )
 
         for number, batch in enumerate(batches, start=1):
             await self._process_batch(batch, report)
@@ -190,9 +208,32 @@ def _to_row(
         model=model,
         dimensions=len(result.vector),
         embedding=result.vector,
-        document_hash=hashlib.sha256(document.encode("utf-8")).hexdigest(),
+        document_hash=document_hash(document),
         token_count=result.token_count,
     )
+
+
+def select_games_to_embed(
+    games: Sequence[Mapping[str, Any]], report: EmbeddingRunReport, *, re_embed_all: bool
+) -> list[Mapping[str, Any]]:
+    """Keep the games that need a vector, and count why on the report.
+
+    A game needs one when it has no vector from this model yet, or when the
+    text it would be embedded from no longer hashes to the stored value.
+    `re_embed_all` keeps every game, for a new document template or model.
+    """
+    selected = []
+    for game in games:
+        stored = game.get("document_hash")
+        if stored is None:
+            report.new_count += 1
+        elif stored != document_hash(build_game_document(game)):
+            report.changed_count += 1
+        elif not re_embed_all:
+            report.unchanged_skipped += 1
+            continue
+        selected.append(game)
+    return selected
 
 
 def format_cost_usd(cost_usd: float | None) -> str:

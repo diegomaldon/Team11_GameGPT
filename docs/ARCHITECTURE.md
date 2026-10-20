@@ -109,6 +109,9 @@ it in batches (see RUNBOOK). TM11-40 indexes it: a partial HNSW cosine index per
 `game_embeddings_minilm_hnsw` on `(embedding::vector(384)) where model =
 'sentence-transformers/all-MiniLM-L6-v2'` (decision: `docs/adr/0002-vector-store.md`).
 
+Incremental runs (TM11-41): each run re-embeds only new games and games whose
+`document_hash` no longer matches their current text; unchanged games are skipped.
+
 ---
 
 ## Providers
