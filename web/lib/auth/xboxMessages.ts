@@ -17,14 +17,19 @@ export type XboxErrorReason =
   | "network" // a Microsoft / Xbox endpoint could not be reached
   | "config" // this server has no Azure app registration
   | "taken" // XUID already linked to a different GameGPT user
-  | "expired"; // link cookie missing or past its 10 minutes
+  | "expired" // link or import cookie missing or past its lifetime
+  // TM11-56, library import
+  | "not_linked" // import asked for, but this user has no Xbox account linked
+  | "mismatch" // signed in to a different Xbox account than the linked one
+  | "private" // Xbox privacy settings hide the game history
+  | "import"; // titlehub or the GameGPT API failed partway; nothing was saved
 
 // ---------------------------------------------------------------------------
 // Where the callback sends the user, and what the page says
 // ---------------------------------------------------------------------------
 
 export function xboxLinkedAccountsResult(
-  result: "verified" | "cancelled" | "error",
+  result: "verified" | "import-ready" | "cancelled" | "error",
   extra?: { reason?: XboxErrorReason; next?: string | null },
 ): string {
   const url = new URL("/settings", "http://placeholder.invalid");
@@ -79,10 +84,54 @@ export function describeXboxErrorReason(reason?: string | null): string {
       return "Couldn't reach Xbox to finish connecting. Check your connection and try again.";
     case "config":
       return "Xbox connection isn't set up on this server yet.";
+    case "not_linked":
+      return "Connect your Xbox account first, then import your games.";
+    case "mismatch":
+      return "You signed in to a different Xbox account than the one linked here. Import with the linked account, or disconnect and connect the other one.";
+    case "private":
+      return "Your Xbox privacy settings hide your game history. Allow \"Others can see your game and app history\" on xbox.com, then import again.";
+    case "import":
+      return "Couldn't import your Xbox games. Your library is unchanged. Try again in a moment.";
     case "session":
       return "Your GameGPT session expired before Xbox finished connecting. Sign in again, then connect Xbox.";
     case "auth":
     default:
       return "Microsoft sign-in didn't finish. Try connecting again.";
   }
+}
+
+// ---------------------------------------------------------------------------
+// After an import (TM11-56)
+// ---------------------------------------------------------------------------
+
+/** What POST /api/xbox/import returns on success: the API's XboxImportResponse. */
+export type XboxImportSummary = {
+  total: number;
+  added: number;
+  updated: number;
+  already_owned: number;
+  matched: number;
+  unmatched: number;
+};
+
+function games(n: number): string {
+  return n === 1 ? "1 game" : `${n} games`;
+}
+
+export function describeXboxImport(summary: XboxImportSummary): {
+  tone: "success" | "info";
+  message: string;
+} {
+  if (summary.total === 0) {
+    return { tone: "info", message: "Your Xbox game history is empty, so there was nothing to import." };
+  }
+  const head =
+    summary.added > 0
+      ? `Imported ${games(summary.added)} from Xbox.`
+      : `Your Xbox library is up to date: ${games(summary.total)}, none new.`;
+  const review =
+    summary.unmatched > 0
+      ? ` ${games(summary.unmatched)} didn't match our catalogue and ${summary.unmatched === 1 ? "is" : "are"} waiting for review.`
+      : "";
+  return { tone: "success", message: head + review };
 }

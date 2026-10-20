@@ -13,8 +13,8 @@ import { useAuth } from "@/lib/auth/session";
 import { PLATFORMS, type Platform } from "@/lib/mock/data";
 import { describeSteamResult } from "@/lib/auth/steam";
 import { completeSteamLink } from "@/lib/auth/steamClient";
-import { describeXboxResult } from "@/lib/auth/xboxMessages";
-import { completeXboxLink } from "@/lib/auth/xboxClient";
+import { describeXboxImport, describeXboxResult } from "@/lib/auth/xboxMessages";
+import { completeXboxImport, completeXboxLink } from "@/lib/auth/xboxClient";
 import {
   disconnectPlatform,
   formatLastSynced,
@@ -41,6 +41,14 @@ function startXboxLink() {
   window.location.assign("/api/xbox/login?next=/settings");
 }
 
+/**
+ * Imports the Xbox library. REQ014 · TM11-56. No Xbox token is stored, so each import signs
+ * in to Microsoft again; the callback hands back a 5-minute session for POST /api/xbox/import.
+ */
+function startXboxImport() {
+  window.location.assign("/api/xbox/login?next=/settings&intent=import");
+}
+
 export function LinkedAccountsCard() {
   const { user } = useAuth();
   const userId = user?.id ?? null;
@@ -63,7 +71,8 @@ export function LinkedAccountsCard() {
 
   useStampSyncTime(librarySync.job, userId, reload);
   useSteamCallbackResult(setBanner, reload, startSync);
-  useXboxCallbackResult(setBanner, reload);
+  const [xboxImporting, setXboxImporting] = useState(false);
+  useXboxCallbackResult(setBanner, reload, userId, setXboxImporting);
 
   const accounts = state.status === "ready" ? state.accounts : [];
   const noneLinked = state.status === "ready" && !accounts.some((a) => a.connected);
@@ -134,6 +143,11 @@ export function LinkedAccountsCard() {
                 account={acc}
                 syncing={librarySync.running}
                 onSync={() => acc.accountId && startSync(acc.accountId)}
+                importing={xboxImporting}
+                onImport={() => {
+                  setBanner(null);
+                  startXboxImport();
+                }}
                 onConnect={() => {
                   setBanner(null);
                   if (acc.connectVia === "steam") {
@@ -186,12 +200,16 @@ function AccountRow({
   account,
   syncing,
   onSync,
+  importing,
+  onImport,
   onConnect,
   onDisconnect,
 }: {
   account: LinkedAccount;
   syncing: boolean;
   onSync: () => void;
+  importing: boolean;
+  onImport: () => void;
   onConnect: () => void;
   onDisconnect: () => void;
 }) {
@@ -239,6 +257,11 @@ function AccountRow({
           {account.platform === "steam" && account.accountId && (
             <Button variant="secondary" size="sm" loading={syncing} onClick={onSync}>
               {syncing ? "Syncing" : "Sync now"}
+            </Button>
+          )}
+          {account.platform === "xbox" && (
+            <Button variant="secondary" size="sm" loading={importing} onClick={onImport}>
+              {importing ? "Importing" : "Import games"}
             </Button>
           )}
           <Button
@@ -330,10 +353,16 @@ function useSteamCallbackResult(
 }
 
 /**
- * Reads the `?xbox=` result /api/xbox/callback redirects back with and, on `verified`,
- * finishes the link through POST /api/xbox/link. REQ014 · TM11-53.
+ * Reads the `?xbox=` result /api/xbox/callback redirects back with. On `verified` it
+ * finishes the link through POST /api/xbox/link (TM11-53); on `import-ready` it runs the
+ * library import through POST /api/xbox/import and stamps last_synced_at (TM11-56).
  */
-function useXboxCallbackResult(setBanner: (b: Banner) => void, reload: () => void) {
+function useXboxCallbackResult(
+  setBanner: (b: Banner) => void,
+  reload: () => void,
+  userId: string | null,
+  setImporting: (importing: boolean) => void,
+) {
   const router = useRouter();
   const params = useSearchParams();
   const { status, session } = useAuth();
@@ -347,7 +376,23 @@ function useXboxCallbackResult(setBanner: (b: Banner) => void, reload: () => voi
     }
     handled.current = true;
 
-    if (result === "verified") {
+    if (result === "import-ready") {
+      setBanner({ tone: "info", message: "Importing your Xbox games…" });
+      setImporting(true);
+      completeXboxImport(fetch, session?.access_token ?? null).then((outcome) => {
+        setImporting(false);
+        if (outcome.status === "imported") {
+          setBanner(describeXboxImport(outcome.summary));
+          if (userId) {
+            markSynced(accountsDb, userId, "xbox").then(reload, () => {
+              // The games are in; only the timestamp is missing. Not worth an error banner.
+            });
+          }
+        } else {
+          setBanner(describeXboxResult("error", outcome.reason));
+        }
+      });
+    } else if (result === "verified") {
       setBanner({ tone: "info", message: "Finishing your Xbox connection…" });
       completeXboxLink(fetch, session?.access_token ?? null).then((outcome) => {
         if (outcome.status === "linked") {
@@ -363,7 +408,7 @@ function useXboxCallbackResult(setBanner: (b: Banner) => void, reload: () => voi
 
     // Drop xbox/reason so a reload does not replay the outcome.
     router.replace("/settings");
-  }, [result, reason, status, session, setBanner, reload, router]);
+  }, [result, reason, status, session, setBanner, reload, userId, setImporting, router]);
 }
 
 /** Connect for platforms with no sign-in flow (Epic): the user types their account name. */
