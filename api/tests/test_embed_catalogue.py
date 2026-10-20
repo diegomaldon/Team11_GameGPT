@@ -12,6 +12,7 @@ from uuid import uuid4
 
 import pytest
 
+from api.services.embedding import EmbeddingModelError
 from api.services.embedding_pipeline import EmbeddingRunReport
 
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "embed_catalogue.py"
@@ -46,6 +47,8 @@ def script(monkeypatch):
 
         async def run(self, *, re_embed_all=False):
             calls["re_embed_all"] = re_embed_all
+            if "error" in calls:
+                raise calls["error"]
             return calls.get("report", finished_report())
 
     monkeypatch.setattr(module, "has_db", lambda: True)
@@ -67,6 +70,14 @@ def test_a_complete_run_exits_0_and_writes_the_report(script, tmp_path):
 def test_a_run_with_failures_exits_1(script, tmp_path):
     script.calls["report"] = finished_report(failed=1)
     assert script.main(["--report-dir", str(tmp_path)]) == 1
+
+
+def test_a_model_that_cannot_load_exits_1_with_a_clear_message(script, tmp_path, capsys):
+    script.calls["error"] = EmbeddingModelError("could not load fake/model")
+
+    assert script.main(["--report-dir", str(tmp_path)]) == 1
+    assert "could not load" in capsys.readouterr().out
+    assert list(tmp_path.iterdir()) == []
 
 
 def test_no_database_exits_2_without_running(script, monkeypatch, tmp_path):

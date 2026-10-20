@@ -9,6 +9,7 @@ import pytest
 from api.services.embedding import (
     EMBEDDING_DIM,
     STUB_MODEL_NAME,
+    EmbeddingModelError,
     EmbeddingService,
     hashed_embedding,
 )
@@ -89,14 +90,15 @@ async def test_embed_documents_returns_vectors_and_token_counts(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_embed_documents_raises_instead_of_falling_back_to_the_stub(monkeypatch):
+async def test_a_model_that_cannot_load_raises_instead_of_falling_back_to_the_stub(monkeypatch):
     def broken_load():
         raise OSError("model weights missing")
 
     service = _service_with(monkeypatch, broken_load)
 
-    with pytest.raises(OSError):
+    with pytest.raises(EmbeddingModelError) as caught:
         await service.embed_documents(["anything"])
+    assert isinstance(caught.value.__cause__, OSError)
 
 
 @pytest.mark.asyncio

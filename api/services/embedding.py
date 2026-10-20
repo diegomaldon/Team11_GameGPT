@@ -54,6 +54,13 @@ def hashed_embedding(text: str, dim: int = EMBEDDING_DIM) -> list[float]:
     return [x / norm for x in vec]
 
 
+class EmbeddingModelError(RuntimeError):
+    """The model can't be loaded: library missing or weights unavailable.
+
+    Retrying won't help, so the batch job stops instead (TM11-39).
+    """
+
+
 @dataclass(frozen=True)
 class EmbeddedText:
     """One document's vector, and what the batch job logs about it."""
@@ -129,7 +136,10 @@ class EmbeddingService:
         return await asyncio.to_thread(self._encode_documents, texts)
 
     def _encode_documents(self, texts: list[str]) -> list[EmbeddedText]:
-        model = self._load()
+        try:
+            model = self._load()
+        except Exception as exc:
+            raise EmbeddingModelError(f"could not load {self._model_name}") from exc
         vectors = self._encode(texts)
         # verbose=False: counting a long text is fine; encode() truncates it.
         token_ids = model.tokenizer(texts, verbose=False)["input_ids"]
