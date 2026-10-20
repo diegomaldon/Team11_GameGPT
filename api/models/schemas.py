@@ -286,3 +286,39 @@ class ManualAddResponse(BaseModel):
     title: str
     platform: ManualPlatform
     import_method: Literal["MANUAL"] = "MANUAL"
+
+
+# ───────────────────── /api/library/xbox (TM11-56) ─────────────────────
+
+# A heavy Xbox player's title history runs to a few hundred games. The cap only
+# stops a runaway request; the web route sends whatever titlehub returned.
+XBOX_IMPORT_MAX_TITLES = 5_000
+
+
+class XboxTitle(BaseModel):
+    """One game from the user's Xbox title history."""
+
+    title_id: str = Field(..., min_length=1, max_length=32, pattern=r"^\d+$",
+                          description="Xbox titleId, a decimal string.")
+    name: str = Field(..., min_length=1, max_length=300)
+
+
+class XboxImportRequest(BaseModel):
+    """The Xbox titles to write to the library, as fetched by POST /api/xbox/import."""
+
+    titles: list[XboxTitle] = Field(..., max_length=XBOX_IMPORT_MAX_TITLES)
+
+
+class XboxImportResponse(BaseModel):
+    """What an Xbox import did. Rerunning it with the same titles adds nothing."""
+
+    total: int = Field(..., description="Distinct titles received.")
+    added: int = Field(..., description="New owned_games rows.")
+    updated: int = Field(..., description="Rows from an earlier import, refreshed.")
+    already_owned: int = Field(
+        ..., description="Titles whose game is already in the library on Xbox (CSV or manual)."
+    )
+    matched: int = Field(..., description="Titles joined to a games row.")
+    unmatched: int = Field(..., description="Titles queued for review.")
+    match_rate: float = Field(..., ge=0, le=1, description="matched / total, 0..1.")
+    import_id: Optional[UUID] = None

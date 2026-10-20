@@ -493,6 +493,67 @@ async def add_manual_game(user_id: UUID, platform: str, game_id: UUID, title: st
     return added is not None
 
 
+# ─────────────────── Xbox library import (TM11-56) ───────────────────
+
+
+@retry(**_RETRY)
+async def list_platform_owned_rows(user_id: UUID, platform: str) -> list[dict[str, Any]]:
+    """The user's owned_games rows on `platform`: id, game_id and external_id."""
+    async with connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "select id, game_id, external_id from owned_games "
+                "where user_id = %s and platform = %s",
+                (str(user_id), platform),
+            )
+            rows = await cur.fetchall()
+    return [
+        {"id": _as_uuid(r[0]), "game_id": _as_uuid(r[1]), "external_id": r[2]} for r in rows
+    ]
+
+
+@retry(**_RETRY)
+async def apply_xbox_import(
+    user_id: UUID,
+    inserts: Sequence[tuple[str, str, UUID | None]],
+    updates: Sequence[tuple[UUID, str, UUID | None]],
+) -> None:
+    """Write one Xbox import in one transaction: all of it lands or none of it does.
+
+    inserts  (external_id, title, game_id) for titles not seen before
+    updates  (owned_games.id, title, game_id) for rows from an earlier import
+
+    The insert upserts on owned_games_user_platform_external_id_key, so two
+    imports racing each other still store one row per title. Safe to retry.
+    """
+    uid = str(user_id)
+    async with connection() as conn:
+        async with conn.transaction():
+            async with conn.cursor() as cur:
+                if inserts:
+                    await cur.executemany(
+                        "insert into owned_games "
+                        "(user_id, platform, external_id, title, game_id) "
+                        "values (%s, 'xbox', %s, %s, %s) "
+                        "on conflict (user_id, platform, external_id) "
+                        "where external_id is not null do update set "
+                        "title = excluded.title, game_id = excluded.game_id",
+                        [
+                            (uid, external_id, title, str(game_id) if game_id else None)
+                            for external_id, title, game_id in inserts
+                        ],
+                    )
+                if updates:
+                    await cur.executemany(
+                        "update owned_games set title = %s, game_id = %s "
+                        "where id = %s and user_id = %s",
+                        [
+                            (title, str(game_id) if game_id else None, str(row_id), uid)
+                            for row_id, title, game_id in updates
+                        ],
+                    )
+
+
 # ─────────────────── game embeddings (TM11-39) ───────────────────
 
 

@@ -53,6 +53,7 @@ LOCAL_MIGRATIONS = (
     "20261006120000_owned_games_playtime.sql",
     "20261012120000_owned_games_unique_manual_game.sql",
     "20261012130000_owned_games_import_method.sql",
+    "20261020120000_owned_games_external_id.sql",
 )
 
 # Every migration above is safe to rerun except 0002, which clears every vector
