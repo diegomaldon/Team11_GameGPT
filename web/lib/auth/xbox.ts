@@ -1,4 +1,11 @@
-import { createHmac, createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  createHmac,
+  randomBytes,
+  timingSafeEqual,
+} from "node:crypto";
 import type { XboxErrorReason } from "./xboxMessages";
 
 /**
@@ -343,9 +350,16 @@ export function openIdentity(
   return { xuid: data.xuid, gamertag: data.gamertag };
 }
 
+// The import cookie carries a live XSTS token, a bearer credential that outlives the
+// cookie, so it is encrypted, not just signed: AES-256-GCM, with the purpose as
+// associated data. The link cookie above only holds an XUID and gamertag, which aren't
+// secret, so signing is enough there.
+const IMPORT_FORMAT = "v1";
+const GCM_IV_BYTES = 12;
+
 /**
- * Seals the short-lived Xbox session for POST /api/xbox/import. TM11-56. httpOnly and
- * scoped to /api/xbox, so page scripts never see the XSTS token.
+ * Encrypts the short-lived Xbox session for POST /api/xbox/import. TM11-56. Without the
+ * server's secret the cookie value reveals nothing, and any change to it fails to open.
  */
 export function sealImportSession(
   session: XboxSession,
@@ -353,12 +367,46 @@ export function sealImportSession(
   now: number = Date.now(),
 ): string {
   const { xuid, gamertag, uhs, xstsToken } = session;
-  return seal(
-    { xuid, gamertag, uhs, xstsToken },
-    XBOX_IMPORT_TTL_SECONDS,
-    purposeKey(config, IMPORT_PURPOSE),
-    now,
-  );
+  const plaintext = JSON.stringify({
+    xuid, gamertag, uhs, xstsToken, exp: now + XBOX_IMPORT_TTL_SECONDS * 1000,
+  });
+  const iv = randomBytes(GCM_IV_BYTES);
+  const cipher = createCipheriv("aes-256-gcm", purposeKey(config, IMPORT_PURPOSE), iv);
+  cipher.setAAD(Buffer.from(IMPORT_PURPOSE));
+  const ciphertext = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
+  return [IMPORT_FORMAT, iv, ciphertext, cipher.getAuthTag()]
+    .map((part) => (typeof part === "string" ? part : base64url(part)))
+    .join(".");
+}
+
+/** The session, only if it decrypts and authenticates under this server's key and has
+ * not expired. */
+function decryptImportSession(
+  sealed: string | undefined | null,
+  config: XboxConfig,
+  now: number,
+): Record<string, unknown> | null {
+  if (!sealed) return null;
+  const [format, iv, ciphertext, tag, ...rest] = sealed.split(".");
+  if (format !== IMPORT_FORMAT || !iv || !ciphertext || !tag || rest.length) return null;
+  try {
+    const decipher = createDecipheriv(
+      "aes-256-gcm",
+      purposeKey(config, IMPORT_PURPOSE),
+      Buffer.from(iv, "base64url"),
+    );
+    decipher.setAAD(Buffer.from(IMPORT_PURPOSE));
+    decipher.setAuthTag(Buffer.from(tag, "base64url"));
+    const plaintext = Buffer.concat([
+      decipher.update(Buffer.from(ciphertext, "base64url")),
+      decipher.final(), // throws if the tag doesn't match: wrong key or a changed byte
+    ]).toString("utf8");
+    const data = JSON.parse(plaintext) as Record<string, unknown>;
+    if (typeof data.exp !== "number" || data.exp < now) return null;
+    return data;
+  } catch {
+    return null;
+  }
 }
 
 export function openImportSession(
@@ -366,7 +414,7 @@ export function openImportSession(
   config: XboxConfig,
   now: number = Date.now(),
 ): XboxSession | null {
-  const data = unseal(sealed, purposeKey(config, IMPORT_PURPOSE), now);
+  const data = decryptImportSession(sealed, config, now);
   if (!data) return null;
   const { xuid, gamertag, uhs, xstsToken } = data;
   if (

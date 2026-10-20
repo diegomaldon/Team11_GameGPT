@@ -8,10 +8,14 @@ import { importXboxLibrary, type ImportDb } from "@/lib/library/xboxImport";
  * POST /api/xbox/import — imports the signed-in user's Xbox games into their library.
  * REQ014 · TM11-56.
  *
- * /api/xbox/callback (with intent=import) seals a 5-minute Xbox session into an httpOnly
- * cookie; the Settings page then calls this with its Supabase bearer token. The route
- * checks the session's XUID is the one this user linked, reads the title history, and
- * hands it to the GameGPT API. The cookie is single-use: cleared on every response.
+ * /api/xbox/callback (with intent=import) puts a 5-minute Xbox session in an encrypted
+ * httpOnly cookie; the Settings page then calls this with its Supabase bearer token. The
+ * route checks the session's XUID is the one this user linked, reads the title history,
+ * and hands it to the GameGPT API with the same bearer token.
+ *
+ * The cookie is cleared after use, on every response. That only removes it from the
+ * browser: a copied value would still open until it expires, which is why it is
+ * encrypted and short-lived, and why the XUID check runs on every call.
  */
 
 export const dynamic = "force-dynamic";
@@ -49,6 +53,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const outcome = await importXboxLibrary({
     db: supabase as unknown as ImportDb,
     session,
+    accessToken: token,
     apiUrl: apiUrlFromEnv(),
   });
   if (outcome.status === "imported") return respond(200, outcome.summary);

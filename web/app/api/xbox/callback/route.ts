@@ -28,8 +28,9 @@ import { originFromRequest } from "@/lib/auth/request-origin";
  * into a short-lived signed cookie, never the URL, and the page finishes the link with
  * POST /api/xbox/link using its own session (AC1).
  *
- * TM11-56: when /login set the import intent, the callback seals a 5-minute Xbox session
- * (XUID, user hash, XSTS token) instead, and the page runs POST /api/xbox/import.
+ * TM11-56: when /login set the import intent, the callback encrypts a 5-minute Xbox session
+ * (XUID, user hash, XSTS token) into the cookie instead, and the page runs
+ * POST /api/xbox/import.
  */
 
 export const dynamic = "force-dynamic";

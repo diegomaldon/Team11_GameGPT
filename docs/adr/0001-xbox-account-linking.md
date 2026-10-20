@@ -75,9 +75,9 @@ The Consequences above left "store a refresh token, or re-auth on each import" t
 TM11-56.
 
 **Decision: re-auth on each import. No token is stored.** **Import games** runs the
-same Microsoft sign-in again. The callback seals the XSTS token and user hash into a
-5-minute httpOnly cookie, and `POST /api/xbox/import` uses them for one titlehub call
-and drops them.
+same Microsoft sign-in again. The callback encrypts the XSTS token and user hash
+(AES-256-GCM) into a 5-minute httpOnly cookie, and `POST /api/xbox/import` uses them for
+one titlehub call and drops them.
 
 - **Why.** `platform_accounts.access_token` is plaintext today (marked SECURITY DEBT in
   the core migration). A stored refresh token would be a long-lived credential for the

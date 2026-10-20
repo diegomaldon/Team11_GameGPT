@@ -49,7 +49,7 @@ describe("POST /api/xbox/import", () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual(SUMMARY);
     expect(importXboxLibrary).toHaveBeenCalledWith(
-      expect.objectContaining({ session: SESSION, apiUrl: "http://api.test" }),
+      expect.objectContaining({ session: SESSION, accessToken: "jwt", apiUrl: "http://api.test" }),
     );
     expectCookieCleared(res);
   });

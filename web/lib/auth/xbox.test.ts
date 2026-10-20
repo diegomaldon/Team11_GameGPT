@@ -257,6 +257,39 @@ describe("TM11-56 — the short-lived session a library import needs", () => {
     expect(openIdentity(importing, CONFIG)).toBeNull();
   });
 
+  it("encrypts the import cookie, so its value reveals nothing without the secret", () => {
+    // PR #42 review: a signed-only cookie decoded to a readable XSTS token.
+    // Long, distinctive values, so a match can't happen by chance in random ciphertext.
+    const live = { ...SESSION, uhs: "uhs-14695127832", xstsToken: "eyJhbGciOiJSU0EtT0FFUC" };
+    const sealed = sealImportSession(live, CONFIG);
+    for (const part of sealed.split(".")) {
+      const decoded = Buffer.from(part, "base64url").toString("utf8");
+      for (const secret of [live.xstsToken, live.xuid, live.uhs, live.gamertag]) {
+        expect(decoded).not.toContain(secret);
+      }
+    }
+    expect(sealed).not.toContain(live.xstsToken);
+    expect(openImportSession(sealed, CONFIG)).toEqual(live);
+  });
+
+  it("uses a fresh IV each time, so the same session never seals the same way twice", () => {
+    expect(sealImportSession(SESSION, CONFIG)).not.toBe(sealImportSession(SESSION, CONFIG));
+  });
+
+  it("refuses an import cookie with any part changed", () => {
+    const sealed = sealImportSession(SESSION, CONFIG);
+    const parts = sealed.split(".");
+    for (let i = 1; i < parts.length; i += 1) {
+      const bytes = Buffer.from(parts[i], "base64url");
+      bytes[0] ^= 1;
+      const tampered = [...parts];
+      tampered[i] = bytes.toString("base64url");
+      expect(openImportSession(tampered.join("."), CONFIG)).toBeNull();
+    }
+    expect(openImportSession(`v2.${parts.slice(1).join(".")}`, CONFIG)).toBeNull();
+    expect(openImportSession(`${sealed}.extra`, CONFIG)).toBeNull();
+  });
+
   it("keeps the XSTS token out of the link cookie even if handed a full session", () => {
     const sealed = sealIdentity(SESSION, CONFIG);
     const payload = Buffer.from(sealed.split(".")[0], "base64url").toString("utf8");

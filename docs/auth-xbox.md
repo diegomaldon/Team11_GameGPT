@@ -70,18 +70,23 @@ games** button. The decision behind the flow is recorded in the
 1. **`GET /api/xbox/login?intent=import`.** The same Microsoft sign-in as linking. The
    intent goes in an `xbox_oauth_intent` cookie.
 2. **`GET /api/xbox/callback`.** Runs the same three hops, but keeps the XSTS token and
-   user hash. It seals `{xuid, gamertag, uhs, xstsToken}` into a **5-minute** httpOnly
-   cookie (`xbox_import_session`, its own HMAC key) and redirects to
-   `/settings?xbox=import-ready`.
+   user hash. It encrypts `{xuid, gamertag, uhs, xstsToken}` with **AES-256-GCM** into a
+   **5-minute** httpOnly cookie (`xbox_import_session`, its own key) and redirects to
+   `/settings?xbox=import-ready`. Encrypted, not just signed like the link cookie, because
+   the XSTS token is a bearer credential that stays valid after the cookie expires.
 3. **`POST /api/xbox/import`.** The page calls this with its Supabase bearer token.
-   - The route opens the cookie (single-use, cleared on every response).
+   - The route decrypts the cookie and clears it after use, on every response. Clearing
+     only removes it from the browser; a copied value would still open until it expires,
+     which is why it's encrypted and short-lived and the XUID check below always runs.
    - It reads the user's `platform_accounts` XBOX row with their own JWT, so RLS applies.
      The session's XUID must match it, otherwise the result is `not_linked` or `mismatch`.
    - It reads the title history from titlehub with `Authorization: XBL3.0 x=<uhs>;<xsts>`
      and keeps entries with `type: "Game"` (apps are dropped).
    - It posts `{title_id, name}` for each game to the API's
      [`POST /api/library/xbox`](API.md#post-apilibraryxbox), which matches them with the
-     shared title matcher and writes `owned_games` rows with `platform = 'xbox'`.
+     shared title matcher and writes `owned_games` rows with `platform = 'xbox'`. The
+     user's Supabase bearer token goes with it, so once the API verifies logins (TM11-131)
+     it writes to the account this route checked. The XSTS token is never sent to the API.
 4. The page shows the result and stamps `last_synced_at` on the Xbox row.
 
 **Idempotent.** Each row is keyed on the Xbox titleId (`owned_games.external_id`,

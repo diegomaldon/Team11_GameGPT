@@ -9,14 +9,16 @@ import type { XboxImportSummary } from "@/lib/auth/xboxMessages";
  *      hold the same XUID, read with their own JWT so RLS scopes it to them.
  *   2. Read their title history from titlehub with the session's XSTS token.
  *   3. Hand the games to the GameGPT API (POST /api/library/xbox), which matches them to
- *      the catalogue and writes owned_games idempotently.
+ *      the catalogue and writes owned_games idempotently. The user's own bearer token goes
+ *      with them, so once the API verifies logins (TM11-131) it writes to the same account
+ *      step 1 checked, with no change here.
  *
  * "Owned" here means the title history: every game the account has played. Xbox has no
  * public purchase-history API for third-party apps, so a game bought but never launched
  * is not imported. docs/auth-xbox.md → "Importing the library".
  *
- * No token is stored. The XSTS token arrives in a 5-minute sealed cookie, is used for the
- * one titlehub call, and is dropped.
+ * No Xbox token is stored. The XSTS token arrives in a 5-minute encrypted cookie, is used for
+ * the one titlehub call, and is dropped. It is never sent to the GameGPT API.
  */
 
 export const TITLEHUB_URL = "https://titlehub.xboxlive.com";
@@ -99,11 +101,14 @@ const ERROR_STATUS: Partial<Record<XboxErrorReason, number>> = {
 export async function importXboxLibrary({
   db,
   session,
+  accessToken,
   apiUrl,
   fetchImpl = fetch,
 }: {
   db: ImportDb;
   session: XboxSession;
+  /** The caller's Supabase JWT, the same one `db` acts as. */
+  accessToken: string;
   apiUrl: string;
   fetchImpl?: typeof fetch;
 }): Promise<ImportOutcome> {
@@ -140,7 +145,10 @@ export async function importXboxLibrary({
   try {
     res = await fetchImpl(`${apiUrl.replace(/\/$/, "")}/api/library/xbox`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
       body: JSON.stringify({ titles }),
     });
   } catch {

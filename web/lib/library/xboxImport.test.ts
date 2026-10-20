@@ -128,7 +128,7 @@ describe("AC: owned titles written with platform attribution, via the GameGPT AP
   it("posts the games to /api/library/xbox and returns the API's summary", async () => {
     const fetchImpl = routes(() => json(200, HISTORY));
     const outcome = await importXboxLibrary({
-      db: fakeDb(), session: SESSION, apiUrl: `${API}/`, fetchImpl,
+      db: fakeDb(), session: SESSION, accessToken: "jwt-1", apiUrl: `${API}/`, fetchImpl,
     });
 
     expect(outcome).toEqual({ status: "imported", summary: SUMMARY });
@@ -141,9 +141,20 @@ describe("AC: owned titles written with platform attribution, via the GameGPT AP
     });
   });
 
+  it("forwards the user's own bearer token to the GameGPT API", async () => {
+    // PR #42 review: so the API can check the user once TM11-131 lands.
+    const fetchImpl = routes(() => json(200, HISTORY));
+    await importXboxLibrary({
+      db: fakeDb(), session: SESSION, accessToken: "jwt-1", apiUrl: API, fetchImpl,
+    });
+    const [, init] = vi.mocked(fetchImpl).mock.calls[1];
+    const headers = (init as RequestInit).headers as Record<string, string>;
+    expect(headers.Authorization).toBe("Bearer jwt-1");
+  });
+
   it("never sends the Xbox token to the GameGPT API", async () => {
     const fetchImpl = routes(() => json(200, HISTORY));
-    await importXboxLibrary({ db: fakeDb(), session: SESSION, apiUrl: API, fetchImpl });
+    await importXboxLibrary({ db: fakeDb(), session: SESSION, accessToken: "jwt-1", apiUrl: API, fetchImpl });
     const [, init] = vi.mocked(fetchImpl).mock.calls[1];
     expect(JSON.stringify(init)).not.toContain(SESSION.xstsToken);
   });
@@ -153,7 +164,7 @@ describe("only the linked Xbox account can be imported", () => {
   it("refuses when this user has no Xbox account linked", async () => {
     const fetchImpl = routes(() => json(200, HISTORY));
     await expect(
-      importXboxLibrary({ db: fakeDb({ linkedXuid: null }), session: SESSION, apiUrl: API, fetchImpl }),
+      importXboxLibrary({ db: fakeDb({ linkedXuid: null }), session: SESSION, accessToken: "jwt-1", apiUrl: API, fetchImpl }),
     ).resolves.toEqual({ status: "error", reason: "not_linked", httpStatus: 409 });
     expect(fetchImpl).not.toHaveBeenCalled();
   });
@@ -162,7 +173,7 @@ describe("only the linked Xbox account can be imported", () => {
     const fetchImpl = routes(() => json(200, HISTORY));
     await expect(
       importXboxLibrary({
-        db: fakeDb({ linkedXuid: "2533274899999999" }), session: SESSION, apiUrl: API, fetchImpl,
+        db: fakeDb({ linkedXuid: "2533274899999999" }), session: SESSION, accessToken: "jwt-1", apiUrl: API, fetchImpl,
       }),
     ).resolves.toEqual({ status: "error", reason: "mismatch", httpStatus: 409 });
     expect(fetchImpl).not.toHaveBeenCalled();
@@ -171,7 +182,7 @@ describe("only the linked Xbox account can be imported", () => {
   it("needs a GameGPT session", async () => {
     await expect(
       importXboxLibrary({
-        db: fakeDb({ signedIn: false }), session: SESSION, apiUrl: API,
+        db: fakeDb({ signedIn: false }), session: SESSION, accessToken: "jwt-1", apiUrl: API,
         fetchImpl: routes(() => json(200, HISTORY)),
       }),
     ).resolves.toMatchObject({ reason: "session", httpStatus: 401 });
@@ -182,7 +193,7 @@ describe("failures say what happened and save nothing", () => {
   it("passes a private history through as 403", async () => {
     await expect(
       importXboxLibrary({
-        db: fakeDb(), session: SESSION, apiUrl: API, fetchImpl: routes(() => json(403, {})),
+        db: fakeDb(), session: SESSION, accessToken: "jwt-1", apiUrl: API, fetchImpl: routes(() => json(403, {})),
       }),
     ).resolves.toEqual({ status: "error", reason: "private", httpStatus: 403 });
   });
@@ -190,7 +201,7 @@ describe("failures say what happened and save nothing", () => {
   it("reports an API failure as import, without its body", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const outcome = await importXboxLibrary({
-      db: fakeDb(), session: SESSION, apiUrl: API,
+      db: fakeDb(), session: SESSION, accessToken: "jwt-1", apiUrl: API,
       fetchImpl: routes(() => json(200, HISTORY), () => json(503, { detail: "db down" })),
     });
     expect(outcome).toEqual({ status: "error", reason: "import", httpStatus: 502 });
@@ -202,7 +213,7 @@ describe("failures say what happened and save nothing", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     await expect(
       importXboxLibrary({
-        db: fakeDb({ readError: true }), session: SESSION, apiUrl: API,
+        db: fakeDb({ readError: true }), session: SESSION, accessToken: "jwt-1", apiUrl: API,
         fetchImpl: routes(() => json(200, HISTORY)),
       }),
     ).resolves.toMatchObject({ reason: "import", httpStatus: 500 });
