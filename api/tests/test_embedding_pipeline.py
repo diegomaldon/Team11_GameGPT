@@ -14,7 +14,7 @@ import pytest
 
 from api.db import repositories
 from api.services import embedding_pipeline
-from api.services.embedding import EmbeddedText
+from api.services.embedding import EmbeddedText, EmbeddingModelError
 from api.services.embedding_pipeline import EmbeddingPipeline, build_game_document
 
 pytestmark = pytest.mark.asyncio
@@ -129,6 +129,20 @@ async def test_a_model_that_drops_a_vector_fails_the_batch_instead_of_misalignin
     report = await EmbeddingPipeline(DropsOne(), batch_size=7).run()
 
     assert len(report.failed_game_ids) == 7
+    assert catalogue.rows == {}
+
+
+async def test_a_model_that_cannot_load_stops_the_run_without_retrying(catalogue):
+    class CannotLoad(FakeEmbedder):
+        async def embed_documents(self, texts):
+            self.batches.append(list(texts))
+            raise EmbeddingModelError("could not load fake/model")
+
+    embedder = CannotLoad()
+
+    with pytest.raises(EmbeddingModelError):
+        await EmbeddingPipeline(embedder, batch_size=3).run()
+    assert len(embedder.batches) == 1  # not 3 batches x 3 attempts
     assert catalogue.rows == {}
 
 

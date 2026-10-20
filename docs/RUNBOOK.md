@@ -133,6 +133,18 @@ python scripts/embed_catalogue.py --all            # after changing the document
 - `EMBEDDING_STUB=1` stores hash vectors under the model `stub/sha256-hash`, so
   they never mix with real ones.
 
+**Vector index (TM11-40).** Migration `20261018120000_game_embeddings_hnsw_index.sql`
+adds the HNSW index for all-MiniLM-L6-v2 rows. It can run before or after the first
+embed. To check recall, latency and index size after embedding:
+
+```bash
+python scripts/eval_vector_index.py              # writes artifacts/sprint6/tm11-40-vector-index.md
+python scripts/eval_vector_index.py --repeats 20
+```
+
+It needs the real model (it refuses `EMBEDDING_STUB=1`) and the hosted schema. Exit
+code 1 means the index is missing or a `(game_id, model)` row is duplicated.
+
 ---
 
 ## Enabling real LLM

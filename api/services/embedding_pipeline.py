@@ -7,7 +7,8 @@
 Each batch is saved as soon as it is embedded, so a run that stops halfway
 loses nothing: the next run only picks up games that still need a vector. A
 batch is retried before it counts as failed. A failed batch is skipped and its
-games reported, and the rest of the catalogue still gets embedded.
+games reported, and the rest of the catalogue still gets embedded. A model that
+can't load stops the run at once, since every batch would fail the same way.
 
 Every row records the model, the vector's dimensions, a SHA-256 of the exact
 text embedded and its token count. On the next run, a game whose text still
@@ -25,10 +26,15 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Mapping, Protocol, Sequence
 from uuid import UUID
 
-from tenacity import AsyncRetrying, stop_after_attempt, wait_exponential
+from tenacity import (
+    AsyncRetrying,
+    retry_if_not_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from api.db import repositories
-from api.services.embedding import STUB_MODEL_NAME, EmbeddedText
+from api.services.embedding import STUB_MODEL_NAME, EmbeddedText, EmbeddingModelError
 
 log = logging.getLogger("gamegpt.embedding_pipeline")
 
@@ -171,6 +177,8 @@ class EmbeddingPipeline:
                 for game, document, result in zip(games, documents, embedded, strict=True)
             ]
             await repositories.upsert_game_embeddings(rows)
+        except EmbeddingModelError:
+            raise
         except Exception:
             log.exception("batch of %d games failed; they are left for the next run", len(games))
             report.failed_game_ids.extend(game["game_id"] for game in games)
@@ -183,6 +191,7 @@ class EmbeddingPipeline:
     async def _embed_with_retry(self, documents: list[str]) -> list[EmbeddedText]:
         retrying = AsyncRetrying(
             stop=stop_after_attempt(EMBED_ATTEMPTS),
+            retry=retry_if_not_exception_type(EmbeddingModelError),
             wait=wait_exponential(multiplier=RETRY_WAIT_SECONDS, max=10 * RETRY_WAIT_SECONDS),
             reraise=True,
         )

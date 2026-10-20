@@ -11,8 +11,8 @@ Usage (from the repo root, with the venv active):
 
 Safe to stop and rerun: finished batches are kept, and the next run picks up
 the rest. A game whose text hashes the same as when it was embedded is skipped
-(TM11-41). Exits 0 when every game has a vector, 1 when some are still missing,
-and 2 when there is no database to write to.
+(TM11-41). Exits 0 when every game has a vector, 1 when some are still missing
+or the model can't load, and 2 when there is no database to write to.
 
 Not the same as embed_games.py, which fills the old games.embedding column for
 the local 0001_init.sql slice.
@@ -31,7 +31,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from api.db import has_db  # noqa: E402
-from api.services.embedding import EmbeddingService  # noqa: E402
+from api.services.embedding import EmbeddingModelError, EmbeddingService  # noqa: E402
 from api.services.embedding_pipeline import (  # noqa: E402
     DEFAULT_BATCH_SIZE,
     EmbeddingPipeline,
@@ -54,7 +54,13 @@ def main(argv: list[str] | None = None) -> int:
     if embedder.offline:
         print(f"embed_catalogue: EMBEDDING_STUB=1, saving stub vectors as {embedder.model_name}.")
     pipeline = EmbeddingPipeline(embedder, batch_size=args.batch_size)
-    report = asyncio.run(pipeline.run(re_embed_all=args.re_embed_all))
+    try:
+        report = asyncio.run(pipeline.run(re_embed_all=args.re_embed_all))
+    except EmbeddingModelError:
+        logging.exception("embed_catalogue: stopped")
+        print(f"embed_catalogue: could not load {embedder.model_name}. Is "
+              "sentence-transformers installed (pip install -r api/requirements.txt)?")
+        return 1
 
     report_path = _write_report(report, args.report_dir)
     print(_summary(report))
