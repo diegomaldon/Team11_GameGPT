@@ -22,6 +22,7 @@ query box → POST /api/recommend → embed (local HF) → pgvector top-k → dr
 - [Tech stack](#tech-stack)
 - [Architecture at a glance](#architecture-at-a-glance)
 - [Quickstart (local)](#quickstart-local)
+- [Demo data & test harness](#demo-data--test-harness)
 - [Project structure](#project-structure)
 - [Environment variables](#environment-variables)
 - [Deployment](#deployment)
@@ -99,32 +100,31 @@ cp .env.example .env
 # Optional: put GEMINI_API_KEY=... in .env for Gemini-written reasons.
 ```
 
-### 2. Start Postgres (pgvector) + migrate + seed
+### 2. Start Postgres (pgvector)
 
 ```bash
 docker run -d --name gamegpt-pg -e POSTGRES_PASSWORD=postgres \
   -e POSTGRES_DB=gamegpt -p 5433:5432 pgvector/pgvector:pg16
 
 export DATABASE_URL="postgresql://postgres:postgres@localhost:5433/gamegpt"
-
-# migrations (idempotent, in order)
-docker exec -i gamegpt-pg psql -U postgres -d gamegpt < supabase/migrations/0001_init.sql
-docker exec -i gamegpt-pg psql -U postgres -d gamegpt < supabase/migrations/0002_embedding_dim_384.sql
-docker exec -i gamegpt-pg psql -U postgres -d gamegpt < supabase/seed.sql
 ```
 
-### 3. API + recommender
+### 3. API + seeded demo data
 
 ```bash
 python -m venv .venv && . .venv/Scripts/activate     # Windows Git Bash
 #                       source .venv/bin/activate     # macOS/Linux
 pip install -r api/requirements.txt
 
-python scripts/seed_games.py      # 150 games from the fixture (or RAWG if keyed)
+python scripts/seed_demo.py       # schema + 167-game catalogue + demo account
 python scripts/embed_games.py     # local model; downloads ~90 MB on first run
 
 python -m api.run                 # → http://localhost:8000/api/health
 ```
+
+`seed_demo.py` is the one setup command: it replaces running the migrations
+and `supabase/seed.sql` by hand. See
+[Demo data & test harness](#demo-data--test-harness) for what it creates.
 
 > **Windows:** use `python -m api.run` (or `uvicorn api.main:app --reload`).
 > A plain `uvicorn` picks the ProactorEventLoop, which psycopg's async driver
@@ -141,6 +141,58 @@ npm run dev                       # → http://localhost:3000
 Open **http://localhost:3000**, sign in (demo — any details), and query on the
 Discover page. The full runbook (troubleshooting, keys, fixtures) is in
 **[docs/RUNBOOK.md](docs/RUNBOOK.md)**.
+
+---
+
+## Demo data & test harness
+
+`scripts/seed_demo.py` (TM11-88) builds the same reproducible account for local
+dev, CI and the demo. It needs only `DATABASE_URL`: no API keys, no network,
+no torch.
+
+```bash
+python scripts/seed_demo.py           # schema + catalogue + demo account
+python scripts/seed_demo.py --reset   # wipe the demo account, then seed it again
+python scripts/seed_demo.py --check   # write nothing; exit 1 if anything is missing
+```
+
+It runs three steps, and each is safe to rerun:
+
+| Step | What it writes |
+|------|----------------|
+| Schema | The local migrations, in order: `0001_init`, `0002_embedding_dim_384`, and the three `owned_games` patches (playtime, manual-game index, import method). `0002` is skipped once `games.embedding` is `vector(384)`, so a rerun keeps your vectors. |
+| Catalogue | The 167 games in `scripts/fixtures/games.json`, upserted on `steam_appid` |
+| Demo account | The `DEV_USER_ID` user (`dev@gamegpt.local` by default), with the rows below |
+
+The demo account contains:
+
+- **Linked platform:** one Steam account (`76561198000000088`, made up).
+- **Library:** 7 Steam games with playtime, each linked to its `games` row:
+  Stardew Valley, Slay the Spire, Hades, Hollow Knight, Half-Life 2, Celeste,
+  Portal 2. Dedup drops these from every recommendation.
+- **Queries:** 3 past queries, each with 3 ranked recommendations, none of
+  them owned.
+- **Feedback:** 5 thumbs up/down votes on those recommendations.
+
+Every row has a fixed key, so a rerun updates rows in place and never adds
+copies. The account is the `DEV_USER_ID` user because every API route acts as
+that user until real auth lands. The script refuses (exit 2) to touch a
+database that has the hosted Supabase schema.
+
+**For the demo:** run `seed_demo.py --reset` and then `embed_games.py`. The
+Library page then shows the seeded games, and Discover leaves them out.
+
+**In CI:** the **Seeded DB tests** job starts a `pgvector/pgvector:pg16` service
+and runs `seed_demo.py`, then `embed_games.py` with `EMBEDDING_STUB=1`, then
+`seed_demo.py --check`. It finishes with
+`api/tests/test_seeded_demo_db.py` and `api/tests/test_db_backed.py`. To run
+the same tests locally against your seeded database:
+
+```bash
+EMBEDDING_STUB=1 python -m pytest api/tests/test_seeded_demo_db.py api/tests/test_db_backed.py -v
+```
+
+Without `DATABASE_URL`, those tests skip and the rest of the suite runs offline.
 
 ---
 
@@ -164,7 +216,7 @@ web/                     Next.js App Router frontend
   components/            AppShell, UI primitives, icons
   lib/api/               typed client + generated OpenAPI types + fixtures
   lib/mock/              localStorage-backed mock store (auth/library/accounts)
-scripts/                 seed_games.py, embed_games.py, games.json fixture
+scripts/                 seed_demo.py, seed_games.py, embed_games.py, games.json fixture
 supabase/                migrations/ (0001 init, 0002 384-dim) + seed.sql
 docs/                    ARCHITECTURE, API, FRONTEND, RUNBOOK, skeleton brief
 openapi.json             generated API contract (source for web types)

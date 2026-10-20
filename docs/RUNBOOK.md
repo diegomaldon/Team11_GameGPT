@@ -38,24 +38,20 @@ docker run -d --name gamegpt-pg -e POSTGRES_PASSWORD=postgres \
   -e POSTGRES_DB=gamegpt -p 5433:5432 pgvector/pgvector:pg16
 export DATABASE_URL="postgresql://postgres:postgres@localhost:5433/gamegpt"
 
-# 2. Migrations + owned-games seed (idempotent, in order)
-docker exec -i gamegpt-pg psql -U postgres -d gamegpt < supabase/migrations/0001_init.sql
-docker exec -i gamegpt-pg psql -U postgres -d gamegpt < supabase/migrations/0002_embedding_dim_384.sql
-docker exec -i gamegpt-pg psql -U postgres -d gamegpt < supabase/seed.sql
-
-# 3. Python deps
+# 2. Python deps
 python -m venv .venv
 . .venv/Scripts/activate            # Windows Git Bash
 # source .venv/bin/activate         # macOS/Linux
 pip install -r api/requirements.txt
 
-# 4. Seed the catalog + embed it (idempotent; re-runnable)
-python scripts/seed_games.py        # 150 games from the fixture (or RAWG if keyed)
+# 3. Schema + catalogue + demo account (TM11-88), then embed the catalogue
+python scripts/seed_demo.py
 python scripts/embed_games.py       # local model; downloads ~90 MB on first run
 ```
 
-The `docker exec ... < file` redirect is Bash/PowerShell syntax; in cmd.exe use
-`psql -f`. Everything is idempotent — safe to re-run.
+Everything is idempotent, so it is safe to rerun. `seed_demo.py` applies the
+local migrations itself, so there is no `psql` step. To set up only the
+catalogue, `python scripts/seed_games.py` still works on its own (RAWG if keyed).
 
 ---
 
@@ -85,8 +81,9 @@ Set `NEXT_PUBLIC_API_URL` if the API isn't on `http://localhost:8000`.
 |--------|--------------|-------------|
 | `scripts/seed_games.py` | Inserts ~150 games from `scripts/fixtures/games.json` (or RAWG if `RAWG_API_KEY` set) | Upserts on `steam_appid`; re-run = updates, no dupes |
 | `scripts/embed_games.py` | Embeds `title + description + genres` → `embedding` column | Only embeds `NULL` rows; `--all` re-embeds everything |
-| `scripts/embed_catalogue.py` | Embeds the Supabase catalogue into `game_embeddings` in batches (TM11-39) | Only new games and games whose text changed (TM11-41); `--all` re-embeds everything |
-| `supabase/seed.sql` | 5 `owned_games` for the dev user | `ON CONFLICT DO NOTHING` |
+| `scripts/embed_catalogue.py` | Embeds the Supabase catalogue into `game_embeddings` in batches (TM11-39) | Only games with no vector from the model; `--all` re-embeds everything |
+| `scripts/seed_demo.py` | Local schema, the fixture catalogue, and the demo account: linked Steam account, 7-game library, 3 queries with recommendations, 5 votes (TM11-88) | Fixed keys and upserts; `--reset` wipes the account first, `--check` only verifies |
+| `supabase/seed.sql` | 5 `owned_games` for the dev user (superseded by `seed_demo.py`) | `ON CONFLICT DO NOTHING` |
 
 **Re-embed after changing the model** (dimension or `EMBEDDING_MODEL`):
 ```bash
@@ -172,8 +169,12 @@ curl -s -X POST http://localhost:8000/api/recommend \
 . .venv/Scripts/activate
 python -m pytest api/tests -q
 ```
-- **Without a reachable DB:** 13 passed, 2 skipped (the pgvector/dedup tests skip).
-- **With `DATABASE_URL` set to a live DB:** 15 passed.
+- **Without a reachable DB:** the DB-backed tests skip (`test_db_backed.py`,
+  `test_seeded_demo_db.py`); everything else runs offline.
+- **With `DATABASE_URL` set to a local DB:** `test_seeded_demo_db.py` seeds the
+  demo account itself, then reads it back through the API. CI runs the same
+  tests in its **Seeded DB tests** job. See the README,
+  [Demo data & test harness](../README.md#demo-data--test-harness).
 - Tests never hit the network: LLM tests construct services with no keys, and
   embedding tests use the deterministic stub. Set `EMBEDDING_STUB=1` to guarantee
   no model load during tests.
