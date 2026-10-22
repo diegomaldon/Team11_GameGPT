@@ -29,6 +29,16 @@ vi.mock("next/navigation", () => ({
 const USER = "user-1";
 const STEAM_ID = "76561197960287930";
 
+const XUID = "2533274812345678";
+
+const XBOX: StoredAccount = {
+  user_id: USER,
+  platform: "XBOX",
+  platform_user_id: XUID,
+  linked_at: "2026-10-01T12:00:00Z",
+  last_synced_at: null,
+};
+
 const STEAM: StoredAccount = {
   user_id: USER,
   platform: "STEAM",
@@ -222,5 +232,58 @@ describe("AC3 accurate after a refresh and with zero platforms linked", () => {
     fake.heal();
     await userEvent.click(within(alert).getByRole("button", { name: "Try again" }));
     await waitFor(() => expect(row("Steam").textContent).toContain("Connected"));
+  });
+});
+
+describe("TM11-56 Xbox library import", () => {
+  it("offers Import games on a linked Xbox account and signs in again to run it", async () => {
+    const assign = vi.fn();
+    vi.stubGlobal("location", { ...window.location, assign });
+    setup([XBOX]);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Import games" }));
+
+    expect(assign).toHaveBeenCalledWith("/api/xbox/login?next=/settings&intent=import");
+  });
+
+  it("does not offer Import games before Xbox is linked", async () => {
+    setup();
+    await screen.findByRole("button", { name: "Connect Xbox" });
+    expect(screen.queryByRole("button", { name: "Import games" })).toBeNull();
+  });
+
+  it("runs the import on return, shows the result and stamps the sync time", async () => {
+    search.params = new URLSearchParams("xbox=import-ready");
+    const fetchMock = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          total: 2, added: 2, updated: 0, already_owned: 0, matched: 2, unmatched: 0,
+        }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { fake } = setup([XBOX]);
+
+    expect((await screen.findByText("Imported 2 games from Xbox."))).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledWith("/api/xbox/import", expect.objectContaining({
+      method: "POST",
+    }));
+    await waitFor(() => expect(fake.rows[0].last_synced_at).not.toBeNull());
+    expect(replace).toHaveBeenCalledWith("/settings");
+  });
+
+  it("explains a sign-in to a different Xbox account", async () => {
+    search.params = new URLSearchParams("xbox=import-ready");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ reason: "mismatch" }), { status: 409 })),
+    );
+    const { fake } = setup([XBOX]);
+
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "different Xbox account than the one linked",
+    );
+    expect(fake.rows[0].last_synced_at).toBeNull();
   });
 });

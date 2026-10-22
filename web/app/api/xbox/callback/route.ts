@@ -1,14 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
+  XBOX_IMPORT_COOKIE,
+  XBOX_IMPORT_TTL_SECONDS,
+  XBOX_INTENT_COOKIE,
   XBOX_LINK_COOKIE,
   XBOX_LINK_TTL_SECONDS,
   XBOX_STATE_COOKIE,
   XBOX_VERIFIER_COOKIE,
   XboxLinkError,
   exchangeCode,
-  getXboxIdentity,
+  getXboxSession,
   parseXboxCallback,
   sealIdentity,
+  sealImportSession,
   xboxConfigFromEnv,
   xboxLinkedAccountsResult,
 } from "@/lib/auth/xbox";
@@ -23,6 +27,10 @@ import { originFromRequest } from "@/lib/auth/request-origin";
  * the page turns into a message (AC2). On success the verified XUID and gamertag are sealed
  * into a short-lived signed cookie, never the URL, and the page finishes the link with
  * POST /api/xbox/link using its own session (AC1).
+ *
+ * TM11-56: when /login set the import intent, the callback encrypts a 5-minute Xbox session
+ * (XUID, user hash, XSTS token) into the cookie instead, and the page runs
+ * POST /api/xbox/import.
  */
 
 export const dynamic = "force-dynamic";
@@ -46,17 +54,20 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const returnedState = dot === -1 ? rawState : rawState.slice(0, dot);
   const next = dot === -1 ? null : safeDecode(rawState.slice(dot + 1));
 
+  const isImport = request.cookies.get(XBOX_INTENT_COOKIE)?.value === "import";
+
   const finish = (path: string, sealed?: string) => {
     const response = NextResponse.redirect(new URL(path, origin));
     response.cookies.delete({ name: XBOX_STATE_COOKIE, path: "/api/xbox" });
     response.cookies.delete({ name: XBOX_VERIFIER_COOKIE, path: "/api/xbox" });
+    response.cookies.delete({ name: XBOX_INTENT_COOKIE, path: "/api/xbox" });
     if (sealed) {
-      response.cookies.set(XBOX_LINK_COOKIE, sealed, {
+      response.cookies.set(isImport ? XBOX_IMPORT_COOKIE : XBOX_LINK_COOKIE, sealed, {
         httpOnly: true,
         sameSite: "lax",
         secure: origin.startsWith("https://"),
         path: "/api/xbox",
-        maxAge: XBOX_LINK_TTL_SECONDS,
+        maxAge: isImport ? XBOX_IMPORT_TTL_SECONDS : XBOX_LINK_TTL_SECONDS,
       });
     }
     return response;
@@ -87,8 +98,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       redirectUri: new URL("/api/xbox/callback", origin).toString(),
       config,
     });
-    const identity = await getXboxIdentity(msToken);
-    return finish(xboxLinkedAccountsResult("verified", { next }), sealIdentity(identity, config));
+    const session = await getXboxSession(msToken);
+    if (isImport) {
+      return finish(
+        xboxLinkedAccountsResult("import-ready", { next }),
+        sealImportSession(session, config),
+      );
+    }
+    return finish(xboxLinkedAccountsResult("verified", { next }), sealIdentity(session, config));
   } catch (err) {
     const reason = err instanceof XboxLinkError ? err.reason : "auth";
     if (!(err instanceof XboxLinkError)) {

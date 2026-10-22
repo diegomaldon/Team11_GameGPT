@@ -193,6 +193,12 @@ jobs:
         working-directory: .
         run: python -m pytest api/tests/test_library_manual.py -v
 
+      # TM11-56. "Platform attribution", "reuses the title matcher" and
+      # "idempotent on re-run" are acceptance criteria.
+      - name: Pytest — Xbox library import
+        working-directory: .
+        run: python -m pytest api/tests/test_xbox_import.py -v
+
       # TM11-39. Retry, resume after failure and "model and dimensions on every
       # row" are acceptance criteria. The model and DB are faked, so no torch here.
       - name: Pytest — batch embedding pipeline

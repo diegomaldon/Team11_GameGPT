@@ -351,3 +351,45 @@ other write keeps the column default, `OAUTH`.
 | 503 | `manual_import_failed` | anything else; the cause is only logged |
 
 The same game on two platforms is two entries, not a duplicate.
+
+---
+
+## `POST /api/library/xbox`
+
+Write an Xbox title history to the library (TM11-56, REQ014). Called by the web
+app's `POST /api/xbox/import`, which signs the user in to Xbox and fetches the
+titles; this route never talks to Microsoft. See
+[auth-xbox.md → Importing the library](auth-xbox.md#importing-the-library).
+
+**Request**
+```json
+{ "titles": [{ "title_id": "2043073184", "name": "Halo Infinite" }] }
+```
+| Field | Type | Notes |
+|-------|------|-------|
+| `titles[].title_id` | decimal string, 1–32 chars | the Xbox titleId. Stored in `owned_games.external_id` |
+| `titles[].name` | string, 1–300 chars | stored as the row's `title` and matched to the catalogue |
+
+At most 5,000 titles. A titleId listed twice is imported once.
+
+**200**
+```json
+{
+  "total": 4, "added": 4, "updated": 0, "already_owned": 0,
+  "matched": 3, "unmatched": 1, "match_rate": 0.75, "import_id": "9c1e…"
+}
+```
+- Each title becomes an `owned_games` row with `platform = 'xbox'`, matched with
+  the same title matcher as the Steam sync. Unmatched titles are still written
+  (`game_id` null) and queued for review.
+- **Idempotent.** Rows are keyed on `(user_id, 'xbox', external_id)`, so a rerun
+  updates rows (`updated`) and adds none.
+- `already_owned` counts titles whose game is already in the library on Xbox from
+  a CSV upload or a manual add. Those rows are left alone, so the game isn't
+  listed twice.
+
+**Errors**
+| Status | `error` | When |
+|--------|---------|------|
+| 422 | | a titleId that isn't decimal, a blank name, or more than 5,000 titles |
+| 503 | `import_failed` | the write failed. It runs in one transaction, so nothing changed; the cause is only logged |
