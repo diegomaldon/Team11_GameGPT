@@ -559,16 +559,18 @@ async def apply_xbox_import(
 
 @retry(**_RETRY)
 async def list_games_with_document_hash(model: str) -> list[dict[str, Any]]:
-    """Every catalogue game, with the hash of the text last embedded for `model`.
+    """Every catalogue game, with the hash and template of its last `model` vector.
 
-    `document_hash` is None for a game with no vector from `model` yet. The
-    pipeline compares it to a fresh hash to skip unchanged games (TM11-41).
+    `document_hash` and `template_version` are None for a game with no vector
+    from `model` yet. The pipeline compares them to a fresh hash and the
+    current template to skip unchanged games (TM11-41, TM11-38).
     Ordered by game_id, so reruns walk the catalogue in the same order.
     """
     async with connection() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                "select g.game_id, g.title, g.description, g.genres, g.tags, e.document_hash "
+                "select g.game_id, g.title, g.description, g.genres, g.tags, "
+                "e.document_hash, e.template_version "
                 "from public.games g "
                 "left join public.game_embeddings e "
                 "  on e.game_id = g.game_id and e.model = %s "
@@ -578,7 +580,7 @@ async def list_games_with_document_hash(model: str) -> list[dict[str, Any]]:
             rows = await cur.fetchall()
     return [
         {"game_id": r[0], "title": r[1], "description": r[2], "genres": r[3], "tags": r[4],
-         "document_hash": r[5]}
+         "document_hash": r[5], "template_version": r[6]}
         for r in rows
     ]
 
@@ -593,18 +595,20 @@ async def upsert_game_embeddings(rows: Sequence[GameEmbedding]) -> None:
         async with conn.cursor() as cur:
             await cur.executemany(
                 "insert into public.game_embeddings "
-                "(game_id, model, dimensions, embedding, document_hash, token_count) "
-                "values (%s, %s, %s, %s, %s, %s) "
+                "(game_id, model, dimensions, embedding, document_hash, token_count, "
+                "template_version) "
+                "values (%s, %s, %s, %s, %s, %s, %s) "
                 "on conflict (game_id, model) do update set "
                 "dimensions = excluded.dimensions, "
                 "embedding = excluded.embedding, "
                 "document_hash = excluded.document_hash, "
                 "token_count = excluded.token_count, "
+                "template_version = excluded.template_version, "
                 "embedded_at = now()",
                 [
                     (
                         str(row.game_id), row.model, row.dimensions, row.embedding,
-                        row.document_hash, row.token_count,
+                        row.document_hash, row.token_count, row.template_version,
                     )
                     for row in rows
                 ],
