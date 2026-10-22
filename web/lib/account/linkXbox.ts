@@ -14,9 +14,8 @@ import type { XboxErrorReason, XboxIdentity } from "@/lib/auth/xbox";
  *   unique (platform, platform_user_id) one GameGPT user per Xbox account: a second user
  *                                       trying to link the same XUID gets "taken"
  *
- * No Microsoft or Xbox token is stored. Linking only needs the XUID; reading the library
- * (TM11-56) will need a refresh token, and storing that is a separate decision recorded in
- * the ADR.
+ * No Microsoft or Xbox token is stored. Linking only needs the XUID, and the library import
+ * (TM11-56) signs in again each time instead of keeping a refresh token (ADR 0001 addendum).
  */
 
 /** The slice of supabase-js this needs, so tests can pass a fake. */

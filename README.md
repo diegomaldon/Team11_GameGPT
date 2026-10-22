@@ -160,7 +160,7 @@ It runs three steps, and each is safe to rerun:
 
 | Step | What it writes |
 |------|----------------|
-| Schema | The local migrations, in order: `0001_init`, `0002_embedding_dim_384`, and the three `owned_games` patches (playtime, manual-game index, import method). `0002` is skipped once `games.embedding` is `vector(384)`, so a rerun keeps your vectors. |
+| Schema | The local migrations, in order: `0001_init`, `0002_embedding_dim_384`, and the four `owned_games` patches (playtime, manual-game index, import method, external id). `0002` is skipped once `games.embedding` is `vector(384)`, so a rerun keeps your vectors. |
 | Catalogue | The 167 games in `scripts/fixtures/games.json`, upserted on `steam_appid` |
 | Demo account | The `DEV_USER_ID` user (`dev@gamegpt.local` by default), with the rows below |
 

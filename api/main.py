@@ -41,9 +41,9 @@ async def lifespan(app: FastAPI):
     yield
 
 try:  # Wired by Agent C in Phase 2; absent in the Phase 0 slice.
-    from api.routers import library, library_csv, library_manual  # type: ignore
+    from api.routers import library, library_csv, library_manual, library_xbox  # type: ignore
 except Exception:  # pragma: no cover - Phase 0 has no library router yet
-    library = library_csv = library_manual = None  # type: ignore
+    library = library_csv = library_manual = library_xbox = None  # type: ignore
 
 
 def create_app() -> FastAPI:
@@ -88,6 +88,7 @@ def create_app() -> FastAPI:
         app.include_router(library.router, prefix="/api")
         app.include_router(library_csv.router, prefix="/api")
         app.include_router(library_manual.router, prefix="/api")
+        app.include_router(library_xbox.router, prefix="/api")
 
     return app
 

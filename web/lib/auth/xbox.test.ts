@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { describe, it, expect, vi } from "vitest";
+import { describeXboxImport } from "./xboxMessages";
 import {
   MS_AUTHORIZE_URL,
   MS_TOKEN_URL,
@@ -12,10 +13,13 @@ import {
   describeXboxResult,
   exchangeCode,
   getXboxIdentity,
+  getXboxSession,
   openIdentity,
+  openImportSession,
   parseXboxCallback,
   reasonForXErr,
   sealIdentity,
+  sealImportSession,
   xboxConfigFromEnv,
   xboxLinkedAccountsResult,
 } from "./xbox";
@@ -221,5 +225,104 @@ describe("AC2 — auth failures and unsupported accounts get clear messages", ()
     expect(xboxLinkedAccountsResult("verified", { next: "https://evil.example" })).toBe(
       "/settings?xbox=verified",
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("TM11-56 — the short-lived session a library import needs", () => {
+  const SESSION = { ...IDENTITY, uhs: "1", xstsToken: "xsts-token" };
+  const xboxRoutes = () =>
+    fakeFetch({ [XBL_USER_AUTH_URL]: okUser, [XBL_XSTS_URL]: okXsts });
+
+  it("keeps the XSTS token and user hash titlehub needs", async () => {
+    await expect(getXboxSession("ms-token", xboxRoutes())).resolves.toEqual(SESSION);
+  });
+
+  it("still gives linking only the XUID and gamertag", async () => {
+    await expect(getXboxIdentity("ms-token", xboxRoutes())).resolves.toEqual(IDENTITY);
+  });
+
+  it("round-trips the import session and expires it after 5 minutes", () => {
+    const now = 1_000_000;
+    const sealed = sealImportSession(SESSION, CONFIG, now);
+    expect(openImportSession(sealed, CONFIG, now + 299_000)).toEqual(SESSION);
+    expect(openImportSession(sealed, CONFIG, now + 301_000)).toBeNull();
+    expect(openImportSession(sealed, { ...CONFIG, clientSecret: "other" }, now)).toBeNull();
+  });
+
+  it("never accepts a link cookie as an import cookie, or the other way round", () => {
+    const link = sealIdentity(IDENTITY, CONFIG);
+    const importing = sealImportSession(SESSION, CONFIG);
+    expect(openImportSession(link, CONFIG)).toBeNull();
+    expect(openIdentity(importing, CONFIG)).toBeNull();
+  });
+
+  it("encrypts the import cookie, so its value reveals nothing without the secret", () => {
+    // PR #42 review: a signed-only cookie decoded to a readable XSTS token.
+    // Long, distinctive values, so a match can't happen by chance in random ciphertext.
+    const live = { ...SESSION, uhs: "uhs-14695127832", xstsToken: "eyJhbGciOiJSU0EtT0FFUC" };
+    const sealed = sealImportSession(live, CONFIG);
+    for (const part of sealed.split(".")) {
+      const decoded = Buffer.from(part, "base64url").toString("utf8");
+      for (const secret of [live.xstsToken, live.xuid, live.uhs, live.gamertag]) {
+        expect(decoded).not.toContain(secret);
+      }
+    }
+    expect(sealed).not.toContain(live.xstsToken);
+    expect(openImportSession(sealed, CONFIG)).toEqual(live);
+  });
+
+  it("uses a fresh IV each time, so the same session never seals the same way twice", () => {
+    expect(sealImportSession(SESSION, CONFIG)).not.toBe(sealImportSession(SESSION, CONFIG));
+  });
+
+  it("refuses an import cookie with any part changed", () => {
+    const sealed = sealImportSession(SESSION, CONFIG);
+    const parts = sealed.split(".");
+    for (let i = 1; i < parts.length; i += 1) {
+      const bytes = Buffer.from(parts[i], "base64url");
+      bytes[0] ^= 1;
+      const tampered = [...parts];
+      tampered[i] = bytes.toString("base64url");
+      expect(openImportSession(tampered.join("."), CONFIG)).toBeNull();
+    }
+    expect(openImportSession(`v2.${parts.slice(1).join(".")}`, CONFIG)).toBeNull();
+    expect(openImportSession(`${sealed}.extra`, CONFIG)).toBeNull();
+  });
+
+  it("keeps the XSTS token out of the link cookie even if handed a full session", () => {
+    const sealed = sealIdentity(SESSION, CONFIG);
+    const payload = Buffer.from(sealed.split(".")[0], "base64url").toString("utf8");
+    expect(payload).not.toContain("xsts-token");
+    expect(openIdentity(sealed, CONFIG)).toEqual(IDENTITY);
+  });
+
+  it("fits a realistic XSTS token inside one cookie", () => {
+    // Real XSTS tokens are around 1.5 KB; browsers cap a cookie at about 4 KB.
+    const sealed = sealImportSession({ ...SESSION, xstsToken: "x".repeat(2000) }, CONFIG);
+    expect(sealed.length).toBeLessThan(4000);
+  });
+
+  it("returns to Settings ready to import", () => {
+    expect(xboxLinkedAccountsResult("import-ready")).toBe("/settings?xbox=import-ready");
+  });
+
+  it("describes new, repeat and empty imports", () => {
+    const base = { total: 3, added: 3, updated: 0, already_owned: 0, matched: 2, unmatched: 1 };
+    expect(describeXboxImport(base).message).toBe(
+      "Imported 3 games from Xbox. 1 game didn't match our catalogue and is waiting for review.",
+    );
+    expect(describeXboxImport({ ...base, added: 0, updated: 3, unmatched: 0 }).message).toBe(
+      "Your Xbox library is up to date: 3 games, none new.",
+    );
+    expect(describeXboxImport({ ...base, total: 0, added: 0 }).tone).toBe("info");
+  });
+
+  it("has its own message for each import failure", () => {
+    const messages = ["not_linked", "mismatch", "private", "import"].map(
+      (r) => describeXboxResult("error", r)?.message,
+    );
+    expect(new Set(messages).size).toBe(4);
+    expect(messages).not.toContain(describeXboxResult("error", "auth")?.message);
   });
 });
