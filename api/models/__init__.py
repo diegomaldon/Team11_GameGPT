@@ -28,6 +28,9 @@ from api.models.schemas import (
     SyncFailure,
     SyncJobState,
     Vote,
+    XboxImportRequest,
+    XboxImportResponse,
+    XboxTitle,
 )
 
 __all__ = [
@@ -54,4 +57,7 @@ __all__ = [
     "SyncFailure",
     "SyncJobState",
     "Vote",
+    "XboxImportRequest",
+    "XboxImportResponse",
+    "XboxTitle",
 ]

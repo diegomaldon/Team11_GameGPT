@@ -1,4 +1,5 @@
 import { getAccessToken } from "./token";
+import type { XboxImportSummary } from "./xboxMessages";
 
 /**
  * GameGPT · E2 Platform Linking & Library Sync
@@ -35,6 +36,40 @@ export async function completeXboxLink(
     return {
       status: "error",
       reason: typeof body.reason === "string" ? body.reason : "auth",
+    };
+  } catch {
+    return { status: "error", reason: "network" };
+  }
+}
+
+export type XboxImportResult =
+  | { status: "imported"; summary: XboxImportSummary }
+  | { status: "error"; reason: string };
+
+/**
+ * TM11-56. After /api/xbox/callback redirects to /settings?xbox=import-ready, the page calls
+ * this to run the import with the Xbox session the server sealed in an httpOnly cookie.
+ */
+export async function completeXboxImport(
+  fetchImpl: typeof fetch = fetch,
+  token: string | null = getAccessToken(),
+): Promise<XboxImportResult> {
+  if (!token) return { status: "error", reason: "session" };
+  try {
+    const res = await fetchImpl("/api/xbox/import", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const body = (await res.json().catch(() => ({}))) as Partial<XboxImportSummary> & {
+      reason?: unknown;
+    };
+    if (res.ok && typeof body.total === "number") {
+      return { status: "imported", summary: body as XboxImportSummary };
+    }
+    return {
+      status: "error",
+      reason: typeof body.reason === "string" ? body.reason : "import",
     };
   } catch {
     return { status: "error", reason: "network" };

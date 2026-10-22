@@ -111,12 +111,13 @@ def test_get_library_returns_the_seeded_library_most_played_first(demo_user):
 
 
 def test_every_library_game_is_linked_to_a_catalogue_row(demo_user):
+    # Only the seeded Steam rows: an Xbox import keeps Xbox's spelling ("Portal 2™").
     rows = asyncio.run(_fetch(
         "select o.title, g.title from owned_games o join games g on g.id = o.game_id "
-        "where o.user_id = %s",
-        str(demo_user),
+        "where o.user_id = %s and o.platform = 'steam' and o.steam_appid = any(%s)",
+        str(demo_user), [t.steam_appid for t in seed_demo.DEMO_LIBRARY],
     ))
-    assert {owned for owned, _ in rows} >= {t.title for t in seed_demo.DEMO_LIBRARY}
+    assert {owned for owned, _ in rows} == {t.title for t in seed_demo.DEMO_LIBRARY}
     assert all(owned == catalogue for owned, catalogue in rows)
 
 

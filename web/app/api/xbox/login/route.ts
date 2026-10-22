@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
+  XBOX_INTENT_COOKIE,
   XBOX_STATE_COOKIE,
   XBOX_VERIFIER_COOKIE,
   buildXboxAuthUrl,
@@ -20,6 +21,10 @@ import { originFromRequest } from "@/lib/auth/request-origin";
  * is built from this request's own origin so the same code works on localhost and Vercel.
  * Unlike Steam, Microsoft only accepts redirect URIs registered on the Azure app, so each
  * environment's /api/xbox/callback must be added there (docs/auth-xbox.md).
+ *
+ * `?intent=import` (TM11-56) signs an already-linked user in again to read their library.
+ * The intent rides in its own cookie, and the callback then seals an import session
+ * instead of a link identity.
  */
 
 export const dynamic = "force-dynamic";
@@ -30,6 +35,7 @@ const COOKIE_TTL_SECONDS = 600;
 export function GET(request: NextRequest): NextResponse {
   const origin = originFromRequest(request);
   const next = safeNext(request.nextUrl.searchParams.get("next"));
+  const isImport = request.nextUrl.searchParams.get("intent") === "import";
 
   const config = xboxConfigFromEnv();
   if (!config) {
@@ -60,5 +66,11 @@ export function GET(request: NextRequest): NextResponse {
   };
   response.cookies.set(XBOX_STATE_COOKIE, state, cookie);
   response.cookies.set(XBOX_VERIFIER_COOKIE, verifier, cookie);
+  if (isImport) {
+    response.cookies.set(XBOX_INTENT_COOKIE, "import", cookie);
+  } else {
+    // A link started after an abandoned import must not turn into an import.
+    response.cookies.delete({ name: XBOX_INTENT_COOKIE, path: "/api/xbox" });
+  }
   return response;
 }

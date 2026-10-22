@@ -1,4 +1,11 @@
-import { createHmac, createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  createHmac,
+  randomBytes,
+  timingSafeEqual,
+} from "node:crypto";
 import type { XboxErrorReason } from "./xboxMessages";
 
 /**
@@ -43,6 +50,12 @@ export const XBOX_VERIFIER_COOKIE = "xbox_oauth_verifier";
 /** Set by /api/xbox/callback, consumed once by POST /api/xbox/link. */
 export const XBOX_LINK_COOKIE = "xbox_link_identity";
 export const XBOX_LINK_TTL_SECONDS = 600;
+/** Set by /api/xbox/login?intent=import, read by the callback. TM11-56. */
+export const XBOX_INTENT_COOKIE = "xbox_oauth_intent";
+/** Set by /api/xbox/callback on an import, consumed once by POST /api/xbox/import. */
+export const XBOX_IMPORT_COOKIE = "xbox_import_session";
+/** Short: the cookie holds a live XSTS token, and the page uses it straight away. */
+export const XBOX_IMPORT_TTL_SECONDS = 300;
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -149,6 +162,12 @@ export function reasonForXErr(xerr: unknown): XboxErrorReason {
 
 export type XboxIdentity = { xuid: string; gamertag: string };
 
+/**
+ * An identity plus what titlehub needs to read the library: the user hash and the XSTS
+ * token, sent as `XBL3.0 x=<uhs>;<token>`. Lives for one import, never stored. TM11-56.
+ */
+export type XboxSession = XboxIdentity & { uhs: string; xstsToken: string };
+
 async function postJson(
   fetchImpl: typeof fetch,
   url: string,
@@ -199,6 +218,15 @@ export async function getXboxIdentity(
   msAccessToken: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<XboxIdentity> {
+  const { xuid, gamertag } = await getXboxSession(msAccessToken, fetchImpl);
+  return { xuid, gamertag };
+}
+
+/** The same hops, keeping the XSTS token and user hash for a library import. TM11-56. */
+export async function getXboxSession(
+  msAccessToken: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<XboxSession> {
   const headers = {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -235,7 +263,8 @@ export async function getXboxIdentity(
   if (xstsRes.status >= 500) throw new XboxLinkError("network");
   const xsts = (await xstsRes.json().catch(() => ({}))) as {
     XErr?: unknown;
-    DisplayClaims?: { xui?: { xid?: unknown; gtg?: unknown }[] };
+    Token?: unknown;
+    DisplayClaims?: { xui?: { xid?: unknown; gtg?: unknown; uhs?: unknown }[] };
   };
   if (xstsRes.status === 401) throw new XboxLinkError(reasonForXErr(xsts.XErr));
   if (!xstsRes.ok) throw new XboxLinkError("auth");
@@ -245,7 +274,9 @@ export async function getXboxIdentity(
   const gamertag = typeof claims?.gtg === "string" ? claims.gtg : "";
   // A real XUID is a decimal integer. Anything else means we got the wrong relying party.
   if (!/^\d{1,20}$/.test(xuid) || !gamertag) throw new XboxLinkError("unsupported");
-  return { xuid, gamertag };
+  const uhs = typeof claims?.uhs === "string" ? claims.uhs : "";
+  const xstsToken = typeof xsts.Token === "string" ? xsts.Token : "";
+  return { xuid, gamertag, uhs, xstsToken };
 }
 
 // ---------------------------------------------------------------------------
@@ -257,8 +288,44 @@ export async function getXboxIdentity(
 // short-lived HMAC-signed httpOnly cookie and the page then calls POST /api/xbox/link with
 // its bearer token. Putting the XUID in the URL instead would let anyone link any XUID.
 
-function linkKey(config: XboxConfig): Buffer {
-  return createHmac("sha256", config.clientSecret).update("gamegpt:xbox-link:v1").digest();
+// Each cookie kind has its own key, so a link cookie can never be replayed as an import
+// cookie or the other way round.
+const LINK_PURPOSE = "gamegpt:xbox-link:v1";
+const IMPORT_PURPOSE = "gamegpt:xbox-import:v1";
+
+function purposeKey(config: XboxConfig, purpose: string): Buffer {
+  return createHmac("sha256", config.clientSecret).update(purpose).digest();
+}
+
+function seal(data: object, ttlSeconds: number, key: Buffer, now: number): string {
+  const payload = base64url(Buffer.from(JSON.stringify({ ...data, exp: now + ttlSeconds * 1000 })));
+  const sig = base64url(createHmac("sha256", key).update(payload).digest());
+  return `${payload}.${sig}`;
+}
+
+/** The payload, only if the signature matches and it has not expired. */
+function unseal(
+  sealed: string | undefined | null,
+  key: Buffer,
+  now: number,
+): Record<string, unknown> | null {
+  if (!sealed) return null;
+  const [payload, sig] = sealed.split(".");
+  if (!payload || !sig) return null;
+  const expected = base64url(createHmac("sha256", key).update(payload).digest());
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+  try {
+    const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Record<
+      string,
+      unknown
+    >;
+    if (typeof data.exp !== "number" || data.exp < now) return null;
+    return data;
+  } catch {
+    return null;
+  }
 }
 
 export function sealIdentity(
@@ -266,11 +333,10 @@ export function sealIdentity(
   config: XboxConfig,
   now: number = Date.now(),
 ): string {
-  const payload = base64url(
-    Buffer.from(JSON.stringify({ ...identity, exp: now + XBOX_LINK_TTL_SECONDS * 1000 })),
-  );
-  const sig = base64url(createHmac("sha256", linkKey(config)).update(payload).digest());
-  return `${payload}.${sig}`;
+  // Pick the fields: a full XboxSession passed here must not put its XSTS token in the
+  // link cookie.
+  const { xuid, gamertag } = identity;
+  return seal({ xuid, gamertag }, XBOX_LINK_TTL_SECONDS, purposeKey(config, LINK_PURPOSE), now);
 }
 
 /** Returns the identity only if the signature matches and it has not expired. */
@@ -279,23 +345,87 @@ export function openIdentity(
   config: XboxConfig,
   now: number = Date.now(),
 ): XboxIdentity | null {
+  const data = unseal(sealed, purposeKey(config, LINK_PURPOSE), now);
+  if (!data || typeof data.xuid !== "string" || typeof data.gamertag !== "string") return null;
+  return { xuid: data.xuid, gamertag: data.gamertag };
+}
+
+// The import cookie carries a live XSTS token, a bearer credential that outlives the
+// cookie, so it is encrypted, not just signed: AES-256-GCM, with the purpose as
+// associated data. The link cookie above only holds an XUID and gamertag, which aren't
+// secret, so signing is enough there.
+const IMPORT_FORMAT = "v1";
+const GCM_IV_BYTES = 12;
+
+/**
+ * Encrypts the short-lived Xbox session for POST /api/xbox/import. TM11-56. Without the
+ * server's secret the cookie value reveals nothing, and any change to it fails to open.
+ */
+export function sealImportSession(
+  session: XboxSession,
+  config: XboxConfig,
+  now: number = Date.now(),
+): string {
+  const { xuid, gamertag, uhs, xstsToken } = session;
+  const plaintext = JSON.stringify({
+    xuid, gamertag, uhs, xstsToken, exp: now + XBOX_IMPORT_TTL_SECONDS * 1000,
+  });
+  const iv = randomBytes(GCM_IV_BYTES);
+  const cipher = createCipheriv("aes-256-gcm", purposeKey(config, IMPORT_PURPOSE), iv);
+  cipher.setAAD(Buffer.from(IMPORT_PURPOSE));
+  const ciphertext = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
+  return [IMPORT_FORMAT, iv, ciphertext, cipher.getAuthTag()]
+    .map((part) => (typeof part === "string" ? part : base64url(part)))
+    .join(".");
+}
+
+/** The session, only if it decrypts and authenticates under this server's key and has
+ * not expired. */
+function decryptImportSession(
+  sealed: string | undefined | null,
+  config: XboxConfig,
+  now: number,
+): Record<string, unknown> | null {
   if (!sealed) return null;
-  const [payload, sig] = sealed.split(".");
-  if (!payload || !sig) return null;
-  const expected = base64url(createHmac("sha256", linkKey(config)).update(payload).digest());
-  const a = Buffer.from(sig);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+  const [format, iv, ciphertext, tag, ...rest] = sealed.split(".");
+  if (format !== IMPORT_FORMAT || !iv || !ciphertext || !tag || rest.length) return null;
   try {
-    const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {
-      xuid?: unknown;
-      gamertag?: unknown;
-      exp?: unknown;
-    };
+    const decipher = createDecipheriv(
+      "aes-256-gcm",
+      purposeKey(config, IMPORT_PURPOSE),
+      Buffer.from(iv, "base64url"),
+    );
+    decipher.setAAD(Buffer.from(IMPORT_PURPOSE));
+    decipher.setAuthTag(Buffer.from(tag, "base64url"));
+    const plaintext = Buffer.concat([
+      decipher.update(Buffer.from(ciphertext, "base64url")),
+      decipher.final(), // throws if the tag doesn't match: wrong key or a changed byte
+    ]).toString("utf8");
+    const data = JSON.parse(plaintext) as Record<string, unknown>;
     if (typeof data.exp !== "number" || data.exp < now) return null;
-    if (typeof data.xuid !== "string" || typeof data.gamertag !== "string") return null;
-    return { xuid: data.xuid, gamertag: data.gamertag };
+    return data;
   } catch {
     return null;
   }
+}
+
+export function openImportSession(
+  sealed: string | undefined | null,
+  config: XboxConfig,
+  now: number = Date.now(),
+): XboxSession | null {
+  const data = decryptImportSession(sealed, config, now);
+  if (!data) return null;
+  const { xuid, gamertag, uhs, xstsToken } = data;
+  if (
+    typeof xuid !== "string" ||
+    typeof gamertag !== "string" ||
+    typeof uhs !== "string" ||
+    typeof xstsToken !== "string" ||
+    !uhs ||
+    !xstsToken
+  ) {
+    return null;
+  }
+  return { xuid, gamertag, uhs, xstsToken };
 }

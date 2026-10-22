@@ -66,3 +66,25 @@ Unit tests cover every hop with fake Microsoft and Xbox responses
 `web/lib/auth/xboxClient.test.ts`). A live round trip needs the Azure app registration
 above and a real Xbox account. That registration doesn't exist yet, so the live flow is
 **not yet verified**. See `docs/auth-xbox.md` → "Setting up the Azure app".
+
+## Addendum: TM11-56 library import
+
+- **Status:** Accepted, Sprint 6. **Decider:** Maceo Morgan
+
+The Consequences above left "store a refresh token, or re-auth on each import" to
+TM11-56.
+
+**Decision: re-auth on each import. No token is stored.** **Import games** runs the
+same Microsoft sign-in again. The callback encrypts the XSTS token and user hash
+(AES-256-GCM) into a 5-minute httpOnly cookie, and `POST /api/xbox/import` uses them for
+one titlehub call and drops them.
+
+- **Why.** `platform_accounts.access_token` is plaintext today (marked SECURITY DEBT in
+  the core migration). A stored refresh token would be a long-lived credential for the
+  user's Microsoft account in that column. Re-auth costs one extra click and keeps
+  "nothing to revoke" true.
+- **Cost.** No background or scheduled Xbox refresh. Each import is user-initiated.
+  Revisit if a sync-on-a-schedule story appears, together with moving tokens into
+  Supabase Vault.
+- **Data source.** titlehub's title history, not purchases (there is no public purchase
+  API). See [auth-xbox.md → Importing the library](../auth-xbox.md#importing-the-library).

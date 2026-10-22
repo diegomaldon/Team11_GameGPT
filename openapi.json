@@ -435,6 +435,48 @@
           }
         }
       }
+    },
+    "/api/library/xbox": {
+      "post": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Import Xbox Library",
+        "description": "Match the titles to the catalogue and upsert them as platform 'xbox'.",
+        "operationId": "import_xbox_library_api_library_xbox_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/XboxImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/XboxImportResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1338,6 +1380,114 @@
           "down"
         ],
         "title": "Vote"
+      },
+      "XboxImportRequest": {
+        "properties": {
+          "titles": {
+            "items": {
+              "$ref": "#/components/schemas/XboxTitle"
+            },
+            "type": "array",
+            "maxItems": 5000,
+            "title": "Titles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "titles"
+        ],
+        "title": "XboxImportRequest",
+        "description": "The Xbox titles to write to the library, as fetched by POST /api/xbox/import."
+      },
+      "XboxImportResponse": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Distinct titles received."
+          },
+          "added": {
+            "type": "integer",
+            "title": "Added",
+            "description": "New owned_games rows."
+          },
+          "updated": {
+            "type": "integer",
+            "title": "Updated",
+            "description": "Rows from an earlier import, refreshed."
+          },
+          "already_owned": {
+            "type": "integer",
+            "title": "Already Owned",
+            "description": "Titles whose game is already in the library on Xbox (CSV or manual)."
+          },
+          "matched": {
+            "type": "integer",
+            "title": "Matched",
+            "description": "Titles joined to a games row."
+          },
+          "unmatched": {
+            "type": "integer",
+            "title": "Unmatched",
+            "description": "Titles queued for review."
+          },
+          "match_rate": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Match Rate",
+            "description": "matched / total, 0..1."
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "added",
+          "updated",
+          "already_owned",
+          "matched",
+          "unmatched",
+          "match_rate"
+        ],
+        "title": "XboxImportResponse",
+        "description": "What an Xbox import did. Rerunning it with the same titles adds nothing."
+      },
+      "XboxTitle": {
+        "properties": {
+          "title_id": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^\\d+$",
+            "title": "Title Id",
+            "description": "Xbox titleId, a decimal string."
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title_id",
+          "name"
+        ],
+        "title": "XboxTitle",
+        "description": "One game from the user's Xbox title history."
       }
     }
   }
