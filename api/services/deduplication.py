@@ -138,44 +138,10 @@ class DeduplicationService:
     async def filter_owned(
         self, user_id: UUID, candidates: list[GameCandidate]
     ) -> list[GameCandidate]:
-        """Return candidates the user does NOT already own.
+        """Return candidates the user does NOT already own, on any platform.
 
-        Preserves input order. Hosted: match on game_id. Legacy: steam_appid,
-        then case/whitespace-normalized title.
+        Preserves input order. Uses the same matching as owned_platforms, so a
+        game the UI badges as owned is never also recommended.
         """
-        if not candidates:
-            return []
-
-        if await catalogue_shape() == "hosted":
-            async with connection() as conn:
-                async with conn.cursor() as cur:
-                    await cur.execute(
-                        "select game_id from public.owned_games where user_id = %s",
-                        (user_id,),
-                    )
-                    owned_ids = {row[0] for row in await cur.fetchall()}
-            return [c for c in candidates if c.game_id not in owned_ids]
-
-        owned_appids: set[int] = set()
-        owned_titles: set[str] = set()
-        async with connection() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute(
-                    "select steam_appid, title from owned_games where user_id = %s",
-                    (user_id,),
-                )
-                for steam_appid, title in await cur.fetchall():
-                    if steam_appid is not None:
-                        owned_appids.add(int(steam_appid))
-                    normalized = normalize_title(title)
-                    if normalized:
-                        owned_titles.add(normalized)
-
-        kept: list[GameCandidate] = []
-        for c in candidates:
-            if c.steam_appid is not None and int(c.steam_appid) in owned_appids:
-                continue
-            if normalize_title(c.title) in owned_titles:
-                continue
-            kept.append(c)
-        return kept
+        owned = await self.owned_platforms(user_id, candidates)
+        return [c for c in candidates if c.game_id not in owned]

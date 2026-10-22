@@ -142,7 +142,7 @@ async def test_legacy_top_k_reads_games_embedding(monkeypatch):
 @pytest.mark.asyncio
 async def test_hosted_dedup_drops_owned_games_by_game_id(monkeypatch):
     owned, other = make_candidate("Hades"), make_candidate("Hades II")
-    cursor = FakeCursor([(owned.game_id,)])
+    cursor = FakeCursor([(owned.game_id, "STEAM")])
     monkeypatch.setattr(deduplication, "connection", fake_connection(cursor))
 
     async def hosted():
@@ -154,7 +154,7 @@ async def test_hosted_dedup_drops_owned_games_by_game_id(monkeypatch):
     kept = await DeduplicationService().filter_owned(user_id, [owned, other])
 
     assert kept == [other]  # a similar title is not mistaken for the owned game
-    assert cursor.executed[0][1] == (user_id,)
+    assert cursor.executed[0][1][0] == user_id
 
 
 # ── shape detection ─────────────────────────────────────────────────────────

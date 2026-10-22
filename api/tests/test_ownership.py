@@ -135,6 +135,63 @@ async def test_ac01_legacy_similar_title_is_not_owned(db):
     assert not result.is_owned
 
 
+# ── AC-02: filter_owned drops owned titles from any candidate list ──────────
+
+
+@pytest.mark.asyncio
+async def test_ac02_hosted_drops_games_owned_on_any_platform_and_keeps_order(db):
+    a, owned_xbox, b, owned_epic, c = (game(t) for t in "ABXYC")
+    db("hosted", [(owned_xbox.game_id, "XBOX"), (owned_epic.game_id, "EPIC")])
+
+    kept = await DeduplicationService().filter_owned(USER, [a, owned_xbox, b, owned_epic, c])
+
+    assert kept == [a, b, c]
+
+
+@pytest.mark.asyncio
+async def test_ac02_legacy_drops_by_game_id_appid_and_title(db):
+    by_id, by_appid, by_title = game("Hades"), game("Portal 2", 620), game("DOOM™")
+    fresh = game("Celeste", 504230)
+    db("legacy", [
+        (by_id.game_id, None, "Hades", "steam"),
+        (None, 620, "Portal 2", "steam"),
+        (None, None, "Doom", "epic"),
+    ])
+
+    kept = await DeduplicationService().filter_owned(USER, [by_id, by_appid, by_title, fresh])
+
+    assert kept == [fresh]
+
+
+@pytest.mark.asyncio
+async def test_ac02_nothing_owned_returns_every_candidate(db):
+    candidates = [game("Hades"), game("Celeste")]
+    db("hosted", [])
+
+    assert await DeduplicationService().filter_owned(USER, candidates) == candidates
+
+
+@pytest.mark.asyncio
+async def test_ac02_empty_candidate_list_skips_the_database(db):
+    cursor = db("legacy", [])
+
+    assert await DeduplicationService().filter_owned(USER, []) == []
+    assert cursor.executed == []
+
+
+@pytest.mark.asyncio
+async def test_ac02_filter_agrees_with_the_ownership_check(db):
+    owned, fresh = game("Hades"), game("Celeste")
+    db("hosted", [(owned.game_id, "STEAM")])
+    service = DeduplicationService()
+
+    kept = await service.filter_owned(USER, [owned, fresh])
+
+    for candidate in (owned, fresh):
+        is_owned = (await service.check_ownership(USER, candidate)).is_owned
+        assert (candidate in kept) is not is_owned
+
+
 # ── AC-03: platforms for the UI badges ──────────────────────────────────────
 
 
