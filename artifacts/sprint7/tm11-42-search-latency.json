@@ -1,0 +1,24 @@
+{
+  "run_at": "2026-10-23T01:19:42+00:00",
+  "schema": "legacy",
+  "model": "sentence-transformers/all-MiniLM-L6-v2",
+  "k": 10,
+  "queries": 20,
+  "repeats_per_query": 10,
+  "cold_first_request_ms": 40378.27,
+  "request_ms": {
+    "p50": 212.24,
+    "p95": 826.4,
+    "max": 3198.04,
+    "runs": 200
+  },
+  "server_took_ms": {
+    "p50": 203.83,
+    "p95": 818.85,
+    "max": 3190.96,
+    "runs": 200
+  },
+  "p95_budget_ms": 1000.0,
+  "meets_budget": true,
+  "queries_with_expected_game_in_top_k": 7
+}
