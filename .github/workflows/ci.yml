@@ -209,6 +209,15 @@ jobs:
             api/tests/test_embedding_pipeline.py \
             api/tests/test_embed_catalogue.py -v
 
+      # TM11-58. Ownership across linked platforms, the owned-game filter and the
+      # badge platforms are acceptance criteria. The database is faked.
+      - name: Pytest — ownership check and owned-game filter
+        working-directory: .
+        run: |
+          python -m pytest \
+            api/tests/test_ownership.py \
+            api/tests/test_vector_store.py -v
+
       # TM11-88. The demo seed's data and flags; the database is faked.
       - name: Pytest — demo seed script
         working-directory: .

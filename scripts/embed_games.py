@@ -1,4 +1,7 @@
-"""Embed the `games` table's title + description + genres into the `embedding` column.
+"""Embed each game's document into the `games` table's `embedding` column.
+
+The text is the same versioned document the pipeline embeds
+(api/services/game_document.py, TM11-38): title, genres, tags, description.
 
 Uses `EmbeddingService.embed_texts` (api/services/embedding.py) — a local
 Hugging Face sentence-transformers model (all-MiniLM-L6-v2, 384-dim), or the
@@ -31,14 +34,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from api.db import connection, has_db  # noqa: E402
 from api.services.embedding import EmbeddingService  # noqa: E402
+from api.services.game_document import build_game_document  # noqa: E402
 
 DEFAULT_BATCH_SIZE = 32
-
-
-def build_embedding_text(title: str, description: str | None, genres: list[str]) -> str:
-    """`title + ' ' + description + ' ' + genres-joined`, per the seeding contract."""
-    parts = [title or "", description or "", ", ".join(genres or [])]
-    return " ".join(p for p in parts if p).strip()
 
 
 async def fetch_games_to_embed(embed_all: bool) -> list[dict[str, Any]]:
@@ -46,11 +44,11 @@ async def fetch_games_to_embed(embed_all: bool) -> list[dict[str, Any]]:
     async with connection() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                f"select id, title, description, genres from games {where} order by id"
+                f"select id, title, description, genres, tags from games {where} order by id"
             )
             rows = await cur.fetchall()
     return [
-        {"id": r[0], "title": r[1], "description": r[2], "genres": r[3] or []}
+        {"id": r[0], "title": r[1], "description": r[2], "genres": r[3] or [], "tags": r[4] or []}
         for r in rows
     ]
 
@@ -89,7 +87,7 @@ async def embed_games(embed_all: bool, batch_size: int) -> tuple[int, int]:
     embedded = 0
     for start in range(0, len(rows), batch_size):
         batch = rows[start:start + batch_size]
-        texts = [build_embedding_text(r["title"], r["description"], r["genres"]) for r in batch]
+        texts = [build_game_document(r) for r in batch]
         vectors = await _embed_batch(service, texts)
         embedded += await write_embeddings(batch, vectors)
         print(f"embed_games: embedded {embedded}/{len(rows)}...")
