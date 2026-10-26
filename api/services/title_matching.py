@@ -13,6 +13,9 @@ Match tiers, tried in order; the first tier with exactly one hit wins:
   edition     the title with its edition suffix removed matches the base game
               ("... Game of the Year Edition", "... - Deluxe Edition")
 
+ownership_key() is the looser key DeduplicationService uses to hide owned
+games from recommendations: it also folds remasters into the base game.
+
 A tier that hits more than one row is ambiguous. That title is recorded as
 unmatched with the candidate ids, never guessed. Unmatched titles are returned
 for review, not dropped.
@@ -55,6 +58,13 @@ _EDITION_SUFFIX = re.compile(
 )
 
 
+# A trailing remaster marker: "dark souls remastered", "bioshock remastered
+# edition", "okami hd remaster". Only the ownership key strips it; the import
+# matcher keeps remasters apart (see _EDITION_WORDS). "Remake" is left alone:
+# a remake is usually a new game ("Final Fantasy VII Remake").
+_REMASTER_SUFFIX = re.compile(r"\s+(?:hd\s+)?remaster(?:ed)?(?:\s+edition)?$")
+
+
 def normalise_title(title: str | None) -> str:
     """Canonical comparison key for a game title.
 
@@ -87,6 +97,24 @@ def strip_edition(normalised: str) -> str:
     """
     base = _EDITION_SUFFIX.sub("", normalised).strip()
     return base or normalised
+
+
+def ownership_key(title: str | None) -> str:
+    """The key two titles share when owning one should hide the other (REQ007).
+
+    normalise_title, then the edition suffix, then a remaster marker. Looser
+    than the import matcher on purpose: REQ007 errs on the side of hiding, so
+    owning "Dark Souls Remastered" hides "Dark Souls" from recommendations even
+    though an import keeps them as separate games. Accepted false positives are
+    listed in docs/ARCHITECTURE.md under Ownership.
+    """
+    normalised = normalise_title(title)
+    if not normalised:
+        return ""
+    base = strip_edition(normalised)
+    base = _REMASTER_SUFFIX.sub("", base).strip() or base
+    # "Remastered Special Edition" style: one more edition pass after the remaster.
+    return strip_edition(base)
 
 
 @dataclass(frozen=True)

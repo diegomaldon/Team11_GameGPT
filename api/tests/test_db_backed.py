@@ -13,7 +13,8 @@ import pytest
 
 from api.db import connection, has_db
 from api.services.embedding import EMBEDDING_DIM
-from api.services.deduplication import DeduplicationService, normalize_title
+from api.services.deduplication import DeduplicationService
+from api.services.title_matching import ownership_key
 from api.services.vector_store import _to_vector_literal
 
 DEV_USER = UUID("00000000-0000-0000-0000-000000000001")
@@ -37,11 +38,11 @@ async def _require_db() -> None:
         pytest.skip(f"DB not usable: {exc}")
 
 
-def test_normalize_title_lowercases_strips_punct_collapses_ws():
-    assert normalize_title("  The   Witcher 3: Wild-Hunt!! ") == "the witcher 3 wild hunt"
-    assert normalize_title("HALF-LIFE 2") == "half life 2"
-    assert normalize_title(None) == ""
-    assert normalize_title("") == ""
+def test_ownership_key_lowercases_strips_punct_collapses_ws():
+    assert ownership_key("  The   Witcher 3: Wild-Hunt!! ") == "the witcher 3 wild hunt"
+    assert ownership_key("HALF-LIFE 2") == "half life 2"
+    assert ownership_key(None) == ""
+    assert ownership_key("") == ""
 
 
 def test_vector_literal_format():

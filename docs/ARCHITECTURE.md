@@ -156,8 +156,32 @@ Incremental runs (TM11-41): each run re-embeds only new games and games whose
   as owned and recommended.
 - **Hosted:** matches on `owned_games.game_id`; the platform comes from the joined
   `platform_accounts` row. **Legacy:** matches on `game_id`, `steam_appid` or
-  normalized title, platform from `owned_games.platform`, and unions the platforms
+  title, platform from `owned_games.platform`, and unions the platforms
   from every key that matches.
+- **Title normalisation (TM11-57):** titles are compared by
+  `title_matching.ownership_key`. It folds case, accents, punctuation,
+  apostrophes, `&`, trademark symbols (™ ® © ℠), edition suffixes (Definitive,
+  Game of the Year, Special, Ultimate, Director's Cut, ...) and a trailing
+  remaster marker (Remastered, HD Remaster). It is looser than the import
+  matcher on purpose: an import keeps a remaster as its own `games` row, but
+  REQ007 errs on the side of hiding, so owning either one hides the other.
+  `api/tests/test_deduplication.py` holds the 40-pair fixture set.
+- **Accepted false positives** (hidden although arguably a different purchase;
+  pinned in `test_deduplication.py`):
+  - Original and remaster hide each other (*BioShock* / *BioShock Remastered*).
+  - Owning the base game hides its bundle editions (*The Witcher 3* hides
+    *Complete Edition*), even though the bundle adds DLC.
+  - Enhanced editions fold into the original (*Baldur's Gate: Enhanced Edition*).
+  - Legacy only: two different games with the same title hide each other even
+    when their appids differ (*Doom* 1993 / *DOOM* 2016), because every match
+    key is unioned.
+- **Accepted false negatives** (still recommended although owned):
+  - Hosted only: an owned edition with its own `games` row does not hide the
+    base game's row, since hosted matches `game_id` only. Pinned as a strict
+    xfail.
+  - Edition names without a trailing "Edition", "Cut" or "Version" are kept
+    apart (*Persona 5 Royal*, *The Stanley Parable: Ultra Deluxe*), as are
+    remakes (*Final Fantasy VII Remake*).
 - Recall, latency and index size: `scripts/eval_vector_index.py` →
   `artifacts/sprint6/tm11-40-vector-index.md`.
 
