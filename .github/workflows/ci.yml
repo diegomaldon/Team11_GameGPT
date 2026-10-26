@@ -223,6 +223,13 @@ jobs:
         working-directory: .
         run: python -m pytest api/tests/test_seed_demo.py -v
 
+      # TM11-59. REQ007 is absolute: an owned game is never recommended. Known
+      # gaps are strict xfails for TM11-57, so a fix there fails CI until the
+      # marker comes off and the case becomes a real guard.
+      - name: Pytest — deduplication suite
+        working-directory: .
+        run: python -m pytest api/tests/test_deduplication.py -v
+
   # -------------------------------------------------------------------------
   # TM11-88. The only job with a real database. It builds the local schema,
   # seeds the demo account with scripts/seed_demo.py (the same command the demo
