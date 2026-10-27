@@ -65,6 +65,20 @@ def hosted_top_k_sql(model: str, dimensions: int) -> sql.Composed:
     ).format(distance=distance, model=sql.Literal(model))
 
 
+# pgvector's default hnsw.ef_search. An HNSW scan returns at most this many
+# rows, so a larger k needs a larger search list or it comes back short.
+HNSW_DEFAULT_EF_SEARCH = 40
+
+# Transaction-local, so it lasts only for this search. The connection is
+# autocommit-off, so the select below runs in the same transaction.
+_SET_EF_SEARCH_SQL = sql.SQL("select set_config('hnsw.ef_search', %s, true)")
+
+
+def ef_search_for(k: int) -> int:
+    """The HNSW search list size that lets a scan return all `k` rows."""
+    return max(k, HNSW_DEFAULT_EF_SEARCH)
+
+
 def _similarity(distance: float) -> float:
     # Clamp: floating error / non-normalized vectors can nudge outside [0, 1].
     return max(0.0, min(1.0, 1.0 - float(distance)))
@@ -88,6 +102,10 @@ class VectorStore:
             query, params = _LEGACY_SQL, (vec, k)
         async with connection() as conn:
             async with conn.cursor() as cur:
+                if hosted:
+                    # Only the hosted shape has the HNSW index (TM11-40); the
+                    # legacy slice uses IVFFlat, which ignores this setting.
+                    await cur.execute(_SET_EF_SEARCH_SQL, (str(ef_search_for(k)),))
                 await cur.execute(query, params)
                 rows = await cur.fetchall()
         return [_hosted_candidate(r) if hosted else _legacy_candidate(r) for r in rows]

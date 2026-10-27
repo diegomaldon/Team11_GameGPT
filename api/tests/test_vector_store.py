@@ -105,13 +105,34 @@ async def test_hosted_top_k_reads_game_embeddings(monkeypatch):
 
     [candidate] = await VectorStore().top_k([0.1, 0.2], k=5)
 
-    query, params = cursor.executed[0]
+    query, params = cursor.executed[-1]
     assert "public.game_embeddings" in rendered(query)
     assert params == {"vec": "[0.1,0.2]", "k": 5}
     assert candidate.game_id == game_id
     assert candidate.developer == "Valve, Valve Seattle"
     assert candidate.review_score == pytest.approx(0.98)
     assert candidate.similarity == pytest.approx(0.75)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("k, ef_search", [(5, "40"), (40, "40"), (41, "41"), (50, "50")])
+async def test_hosted_top_k_widens_the_hnsw_search_to_k(monkeypatch, k, ef_search):
+    # HNSW returns at most ef_search rows (default 40), so k=50 would come
+    # back with 40 once the planner uses the index.
+    cursor = FakeCursor([])
+    monkeypatch.setattr(vector_store, "connection", fake_connection(cursor))
+
+    async def hosted():
+        return "hosted"
+
+    monkeypatch.setattr(vector_store, "catalogue_shape", hosted)
+
+    await VectorStore().top_k([0.1, 0.2], k=k)
+
+    (set_query, set_params), (search_query, _) = cursor.executed
+    assert "set_config('hnsw.ef_search', %s, true)" in rendered(set_query)
+    assert set_params == (ef_search,)
+    assert "public.game_embeddings" in rendered(search_query)
 
 
 @pytest.mark.asyncio
