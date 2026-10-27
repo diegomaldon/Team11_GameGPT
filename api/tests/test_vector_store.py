@@ -117,8 +117,7 @@ async def test_hosted_top_k_reads_game_embeddings(monkeypatch):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("k, ef_search", [(5, "40"), (40, "40"), (41, "41"), (50, "50")])
 async def test_hosted_top_k_widens_the_hnsw_search_to_k(monkeypatch, k, ef_search):
-    # HNSW returns at most ef_search rows (default 40), so k=50 would come
-    # back with 40 once the planner uses the index.
+    # The HNSW candidate list (ef_search, default 40) is widened to at least k.
     cursor = FakeCursor([])
     monkeypatch.setattr(vector_store, "connection", fake_connection(cursor))
 
@@ -149,7 +148,11 @@ async def test_legacy_top_k_reads_games_embedding(monkeypatch):
 
     [candidate] = await VectorStore().top_k([0.0], k=1)
 
-    query, _ = cursor.executed[0]
+    (probes_query, probes_params), (query, _) = cursor.executed
+    # Every IVFFlat list is probed: with lists = 100 over ~170 games, the
+    # default of one list can return no rows at all.
+    assert "set_config('ivfflat.probes', %s, true)" in rendered(probes_query)
+    assert probes_params == ("100",)
     assert "from games" in rendered(query)
     assert "game_embeddings" not in rendered(query)
     assert candidate.genres == [] and candidate.tags == []

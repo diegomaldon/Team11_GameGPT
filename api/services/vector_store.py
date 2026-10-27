@@ -65,8 +65,10 @@ def hosted_top_k_sql(model: str, dimensions: int) -> sql.Composed:
     ).format(distance=distance, model=sql.Literal(model))
 
 
-# pgvector's default hnsw.ef_search. An HNSW scan returns at most this many
-# rows, so a larger k needs a larger search list or it comes back short.
+# pgvector's default hnsw.ef_search: the candidate list an HNSW scan keeps.
+# A list smaller than k lowers recall for the larger k /api/search allows
+# (up to 50), and Diego saw a scan come back with only 40 rows on #37
+# (pgvector 0.8.7). A list of at least k costs little at this size.
 HNSW_DEFAULT_EF_SEARCH = 40
 
 # Transaction-local, so it lasts only for this search. The connection is
@@ -77,6 +79,15 @@ _SET_EF_SEARCH_SQL = sql.SQL("select set_config('hnsw.ef_search', %s, true)")
 def ef_search_for(k: int) -> int:
     """The HNSW search list size that lets a scan return all `k` rows."""
     return max(k, HNSW_DEFAULT_EF_SEARCH)
+
+
+# The legacy slice's IVFFlat index has lists = 100 (0001_init.sql, 0002) over a
+# catalogue of ~170 games, so most lists hold one game or none. pgvector scans
+# one list by default, so an index scan can return 0 rows. Which plan runs
+# depends on whether the table has been analyzed, which made the seeded CI test
+# flaky. Probing every list makes the search exact.
+IVFFLAT_LISTS = 100
+_SET_PROBES_SQL = sql.SQL("select set_config('ivfflat.probes', %s, true)")
 
 
 def _similarity(distance: float) -> float:
@@ -103,9 +114,10 @@ class VectorStore:
         async with connection() as conn:
             async with conn.cursor() as cur:
                 if hosted:
-                    # Only the hosted shape has the HNSW index (TM11-40); the
-                    # legacy slice uses IVFFlat, which ignores this setting.
+                    # Only the hosted shape has the HNSW index (TM11-40).
                     await cur.execute(_SET_EF_SEARCH_SQL, (str(ef_search_for(k)),))
+                else:
+                    await cur.execute(_SET_PROBES_SQL, (str(IVFFLAT_LISTS),))
                 await cur.execute(query, params)
                 rows = await cur.fetchall()
         return [_hosted_candidate(r) if hosted else _legacy_candidate(r) for r in rows]
