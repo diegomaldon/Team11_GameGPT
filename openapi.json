@@ -105,6 +105,40 @@
         }
       }
     },
+    "/api/client-error": {
+      "post": {
+        "tags": [
+          "errors"
+        ],
+        "summary": "Client Error",
+        "operationId": "client_error_api_client_error_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientErrorReport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/library": {
       "get": {
         "tags": [
@@ -481,6 +515,62 @@
   },
   "components": {
     "schemas": {
+      "ClientErrorReport": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Message"
+          },
+          "stack": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 8000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stack"
+          },
+          "kind": {
+            "type": "string",
+            "maxLength": 64,
+            "title": "Kind",
+            "default": "error"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "user_agent": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Agent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "ClientErrorReport"
+      },
       "CsvCommitRequest": {
         "properties": {
           "platform": {
