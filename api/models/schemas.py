@@ -12,7 +12,7 @@ from enum import Enum
 from typing import Literal, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 # ─────────────────────────── /api/recommend ───────────────────────────
@@ -322,3 +322,53 @@ class XboxImportResponse(BaseModel):
     unmatched: int = Field(..., description="Titles queued for review.")
     match_rate: float = Field(..., ge=0, le=1, description="matched / total, 0..1.")
     import_id: Optional[UUID] = None
+
+
+# ─────────────────────── /api/search (TM11-42) ───────────────────────
+
+SEMANTIC_SEARCH_DEFAULT_K = 10
+SEMANTIC_SEARCH_MAX_K = 50
+
+
+class SemanticSearchRequest(BaseModel):
+    """Body for POST /api/search: free text, matched by meaning rather than title."""
+
+    query: str = Field(..., min_length=1, max_length=500,
+                       description="What the player is looking for, in their own words.")
+    k: int = Field(SEMANTIC_SEARCH_DEFAULT_K, ge=1, le=SEMANTIC_SEARCH_MAX_K,
+                   description="How many candidates to return.")
+
+    @field_validator("query")
+    @classmethod
+    def _not_blank(cls, value: str) -> str:
+        # Whitespace embeds to a vector like any other text, so it would
+        # return k arbitrary games instead of an error.
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("query must not be blank")
+        return stripped
+
+
+class SemanticSearchResult(BaseModel):
+    """One catalogue game, ranked by how close it is to the query."""
+
+    rank: int = Field(..., ge=1, description="1 is the closest match.")
+    game_id: UUID
+    title: str
+    similarity: float = Field(..., ge=0, le=1,
+                              description="Cosine similarity to the query, 0-1.")
+    genres: list[str] = Field(default_factory=list)
+    steam_appid: Optional[int] = None
+    review_score: Optional[float] = None
+
+
+class SemanticSearchResponse(BaseModel):
+    """Body returned from POST /api/search."""
+
+    query: str = Field(..., description="The query as searched, trimmed.")
+    k: int
+    model: str = Field(..., description="Embedding model the query and catalogue share.")
+    results: list[SemanticSearchResult] = Field(
+        ..., description="At most k, best first. Fewer when the catalogue is smaller."
+    )
+    took_ms: float = Field(..., ge=0, description="Embed plus search time on the server.")

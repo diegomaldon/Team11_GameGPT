@@ -35,7 +35,8 @@ Supporting layers:
 | Concern                  | File                                   |
 |--------------------------|----------------------------------------|
 | Wire models (contract)   | `api/models/schemas.py`                |
-| HTTP routers             | `api/routers/{recommend,feedback,library,health}.py` |
+| HTTP routers             | `api/routers/{recommend,search,feedback,library,health}.py` |
+| Retrieval on its own     | `api/services/semantic_search.py` (TM11-42) |
 | Persistence              | `api/db/repositories.py`               |
 | DB connection + pgvector | `api/db/pool.py`                       |
 | Config / env / .env      | `api/config.py`                        |
@@ -68,6 +69,21 @@ web/app/(app)/page.tsx  (user submits a query)
        └─ web/lib/api/client.ts  sendFeedback({query_id, game_id, title, rank, vote})
             └─ POST /api/feedback → repositories.insert_feedback() → 204
 ```
+
+### Semantic search (TM11-42)
+
+```
+POST /api/search { query, k }
+  └─ api/routers/search.py  semantic_search()
+       └─ SemanticSearchService.search(query, k)      api/services/semantic_search.py
+            ├─ EmbeddingService.embed_query(query)     → 384-dim vector
+            └─ VectorStore.top_k(embedding, k)         → cosine top-k (same SQL as recommend)
+  ← SemanticSearchResponse { query, k, model, results[rank, game_id, title, similarity, …], took_ms }
+```
+
+The first two steps of recommend, without dropping owned games, the LLM or any
+writes. Retrieval can be tested, timed (`scripts/eval_search_latency.py`) and
+tuned apart from ranking.
 
 ### Library sync
 

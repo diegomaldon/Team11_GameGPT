@@ -105,13 +105,33 @@ async def test_hosted_top_k_reads_game_embeddings(monkeypatch):
 
     [candidate] = await VectorStore().top_k([0.1, 0.2], k=5)
 
-    query, params = cursor.executed[0]
+    query, params = cursor.executed[-1]
     assert "public.game_embeddings" in rendered(query)
     assert params == {"vec": "[0.1,0.2]", "k": 5}
     assert candidate.game_id == game_id
     assert candidate.developer == "Valve, Valve Seattle"
     assert candidate.review_score == pytest.approx(0.98)
     assert candidate.similarity == pytest.approx(0.75)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("k, ef_search", [(5, "40"), (40, "40"), (41, "41"), (50, "50")])
+async def test_hosted_top_k_widens_the_hnsw_search_to_k(monkeypatch, k, ef_search):
+    # The HNSW candidate list (ef_search, default 40) is widened to at least k.
+    cursor = FakeCursor([])
+    monkeypatch.setattr(vector_store, "connection", fake_connection(cursor))
+
+    async def hosted():
+        return "hosted"
+
+    monkeypatch.setattr(vector_store, "catalogue_shape", hosted)
+
+    await VectorStore().top_k([0.1, 0.2], k=k)
+
+    (set_query, set_params), (search_query, _) = cursor.executed
+    assert "set_config('hnsw.ef_search', %s, true)" in rendered(set_query)
+    assert set_params == (ef_search,)
+    assert "public.game_embeddings" in rendered(search_query)
 
 
 @pytest.mark.asyncio
@@ -128,7 +148,11 @@ async def test_legacy_top_k_reads_games_embedding(monkeypatch):
 
     [candidate] = await VectorStore().top_k([0.0], k=1)
 
-    query, _ = cursor.executed[0]
+    (probes_query, probes_params), (query, _) = cursor.executed
+    # Every IVFFlat list is probed: with lists = 100 over ~170 games, the
+    # default of one list can return no rows at all.
+    assert "set_config('ivfflat.probes', %s, true)" in rendered(probes_query)
+    assert probes_params == ("100",)
     assert "from games" in rendered(query)
     assert "game_embeddings" not in rendered(query)
     assert candidate.genres == [] and candidate.tags == []

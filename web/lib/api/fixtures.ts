@@ -36,7 +36,7 @@ export function fixtureRecommend(query: string): RecommendResponse {
         reason:
           "A relaxed farming sim with no fail state — easy to play with one hand while a podcast runs in the background.",
         steam_appid: 413150,
-        review_score: 98,
+        review_score: 0.98,
       },
       {
         rank: 2,
@@ -45,7 +45,7 @@ export function fixtureRecommend(query: string): RecommendResponse {
         reason:
           "A calm tile-placement puzzler. Quiet, low-stakes, and pauses whenever you need to focus on what you're listening to.",
         steam_appid: 1455840,
-        review_score: 96,
+        review_score: 0.96,
       },
       {
         rank: 3,
@@ -54,7 +54,7 @@ export function fixtureRecommend(query: string): RecommendResponse {
         reason:
           "Turn-based deckbuilding means you set the pace, so it fits comfortably around a podcast without demanding constant attention.",
         steam_appid: 646570,
-        review_score: 97,
+        review_score: 0.97,
       },
     ],
   };
@@ -160,7 +160,8 @@ export function fixtureStartSync(steamId: string): LibrarySyncJob {
 
 export function fixtureGetSyncJob(jobId: string): LibrarySyncJob {
   const job = fixtureJobs.get(jobId);
-  if (!job) throw new Error(`unknown fixture job ${jobId}`);
+  // Same as the API: a job it doesn't know is a 404, which runLibrarySync stops on.
+  if (!job) throw new ApiError("fixture poll failed", 404, null, "job_not_found", "No such sync job.");
   if (job.state === "fetching") {
     Object.assign(job, { state: "importing", total: FIXTURE_TOTAL });
   } else if (job.state === "importing") {

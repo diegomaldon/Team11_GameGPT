@@ -18,7 +18,7 @@ from api.config import get_settings
 from api.observability import configure_logging, init_sentry
 from api.observability import install as install_observability
 from api.request_size import RequestSizeLimitMiddleware
-from api.routers import errors, feedback, health, recommend
+from api.routers import errors, feedback, health, recommend, search
 
 log = logging.getLogger("gamegpt.startup")
 
@@ -82,6 +82,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router, prefix="/api")
     app.include_router(recommend.router, prefix="/api")
+    app.include_router(search.router, prefix="/api")
     app.include_router(feedback.router, prefix="/api")
     app.include_router(errors.router, prefix="/api")
     if library is not None:
