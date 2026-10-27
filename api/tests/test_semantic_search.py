@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 from api.main import create_app
 from api.models import GameCandidate
 from api.routers import search as search_router
+from api.services.embedding import EmbeddedText, EmbeddingService
 from api.services.semantic_search import SemanticSearchService
 
 MODEL = "sentence-transformers/all-MiniLM-L6-v2"
@@ -40,9 +41,9 @@ class FakeEmbedding:
     def __init__(self) -> None:
         self.queries: list[str] = []
 
-    async def embed_query(self, text: str) -> list[float]:
-        self.queries.append(text)
-        return [0.0] * 384
+    async def embed_documents(self, texts: list[str]) -> list[EmbeddedText]:
+        self.queries.extend(texts)
+        return [EmbeddedText([0.0] * 384, len(t.split()), False) for t in texts]
 
 
 class FakeVectorStore:
@@ -202,6 +203,31 @@ def test_store_failure_is_a_structured_503_without_the_cause(monkeypatch):
         "message": search_router.SEARCH_FAILED_MESSAGE,
     }
     assert "secret-host" not in resp.text
+
+
+def test_model_load_failure_is_a_503_not_stub_results(monkeypatch):
+    # The real service, with a model that can't load (no torch, failed
+    # download, out of memory). It must not fall back to hashed vectors.
+    def fail_to_load(self):
+        raise OSError("can't load weights from /models/secret-path")
+
+    monkeypatch.setattr(EmbeddingService, "_load", fail_to_load)
+    store = FakeVectorStore()
+    monkeypatch.setattr(
+        search_router, "SemanticSearchService",
+        lambda: SemanticSearchService(EmbeddingService(MODEL, use_stub=False), store),
+    )
+    client = TestClient(create_app(), raise_server_exceptions=False)
+
+    resp = _search(client)
+
+    assert resp.status_code == 503
+    assert resp.json()["detail"] == {
+        "error": "search_failed",
+        "message": search_router.SEARCH_FAILED_MESSAGE,
+    }
+    assert "secret-path" not in resp.text
+    assert store.calls == []
 
 
 # Wiring.

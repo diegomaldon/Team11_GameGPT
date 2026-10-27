@@ -39,7 +39,10 @@ class SemanticSearchService:
     async def search(self, query: str, k: int) -> SearchOutcome:
         """Return up to `k` games closest to `query`, ranked 1..n by similarity."""
         started = time.perf_counter()
-        vector = await self.embedding.embed_query(query)
+        # embed_documents, not embed_query: if the model can't load it raises
+        # EmbeddingModelError (a 503) instead of quietly searching with a stub
+        # vector under the real model's name.
+        vector = (await self.embedding.embed_documents([query]))[0].vector
         candidates = await self.vector_store.top_k(vector, k=k)
         took_ms = (time.perf_counter() - started) * 1000
         return SearchOutcome(
