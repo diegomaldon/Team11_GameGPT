@@ -1,4 +1,4 @@
-"""POST /api/search (TM11-42, REQ011).
+"""POST /api/search (TM11-42, TM11-43, REQ011).
 
 One group per acceptance criterion. The embedding model and the vector store
 are faked, so these run offline with no torch and no database. Latency on the
@@ -17,6 +17,7 @@ from api.models import GameCandidate
 from api.routers import search as search_router
 from api.services.embedding import EmbeddedText, EmbeddingService
 from api.services.semantic_search import SemanticSearchService
+from api.services.vector_store import SearchFilters
 
 MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
@@ -53,9 +54,11 @@ class FakeVectorStore:
         self.candidates = candidates
         self.error = error
         self.calls: list[int] = []
+        self.filters: list[SearchFilters | None] = []
 
-    async def top_k(self, embedding, k=20):
+    async def top_k(self, embedding, k=20, filters=None):
         self.calls.append(k)
+        self.filters.append(filters)
         if self.error:
             raise self.error
         return self.candidates[:k]
@@ -187,6 +190,68 @@ def test_empty_catalogue_returns_no_results(monkeypatch):
     assert resp.json()["results"] == []
 
 
+# TM11-43: platform and genre filters.
+
+def test_no_filters_by_default(client, fakes):
+    _, store = fakes
+
+    _search(client)
+
+    assert store.filters == [SearchFilters()]
+
+
+def test_filters_reach_the_vector_store(client, fakes):
+    _, store = fakes
+
+    resp = _search(client, platforms=["steam", "xbox"], genres=["RPG", " Co-op "])
+
+    assert resp.status_code == 200
+    assert store.filters == [SearchFilters(platforms=("steam", "xbox"), genres=("RPG", "Co-op"))]
+
+
+def test_repeated_filter_values_are_sent_once(client, fakes):
+    _, store = fakes
+
+    _search(client, platforms=["epic", "epic"], genres=["RPG", "rpg", "Puzzle"])
+
+    assert store.filters == [SearchFilters(platforms=("epic",), genres=("RPG", "Puzzle"))]
+
+
+@pytest.mark.parametrize("body", [
+    {"platforms": ["playstation"]},
+    {"platforms": "steam"},
+    {"genres": [""]},
+    {"genres": ["   "]},
+    {"genres": ["x" * 51]},
+    {"genres": [f"genre {n}" for n in range(11)]},
+])
+def test_bad_filters_are_rejected(client, fakes, body):
+    _, store = fakes
+
+    resp = _search(client, **body)
+
+    assert resp.status_code == 422
+    assert store.calls == []
+
+
+def test_a_filter_nothing_matches_is_a_200_with_no_results(monkeypatch):
+    monkeypatch.setattr(search_router, "SemanticSearchService",
+                        lambda: SemanticSearchService(FakeEmbedding(), FakeVectorStore([])))
+    client = TestClient(create_app())
+
+    resp = _search(client, platforms=["epic"], genres=["Visual Novel"])
+
+    assert resp.status_code == 200
+    assert resp.json()["results"] == []
+
+
+def test_the_response_echoes_the_filters_it_applied(client):
+    body = _search(client, platforms=["xbox"], genres=["RPG", "rpg"]).json()
+
+    assert body["platforms"] == ["xbox"]
+    assert body["genres"] == ["RPG"]
+
+
 # Failures.
 
 def test_store_failure_is_a_structured_503_without_the_cause(monkeypatch):
@@ -249,3 +314,5 @@ def test_endpoint_is_in_the_openapi_contract():
     operation = spec["paths"]["/api/search"]["post"]
     assert "200" in operation["responses"]
     assert "SemanticSearchResponse" in spec["components"]["schemas"]
+    request = spec["components"]["schemas"]["SemanticSearchRequest"]["properties"]
+    assert {"platforms", "genres"} <= set(request)

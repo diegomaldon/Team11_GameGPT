@@ -171,20 +171,35 @@ half of `/api/recommend` on its own. The query is embedded with the same model a
 the catalogue, and games come back ranked by cosine similarity. Read-only. Unlike
 recommend, it writes nothing, keeps owned games in the results and calls no LLM.
 
+Platform and genre filters (TM11-43) are hard filters, applied inside the vector
+query before the top `k` is taken. A game that fails one is never returned, and
+you still get up to `k` games when that many match.
+
 **Request**
 ```json
-{ "query": "cozy farming game with townsfolk to befriend", "k": 3 }
+{
+  "query": "cozy farming game with townsfolk to befriend",
+  "k": 3,
+  "platforms": ["steam", "xbox"],
+  "genres": ["Simulation"]
+}
 ```
 | Field | Type | Notes |
 |-------|------|-------|
 | `query` | string | required, 1–500 chars, trimmed; whitespace only is rejected |
 | `k` | integer | how many candidates, 1–50, default 10 |
+| `platforms` | string[] | optional, any of `steam`, `xbox`, `epic`. Keeps games available on at least one. Empty or absent means any platform |
+| `genres` | string[] | optional, up to 10, each 1–50 chars, matched ignoring case. Keeps games with at least one. Empty or absent means any genre |
+
+When both are set, a game has to pass both.
 
 **200**
 ```json
 {
   "query": "cozy farming game with townsfolk to befriend",
   "k": 3,
+  "platforms": ["steam", "xbox"],
+  "genres": ["Simulation"],
   "model": "sentence-transformers/all-MiniLM-L6-v2",
   "results": [
     {
@@ -204,25 +219,33 @@ recommend, it writes nothing, keeps owned games in the results and calls no LLM.
 ```
 | Field | Type | Notes |
 |-------|------|-------|
-| `results[]` | array | at most `k`, best first, `rank` 1..n; fewer when the catalogue is smaller |
+| `results[]` | array | at most `k`, best first, `rank` 1..n; fewer when fewer games match, `[]` when none do (still a 200) |
+| `platforms`, `genres` | string[] | the filters as applied: trimmed, each value once |
 | `results[].similarity` | float | cosine similarity to the query, `0..1`, 4 decimals |
 | `model` | string | the embedding model used for both sides of the comparison |
 | `took_ms` | float | embed + search time on the server, without HTTP overhead |
 
 - On the hosted schema it searches `game_embeddings` through the partial HNSW
   index (TM11-40); on the local `0001_init.sql` slice it searches `games.embedding`.
+- Platforms come from `games.available_platforms` on the hosted schema. The local
+  slice has no platform column and every game in it came from Steam, so there
+  `steam` keeps games with a `steam_appid` and `xbox` or `epic` alone match nothing.
+- A filtered search on the hosted schema turns on pgvector's iterative HNSW scan
+  (`hnsw.iterative_scan = strict_order`). Without it, a filter that rules out most
+  of the scan's candidate list returns fewer than `k`, or nothing.
 - **Latency:** warm p95 under 1 s. Measure it with `python scripts/eval_search_latency.py`;
   the last run is in `artifacts/sprint7/tm11-42-search-latency.md`. The first request
   after boot also loads the model (tens of seconds), unless the startup warm-up has
   already finished.
-- **422**: `query` blank or over 500 chars, `k` outside 1–50.
+- **422**: `query` blank or over 500 chars, `k` outside 1–50, an unknown platform,
+  a blank or over-long genre, more than 10 genres.
 - **503** `search_failed`: embedding or database failure; the cause is only logged.
 
 **Example**
 ```bash
 curl -s -X POST http://localhost:8000/api/search \
   -H "Content-Type: application/json" \
-  -d '{"query":"hard roguelike with tight controls","k":5}'
+  -d '{"query":"hard roguelike with tight controls","k":5,"platforms":["steam"],"genres":["Roguelike"]}'
 ```
 
 ---
