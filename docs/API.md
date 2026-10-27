@@ -6,13 +6,100 @@ root (also served at `/openapi.json`, with interactive docs at `/docs`).
 
 Request/response models are defined in `api/models/schemas.py`. There is **no
 auth** — every request acts as the single seeded dev user (`DEV_USER_ID`).
+The web client sends `Authorization: Bearer <Supabase token>` when signed in;
+the API only logs its unverified `sub` and never uses it to decide access.
+
+`openapi.json` is generated, never hand-edited. After changing a route or a
+model, run `python scripts/export_openapi.py` and update this file in the same
+pull request. CI fails when `openapi.json` doesn't match the app or a route
+isn't documented here (`api/tests/test_api_contract.py`).
+
+## Contracts for the frontend
+
+What the web app builds against (TM11-21). A **planned** contract is agreed
+but not served yet, so the frontend can build against a fixture first. When the
+route ships, its section loses the `(planned)` marker; CI fails if a planned
+route is served, or a served route has no section.
+
+| Area | Endpoint | Status |
+|------|----------|--------|
+| Library | [`GET /api/library`](#get-apilibrary) | live |
+| Library | [`POST /api/library/sync`](#post-apilibrarysync), [`POST /api/library/sync/jobs`](#post-apilibrarysyncjobs), [`GET /api/library/sync/jobs/{job_id}`](#get-apilibrarysyncjobsjob_id) | live |
+| Library | [`POST /api/library/csv/preview`](#post-apilibrarycsvpreview), [`POST /api/library/csv/commit`](#post-apilibrarycsvcommit), [`POST /api/library/manual`](#post-apilibrarymanual), [`POST /api/library/xbox`](#post-apilibraryxbox) | live |
+| Search | [`GET /api/games/search`](#get-apigamessearch): title autocomplete | live |
+| Search | [`POST /api/search`](#post-apisearch): semantic search (TM11-42) | live |
+| Search | [`POST /api/recommend`](#post-apirecommend): ranked recommendations with reasons | live |
+| Detail | [`GET /api/games/{game_id}`](#get-apigamesgame_id-planned): one game's detail panel | planned (TM11-78, TM11-79) |
+| All | [Errors](#errors): the four error shapes and every error code | live |
 
 ## Conventions
 
 - Content type is `application/json`.
-- Errors return a structured body: `{"detail": {"error": "<code>", "message": "<text>"}}`
-  with status `502` (a downstream/LLM/Steam failure) or `503` (DB unavailable).
-- UUIDs are strings; `review_score` is a float in `0..1`.
+- UUIDs are strings; `review_score` is a float in `0..1`. Optional fields are
+  sent as `null`, not left out.
+- Every response carries an `x-request-id` header. The client may send its own
+  (at most 64 characters are kept), so a browser error and the request behind it
+  share one id. Quote it in bug reports; it matches a server log line.
+- Errors are described in [Errors](#errors).
+
+## Errors
+
+Every error response is JSON. Read `detail.error` and `detail.message` when
+`detail` is an object, and treat anything else as an unexpected failure.
+
+**1. Handled errors** (every `4xx`/`5xx` a route raises on purpose):
+```json
+{ "detail": { "error": "already_owned", "message": "That game is already in your library on this platform." } }
+```
+| Field | Notes |
+|-------|-------|
+| `detail.error` | stable `snake_case` code. Branch on this, not on `message` |
+| `detail.message` | written for users, safe to show as is. Never contains an id, key, URL, stack trace or the uploaded file's contents |
+
+**2. Request validation** (`422`, FastAPI's own shape). `detail` is a list:
+```json
+{ "detail": [ { "type": "missing", "loc": ["body", "query"], "msg": "Field required", "input": {} } ] }
+```
+`loc` names the bad field. `msg` is developer text, not for users. Some `422`s
+are handled errors instead (shape 1), such as `file_too_large` on CSV upload, so
+check whether `detail` is an object or a list.
+
+**3. Unknown route or method** (`404`, `405`, FastAPI's own shape):
+```json
+{ "detail": "Not Found" }
+```
+
+**4. Unexpected server error** (`500`). The body is **not** under `detail`:
+```json
+{ "error": "internal_error", "message": "Something went wrong. Quote this id if you report it.", "request_id": "9306dd18ef6f4939858b7e66f40d9c55" }
+```
+The cause is reported to the error sink and never sent to the client.
+
+**Error codes**
+
+| Status | `error` | Endpoint | When |
+|--------|---------|----------|------|
+| 403 | `steam_profile_private` | `/api/library/sync` | the Steam profile or its game details aren't public |
+| 404 | `job_not_found` | `/api/library/sync/jobs/{job_id}` | unknown id, or another user's job |
+| 404 | `game_not_found` | `/api/library/manual` | `game_id` isn't in the catalogue |
+| 409 | `already_owned` | `/api/library/manual` | already in the library on this platform |
+| 413 | `request_too_large` | any | body over 4 MB |
+| 422 | `steam_invalid_id` | `/api/library/sync` | not a steamID64 Steam recognises |
+| 422 | `file_too_large`, `too_many_rows`, `empty_file`, `no_rows`, `not_text`, `missing_title_column`, `duplicate_column`, `malformed_csv`, `review_mismatch` | `/api/library/csv/*` | see [CSV errors](#post-apilibrarycsvcommit) |
+| 500 | `internal_error` | any | an unexpected failure (shape 4) |
+| 502 | `recommendation_failed` | `/api/recommend` | the pipeline or LLM failed |
+| 502 | `steam_request_rejected` | `/api/library/sync` | Steam refused the request (for example a bad API key) |
+| 502 | `sync_failed` | `/api/library/sync` | any other sync failure; nothing was committed |
+| 503 | `db_unavailable` | `/api/recommend`, `/api/feedback`, `/api/library` | the database read or write failed |
+| 503 | `steam_unavailable` | `/api/library/sync` | Steam isn't responding; retry later |
+| 503 | `csv_import_failed` | `/api/library/csv/*` | anything else; the cause is only logged |
+| 503 | `search_failed` | `/api/games/search`, `/api/search` | anything else; the cause is only logged |
+| 503 | `manual_import_failed` | `/api/library/manual` | anything else; the cause is only logged |
+| 503 | `import_failed` | `/api/library/xbox` | the write failed; nothing changed |
+
+A background sync (`/api/library/sync/jobs`) never fails its HTTP request for
+these. It reports them in the job instead, as `state: "failed"` with the same
+code in `error_code` and the message in `error`.
 
 ---
 
@@ -201,10 +288,23 @@ see `docs/FRONTEND.md`).
 ```json
 {
   "items": [
-    { "game_id": null, "title": "Celeste", "steam_appid": 504230, "platform": "steam" }
+    { "game_id": "7b0d…", "title": "Hades", "steam_appid": 1145360, "platform": "steam", "playtime_minutes": 3120 },
+    { "game_id": null, "title": "Celeste", "steam_appid": 504230, "platform": "epic", "playtime_minutes": 0 }
   ]
 }
 ```
+| Field | Type | Notes |
+|-------|------|-------|
+| `items[].game_id` | uuid \| null | the catalogue game; `null` when the title didn't match one |
+| `items[].title` | string | the title as imported |
+| `items[].steam_appid` | int \| null | |
+| `items[].platform` | string | lowercase: `steam`, `xbox` or `epic` |
+| `items[].playtime_minutes` | int | `0` when the platform doesn't report playtime |
+
+Sorted by `playtime_minutes` descending, then `title`. The same game owned on
+two platforms is two items.
+
+- **503** `db_unavailable` if the library can't be read.
 
 ---
 
@@ -253,7 +353,10 @@ for review.
 - The import is one transaction. A bad title is skipped and listed in `failed`,
   but if the run itself fails (Steam error, DB connection lost) nothing is
   committed and the previous library is unchanged.
-- **502** `sync_failed` on a Steam/API error.
+- `steam_id` is 1–32 characters.
+- **Errors:** **403** `steam_profile_private`, **422** `steam_invalid_id`,
+  **502** `steam_request_rejected` or `sync_failed`, **503** `steam_unavailable`.
+  See [Error codes](#errors). Nothing is committed on any of them.
 
 ---
 
@@ -279,10 +382,16 @@ Poll an import. The web client polls every 750 ms (`runLibrarySync` in
   "state": "importing",
   "total": 500, "processed": 150, "synced": 149,
   "failed": [{ "steam_appid": 7, "title": "Broken Game", "reason": "DataError: integer out of range" }],
-  "source": "steam", "error": null,
+  "source": "steam", "error": null, "error_code": null,
+  "import_id": null, "matched": null, "unmatched": null, "match_rate": null,
   "started_at": "2026-10-06T14:31:37Z", "finished_at": null
 }
 ```
+`error_code` is set with `error` when the job fails: one of the Steam codes in
+[Error codes](#errors), or `sync_failed`. The four matching fields are `null`
+until the import has matched the titles, then mean the same as in
+`POST /api/library/sync`.
+
 | `state` | Meaning |
 |---------|---------|
 | `queued` | accepted, not started |
@@ -407,6 +516,61 @@ come first, then shorter titles. `%` and `_` are matched literally.
 - **422**: `q` missing or too long, `limit` out of range.
 - **503** `search_failed`: anything else; the cause is only logged.
 
+## `GET /api/games/{game_id}` (planned)
+
+**Not served yet.** The contract for the game detail panel (REQ009, use case
+2.20), agreed so TM11-78 (layout) and TM11-79 (data wiring) can build against a
+fixture first. Every field maps to a column `public.games` already has; nothing
+here needs a migration. Read-only.
+
+| Path | Type | Notes |
+|------|------|-------|
+| `game_id` | uuid | from a recommendation, a search result or a library item |
+
+**200**
+```json
+{
+  "game_id": "bf6fddc6-a4be-4461-8eb9-827239d8dd35",
+  "title": "Stardew Valley",
+  "description": "You've inherited your grandfather's old farm plot in Stardew Valley…",
+  "genres": ["Simulation", "RPG"],
+  "tags": ["Farming Sim", "Cozy", "Multiplayer"],
+  "release_date": "2016-02-26",
+  "developers": ["ConcernedApe"],
+  "publishers": ["ConcernedApe"],
+  "header_image_url": "https://cdn.akamai.steamstatic.com/steam/apps/413150/header.jpg",
+  "review_score": 0.98,
+  "critic_score": 0.89,
+  "steam_appid": 413150,
+  "available_platforms": ["steam", "xbox"],
+  "purchase_links": { "steam": "https://store.steampowered.com/app/413150" },
+  "owned_on": ["steam"]
+}
+```
+| Field | Type | Notes |
+|-------|------|-------|
+| `description` | string \| null | |
+| `genres`, `tags` | string[] | `[]` when unknown, never `null` |
+| `release_date` | string \| null | ISO date, `YYYY-MM-DD` |
+| `developers`, `publishers` | string[] | `[]` when unknown |
+| `header_image_url` | string \| null | https |
+| `review_score`, `critic_score` | float \| null | `0..1`, like everywhere else in this API. Stored as `0..100` |
+| `steam_appid` | int \| null | |
+| `available_platforms` | string[] | lowercase `steam`, `xbox`, `epic`: where the game can be bought |
+| `purchase_links` | object | keyed by lowercase platform. A key is present only when the metadata source supplied a validated link (TM11-37), so `{}` is normal. Never build a link client-side |
+| `owned_on` | string[] | platforms the user owns it on, in badge order (`steam`, `xbox`, `epic`), from `DeduplicationService.owned_platforms` (TM11-58). `[]` when not owned |
+
+**Errors**
+| Status | `error` | When |
+|--------|---------|------|
+| 404 | `game_not_found` | no catalogue game with this id |
+| 422 | | `game_id` isn't a uuid (shape 2 in [Errors](#errors)) |
+| 503 | `game_detail_failed` | anything else; the cause is only logged |
+
+- Register the route after `GET /api/games/search`. Otherwise `search` is read as
+  a `game_id` and answers 422.
+- Page-view logging (TM11-79) is a separate write and not part of this response.
+
 ## `POST /api/library/manual`
 
 Add one catalogue game to the library by hand (TM11-54, REQ004). For platforms
@@ -479,3 +643,31 @@ At most 5,000 titles. A titleId listed twice is imported once.
 |--------|---------|------|
 | 422 | | a titleId that isn't decimal, a blank name, or more than 5,000 titles |
 | 503 | `import_failed` | the write failed. It runs in one transaction, so nothing changed; the cause is only logged |
+
+---
+
+## `POST /api/client-error`
+
+Report a browser error to the server's error sink, so the frontend needs no
+Sentry DSN of its own (`api/routers/errors.py`). Unauthenticated on purpose: a
+report matters most when auth is what broke.
+
+**Request**
+```json
+{ "message": "TypeError: x is undefined", "stack": "at Discover (page.tsx:42)",
+  "kind": "error", "url": "https://gamegpt.example/discover", "user_agent": "Mozilla/5.0 …" }
+```
+| Field | Type | Notes |
+|-------|------|-------|
+| `message` | string | required, at most 1,000 chars |
+| `stack` | string \| null | at most 8,000 chars |
+| `kind` | string | default `"error"`, at most 64 chars |
+| `url` | string \| null | at most 2,000 chars |
+| `user_agent` | string \| null | at most 500 chars |
+
+**204** No Content, always, including when the caller is rate limited
+(20 reports a minute per IP). A client that is already failing shouldn't have
+to handle a failure from the endpoint it reports to. Everything is redacted
+before it is logged.
+
+- **422**: a field over its limit, or `message` missing.
