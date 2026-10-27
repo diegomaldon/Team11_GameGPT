@@ -153,6 +153,11 @@ resolves against canned data in `lib/api/fixtures.ts` — `npm run dev` works fu
 standalone, still simulating the ~1.5 s recommend latency. Unset it to hit the
 real API.
 
+Fixtures follow the contracts in [`docs/API.md`](API.md): the same fields, value
+ranges and error codes (thrown as `ApiError`), so a screen built against them
+works against the API. `lib/api/fixtures.test.ts` checks the ranges and codes the
+generated types can't.
+
 ---
 
 ## Commands
