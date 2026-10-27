@@ -218,6 +218,12 @@ jobs:
             api/tests/test_ownership.py \
             api/tests/test_vector_store.py -v
 
+      # TM11-42. Ranked results with scores, configurable k and the error
+      # contract are acceptance criteria. Model and vector store are faked.
+      - name: Pytest — semantic search endpoint
+        working-directory: .
+        run: python -m pytest api/tests/test_semantic_search.py -v
+
       # TM11-21. openapi.json is what the web types are generated from, so a
       # route or model change that isn't exported to it fails here.
       - name: Pytest — API contract

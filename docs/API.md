@@ -164,6 +164,69 @@ curl -s -X POST http://localhost:8000/api/recommend \
 
 ---
 
+## `POST /api/search`
+
+Semantic similarity search over the catalogue (TM11-42, REQ011): the retrieval
+half of `/api/recommend` on its own. The query is embedded with the same model as
+the catalogue, and games come back ranked by cosine similarity. Read-only. Unlike
+recommend, it writes nothing, keeps owned games in the results and calls no LLM.
+
+**Request**
+```json
+{ "query": "cozy farming game with townsfolk to befriend", "k": 3 }
+```
+| Field | Type | Notes |
+|-------|------|-------|
+| `query` | string | required, 1–500 chars, trimmed; whitespace only is rejected |
+| `k` | integer | how many candidates, 1–50, default 10 |
+
+**200**
+```json
+{
+  "query": "cozy farming game with townsfolk to befriend",
+  "k": 3,
+  "model": "sentence-transformers/all-MiniLM-L6-v2",
+  "results": [
+    {
+      "rank": 1,
+      "game_id": "bf6fddc6-a4be-4461-8eb9-827239d8dd35",
+      "title": "Stardew Valley",
+      "similarity": 0.6422,
+      "genres": ["Simulation", "RPG"],
+      "steam_appid": 413150,
+      "review_score": 0.98
+    },
+    { "rank": 2, "title": "Don't Starve Together", "similarity": 0.5069, "…": "…" },
+    { "rank": 3, "title": "This War of Mine", "similarity": 0.3314, "…": "…" }
+  ],
+  "took_ms": 209.82
+}
+```
+| Field | Type | Notes |
+|-------|------|-------|
+| `results[]` | array | at most `k`, best first, `rank` 1..n; fewer when the catalogue is smaller |
+| `results[].similarity` | float | cosine similarity to the query, `0..1`, 4 decimals |
+| `model` | string | the embedding model used for both sides of the comparison |
+| `took_ms` | float | embed + search time on the server, without HTTP overhead |
+
+- On the hosted schema it searches `game_embeddings` through the partial HNSW
+  index (TM11-40); on the local `0001_init.sql` slice it searches `games.embedding`.
+- **Latency:** warm p95 under 1 s. Measure it with `python scripts/eval_search_latency.py`;
+  the last run is in `artifacts/sprint7/tm11-42-search-latency.md`. The first request
+  after boot also loads the model (tens of seconds), unless the startup warm-up has
+  already finished.
+- **422**: `query` blank or over 500 chars, `k` outside 1–50.
+- **503** `search_failed`: embedding or database failure; the cause is only logged.
+
+**Example**
+```bash
+curl -s -X POST http://localhost:8000/api/search \
+  -H "Content-Type: application/json" \
+  -d '{"query":"hard roguelike with tight controls","k":5}'
+```
+
+---
+
 ## `POST /api/feedback`
 
 Persist a thumbs up/down. Stored only — does not affect ranking in the skeleton.

@@ -147,6 +147,17 @@ python scripts/eval_vector_index.py --repeats 20
 It needs the real model (it refuses `EMBEDDING_STUB=1`) and the hosted schema. Exit
 code 1 means the index is missing or a `(game_id, model)` row is duplicated.
 
+**Search latency (TM11-42).** To time `POST /api/search` end to end on a warm model,
+on either schema:
+
+```bash
+python scripts/eval_search_latency.py            # writes artifacts/sprint7/tm11-42-search-latency.md
+python scripts/eval_search_latency.py --repeats 20 --k 10
+```
+
+It sends requests to the app in-process, so the network hop to a host is not
+counted. Exit code 1 means the warm p95 is 1 second or more.
+
 ---
 
 ## Enabling real LLM

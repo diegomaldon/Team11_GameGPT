@@ -71,6 +71,48 @@
         }
       }
     },
+    "/api/search": {
+      "post": {
+        "tags": [
+          "search"
+        ],
+        "summary": "Semantic Search",
+        "description": "Catalogue games ranked by cosine similarity to the query, best first.",
+        "operationId": "semantic_search_api_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SemanticSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SemanticSearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/feedback": {
       "post": {
         "tags": [
@@ -1382,6 +1424,137 @@
         ],
         "title": "Recommendation",
         "description": "One ranked recommendation returned to the client."
+      },
+      "SemanticSearchRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Query",
+            "description": "What the player is looking for, in their own words."
+          },
+          "k": {
+            "type": "integer",
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "K",
+            "description": "How many candidates to return.",
+            "default": 10
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "SemanticSearchRequest",
+        "description": "Body for POST /api/search: free text, matched by meaning rather than title."
+      },
+      "SemanticSearchResponse": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query",
+            "description": "The query as searched, trimmed."
+          },
+          "k": {
+            "type": "integer",
+            "title": "K"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model",
+            "description": "Embedding model the query and catalogue share."
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/SemanticSearchResult"
+            },
+            "type": "array",
+            "title": "Results",
+            "description": "At most k, best first. Fewer when the catalogue is smaller."
+          },
+          "took_ms": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Took Ms",
+            "description": "Embed plus search time on the server."
+          }
+        },
+        "type": "object",
+        "required": [
+          "query",
+          "k",
+          "model",
+          "results",
+          "took_ms"
+        ],
+        "title": "SemanticSearchResponse",
+        "description": "Body returned from POST /api/search."
+      },
+      "SemanticSearchResult": {
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Rank",
+            "description": "1 is the closest match."
+          },
+          "game_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Game Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "similarity": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Similarity",
+            "description": "Cosine similarity to the query, 0-1."
+          },
+          "genres": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Genres"
+          },
+          "steam_appid": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Steam Appid"
+          },
+          "review_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rank",
+          "game_id",
+          "title",
+          "similarity"
+        ],
+        "title": "SemanticSearchResult",
+        "description": "One catalogue game, ranked by how close it is to the query."
       },
       "SyncFailure": {
         "properties": {
