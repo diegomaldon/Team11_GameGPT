@@ -218,6 +218,12 @@ jobs:
             api/tests/test_ownership.py \
             api/tests/test_vector_store.py -v
 
+      # TM11-42. Ranked results with scores, configurable k and the error
+      # contract are acceptance criteria. Model and vector store are faked.
+      - name: Pytest — semantic search endpoint
+        working-directory: .
+        run: python -m pytest api/tests/test_semantic_search.py -v
+
       # TM11-88. The demo seed's data and flags; the database is faked.
       - name: Pytest — demo seed script
         working-directory: .
