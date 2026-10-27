@@ -6,6 +6,7 @@ FakeCatalogue behaves like public.game_embeddings: one row per (game, model).
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import logging
 from uuid import uuid4
@@ -15,7 +16,8 @@ import pytest
 from api.db import repositories
 from api.services import embedding_pipeline
 from api.services.embedding import EmbeddedText, EmbeddingModelError
-from api.services.embedding_pipeline import EmbeddingPipeline, build_game_document
+from api.services.embedding_pipeline import EmbeddingPipeline
+from api.services.game_document import TEMPLATE_VERSION, build_game_document
 
 pytestmark = pytest.mark.asyncio
 
@@ -39,10 +41,15 @@ class FakeCatalogue:
         self.writes_to_fail = 0
 
     async def list_games_with_document_hash(self, model):
-        return [
-            {**g, "document_hash": getattr(self.rows.get((g["game_id"], model)), "document_hash", None)}
-            for g in self.games
-        ]
+        listed = []
+        for g in self.games:
+            row = self.rows.get((g["game_id"], model))
+            listed.append({
+                **g,
+                "document_hash": getattr(row, "document_hash", None),
+                "template_version": getattr(row, "template_version", None),
+            })
+        return listed
 
     async def upsert_game_embeddings(self, rows):
         if self.writes_to_fail:
@@ -270,17 +277,7 @@ async def test_report_serialises_to_plain_json_types(catalogue):
     assert data["is_complete"] is False
 
 
-# ── documents and settings ──────────────────────────────────────────────────
-
-
-async def test_document_is_title_description_and_genres():
-    game = make_game("Hades")
-    assert build_game_document(game) == "Hades Hades is a game. Indie, Action"
-
-
-async def test_document_skips_missing_parts():
-    game = {"title": "Celeste", "description": None, "genres": []}
-    assert build_game_document(game) == "Celeste"
+# ── settings ────────────────────────────────────────────────────────────────
 
 
 @pytest.mark.parametrize("batch_size", [0, -1])
@@ -329,16 +326,28 @@ async def test_a_rerun_with_one_modified_game_embeds_only_that_game(catalogue):
     assert report.is_complete
 
 
-async def test_a_change_to_text_that_is_not_embedded_is_not_a_change(catalogue):
-    """Tags are fetched but not part of the document today, so editing them costs nothing."""
+async def test_a_change_to_a_field_that_is_not_embedded_is_not_a_change(catalogue):
+    """Only the document's fields count, so editing anything else costs nothing."""
     await EmbeddingPipeline(FakeEmbedder()).run()
-    catalogue.games[0]["tags"] = ["Something", "Else"]
+    catalogue.games[0]["critic_score"] = 91
     second = FakeEmbedder()
 
     report = await EmbeddingPipeline(second).run()
 
     assert second.batches == []
     assert report.unchanged_skipped == 7
+
+
+async def test_a_change_to_tags_is_a_change(catalogue):
+    """Tags are part of the document since template v1 (TM11-38)."""
+    await EmbeddingPipeline(FakeEmbedder()).run()
+    catalogue.games[0]["tags"] = ["Cozy", "Farming"]
+    second = FakeEmbedder()
+
+    report = await EmbeddingPipeline(second).run()
+
+    assert second.batches == [[build_game_document(catalogue.games[0])]]
+    assert report.changed_count == 1
 
 
 async def test_new_and_changed_games_are_counted_separately(catalogue):
@@ -381,3 +390,33 @@ async def test_the_report_carries_the_skip_counts(catalogue):
 
     assert data["unchanged_skipped"] == 7
     assert data["changed_count"] == 0 and data["new_count"] == 0
+
+
+# ── TM11-38: template versioned so re-embedding is traceable ────────────────
+
+
+async def test_every_row_records_the_template_version(catalogue):
+    await EmbeddingPipeline(FakeEmbedder()).run()
+
+    assert {row.template_version for row in catalogue.rows.values()} == {TEMPLATE_VERSION}
+
+
+async def test_the_report_records_the_template_version(catalogue):
+    data = (await EmbeddingPipeline(FakeEmbedder()).run()).to_dict()
+
+    assert data["template_version"] == TEMPLATE_VERSION
+
+
+async def test_rows_from_an_older_template_are_re_embedded_as_changed(catalogue):
+    """Even when the text hashes the same, an older version means an older template."""
+    await EmbeddingPipeline(FakeEmbedder()).run()
+    old = catalogue.games[1]
+    key = (old["game_id"], MODEL)
+    catalogue.rows[key] = dataclasses.replace(catalogue.rows[key], template_version="v0")
+    second = FakeEmbedder()
+
+    report = await EmbeddingPipeline(second).run()
+
+    assert second.batches == [[build_game_document(old)]]
+    assert (report.changed_count, report.unchanged_skipped) == (1, 6)
+    assert catalogue.rows[key].template_version == TEMPLATE_VERSION

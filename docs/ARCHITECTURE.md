@@ -157,8 +157,23 @@ Incremental runs (TM11-41): each run re-embeds only new games and games whose
   process): on **hosted** Supabase it searches `game_embeddings` joined to `games`,
   filtered to the configured model and cast to its size so the partial HNSW index
   can serve it (TM11-40). On the **legacy** `0001_init.sql` slice it searches
-  `games.embedding` as before. `DeduplicationService` follows the same switch:
-  hosted drops candidates by `owned_games.game_id`, legacy by `steam_appid` then title.
+  `games.embedding` as before. `DeduplicationService` follows the same switch
+  (see below).
+
+### Ownership (`DeduplicationService`, TM11-58)
+- `check_ownership(user_id, game)` → `Ownership(game_id, platforms)`: whether the
+  user owns the game on any linked platform, and which ones (REQ008 badges).
+- `owned_platforms(user_id, games)` → `{game_id: ("steam", "xbox", ...)}` for every
+  owned game in the list, in one query. Unowned games are left out. Platforms are
+  lowercase, in the web library's `PLATFORM_ORDER` (steam, xbox, epic, playstation,
+  then anything else alphabetically).
+- `filter_owned(user_id, candidates)` drops every game `owned_platforms` reports,
+  keeping input order (REQ007). Recommend uses it, so a game is never both badged
+  as owned and recommended.
+- **Hosted:** matches on `owned_games.game_id`; the platform comes from the joined
+  `platform_accounts` row. **Legacy:** matches on `game_id`, `steam_appid` or
+  normalized title, platform from `owned_games.platform`, and unions the platforms
+  from every key that matches.
 - Recall, latency and index size: `scripts/eval_vector_index.py` →
   `artifacts/sprint6/tm11-40-vector-index.md`.
 

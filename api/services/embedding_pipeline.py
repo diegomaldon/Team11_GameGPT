@@ -13,7 +13,9 @@ can't load stops the run at once, since every batch would fail the same way.
 Every row records the model, the vector's dimensions, a SHA-256 of the exact
 text embedded and its token count. On the next run, a game whose text still
 hashes the same is skipped (TM11-41), so a catalogue update only pays for the
-games it touched. Token totals and cost are logged per batch. Logs carry
+games it touched. Each row also records the document template version it
+was embedded with (TM11-38, api/services/game_document.py), and a row from an
+older template counts as changed. Token totals and cost are logged per batch. Logs carry
 counts only.
 """
 
@@ -35,6 +37,7 @@ from tenacity import (
 
 from api.db import repositories
 from api.services.embedding import STUB_MODEL_NAME, EmbeddedText, EmbeddingModelError
+from api.services.game_document import TEMPLATE_VERSION, build_game_document
 
 log = logging.getLogger("gamegpt.embedding_pipeline")
 
@@ -66,14 +69,16 @@ class GameEmbedding:
     embedding: list[float]
     document_hash: str
     token_count: int
+    template_version: str = TEMPLATE_VERSION
 
 
 @dataclass
 class EmbeddingRunReport:
     model: str
+    template_version: str = TEMPLATE_VERSION
     games_to_embed: int = 0
     new_count: int = 0  # games with no vector from this model before the run
-    changed_count: int = 0  # games whose text no longer matches the stored hash
+    changed_count: int = 0  # text no longer matches the stored hash, or an older template
     unchanged_skipped: int = 0  # games whose text matches; not re-embedded
     embedded_count: int = 0
     failed_game_ids: list[UUID] = field(default_factory=list)
@@ -107,16 +112,6 @@ class EmbeddingRunReport:
 def document_hash(document: str) -> str:
     """SHA-256 hex of the exact text embedded, as stored in document_hash."""
     return hashlib.sha256(document.encode("utf-8")).hexdigest()
-
-
-def build_game_document(game: Mapping[str, Any]) -> str:
-    """The text embedded for a game: title, description, then genres.
-
-    The same text embed_games.py has always used. TM11-38 replaces it with a
-    documented, versioned template.
-    """
-    parts = [game["title"], game.get("description") or "", ", ".join(game.get("genres") or [])]
-    return " ".join(part for part in parts if part)
 
 
 class EmbeddingPipeline:
@@ -210,6 +205,7 @@ def _to_row(
         embedding=result.vector,
         document_hash=document_hash(document),
         token_count=result.token_count,
+        template_version=TEMPLATE_VERSION,
     )
 
 
@@ -219,15 +215,19 @@ def select_games_to_embed(
     """Keep the games that need a vector, and count why on the report.
 
     A game needs one when it has no vector from this model yet, or when the
-    text it would be embedded from no longer hashes to the stored value.
-    `re_embed_all` keeps every game, for a new document template or model.
+    text it would be embedded from no longer hashes to the stored value, or
+    when its vector came from an older document template (TM11-38).
+    `re_embed_all` keeps every game, for a new model.
     """
     selected = []
     for game in games:
         stored = game.get("document_hash")
         if stored is None:
             report.new_count += 1
-        elif stored != document_hash(build_game_document(game)):
+        elif (
+            game.get("template_version") != TEMPLATE_VERSION
+            or stored != document_hash(build_game_document(game))
+        ):
             report.changed_count += 1
         elif not re_embed_all:
             report.unchanged_skipped += 1

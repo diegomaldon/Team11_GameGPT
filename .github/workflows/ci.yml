@@ -209,6 +209,15 @@ jobs:
             api/tests/test_embedding_pipeline.py \
             api/tests/test_embed_catalogue.py -v
 
+      # TM11-58. Ownership across linked platforms, the owned-game filter and the
+      # badge platforms are acceptance criteria. The database is faked.
+      - name: Pytest — ownership check and owned-game filter
+        working-directory: .
+        run: |
+          python -m pytest \
+            api/tests/test_ownership.py \
+            api/tests/test_vector_store.py -v
+
       # TM11-42. Ranked results with scores, configurable k and the error
       # contract are acceptance criteria. Model and vector store are faked.
       - name: Pytest — semantic search endpoint
@@ -219,6 +228,13 @@ jobs:
       - name: Pytest — demo seed script
         working-directory: .
         run: python -m pytest api/tests/test_seed_demo.py -v
+
+      # TM11-59. REQ007 is absolute: an owned game is never recommended. Known
+      # gaps are strict xfails for TM11-57, so a fix there fails CI until the
+      # marker comes off and the case becomes a real guard.
+      - name: Pytest — deduplication suite
+        working-directory: .
+        run: python -m pytest api/tests/test_deduplication.py -v
 
   # -------------------------------------------------------------------------
   # TM11-88. The only job with a real database. It builds the local schema,
