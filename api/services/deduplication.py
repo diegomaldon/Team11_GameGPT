@@ -7,21 +7,22 @@ On the hosted schema, owned_games.game_id points at the same games row the
 vector store returns, so a candidate is owned when its game_id is, and the
 platform comes from the linked platform_accounts row. On the legacy
 0001_init.sql slice, owned_games.game_id can be null, so it also matches on
-steam_appid, then normalized title, and the platform is a column on the row.
+steam_appid, then title, and the platform is a column on the row.
+
+Titles are compared by title_matching.ownership_key (TM11-57): punctuation,
+accents, trademarks, edition suffixes and remaster markers are folded away, so
+"The Witcher 3: Wild Hunt - GOTY" hides "The Witcher 3: Wild Hunt".
 """
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from uuid import UUID
 
 from api.db import connection
 from api.db.schema import catalogue_shape
 from api.models import GameCandidate
-
-_PUNCT = re.compile(r"[^\w\s]", flags=re.UNICODE)
-_WS = re.compile(r"\s+")
+from api.services.title_matching import ownership_key
 
 # Same order as PLATFORM_ORDER in web/lib/library/unified.ts, so the badges the
 # UI draws from this list come out in the order the library page uses.
@@ -57,15 +58,6 @@ def _sort_platforms(platforms: set[str]) -> tuple[str, ...]:
         return rank, p
 
     return tuple(sorted(platforms, key=key))
-
-
-def normalize_title(title: str | None) -> str:
-    """Lowercase, strip punctuation, collapse whitespace."""
-    if not title:
-        return ""
-    lowered = title.lower()
-    stripped = _PUNCT.sub(" ", lowered)
-    return _WS.sub(" ", stripped).strip()
 
 
 class DeduplicationService:
@@ -119,9 +111,9 @@ class DeduplicationService:
                         by_game_id.setdefault(game_id, set()).add(platform)
                     if steam_appid is not None:
                         by_appid.setdefault(int(steam_appid), set()).add(platform)
-                    normalized = normalize_title(title)
-                    if normalized:
-                        by_title.setdefault(normalized, set()).add(platform)
+                    key = ownership_key(title)
+                    if key:
+                        by_title.setdefault(key, set()).add(platform)
 
         # A copy can match on more than one key (a Steam row with both appid
         # and title), so the platforms from every key are unioned.
@@ -130,7 +122,7 @@ class DeduplicationService:
             platforms = set(by_game_id.get(g.game_id, ()))
             if g.steam_appid is not None:
                 platforms |= by_appid.get(int(g.steam_appid), set())
-            platforms |= by_title.get(normalize_title(g.title), set())
+            platforms |= by_title.get(ownership_key(g.title), set())
             if platforms:
                 found.setdefault(g.game_id, set()).update(platforms)
         return found
