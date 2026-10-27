@@ -27,7 +27,7 @@ route is served, or a served route has no section.
 | Library | [`POST /api/library/sync`](#post-apilibrarysync), [`POST /api/library/sync/jobs`](#post-apilibrarysyncjobs), [`GET /api/library/sync/jobs/{job_id}`](#get-apilibrarysyncjobsjob_id) | live |
 | Library | [`POST /api/library/csv/preview`](#post-apilibrarycsvpreview), [`POST /api/library/csv/commit`](#post-apilibrarycsvcommit), [`POST /api/library/manual`](#post-apilibrarymanual), [`POST /api/library/xbox`](#post-apilibraryxbox) | live |
 | Search | [`GET /api/games/search`](#get-apigamessearch): title autocomplete | live |
-| Search | `POST /api/search`: semantic search (TM11-42) | in review, [PR #45](https://github.com/diegomaldon/Team11_GameGPT/pull/45) |
+| Search | [`POST /api/search`](#post-apisearch): semantic search (TM11-42) | live |
 | Search | [`POST /api/recommend`](#post-apirecommend): ranked recommendations with reasons | live |
 | Detail | [`GET /api/games/{game_id}`](#get-apigamesgame_id-planned): one game's detail panel | planned (TM11-78, TM11-79) |
 | All | [Errors](#errors): the four error shapes and every error code | live |
@@ -93,7 +93,7 @@ The cause is reported to the error sink and never sent to the client.
 | 503 | `db_unavailable` | `/api/recommend`, `/api/feedback`, `/api/library` | the database read or write failed |
 | 503 | `steam_unavailable` | `/api/library/sync` | Steam isn't responding; retry later |
 | 503 | `csv_import_failed` | `/api/library/csv/*` | anything else; the cause is only logged |
-| 503 | `search_failed` | `/api/games/search` | anything else; the cause is only logged |
+| 503 | `search_failed` | `/api/games/search`, `/api/search` | anything else; the cause is only logged |
 | 503 | `manual_import_failed` | `/api/library/manual` | anything else; the cause is only logged |
 | 503 | `import_failed` | `/api/library/xbox` | the write failed; nothing changed |
 
