@@ -14,9 +14,11 @@ from recommendations when the original is owned, because REQ007 errs on the
 side of hiding. The import matcher keeps a remaster apart from the original on
 purpose (see title_matching._EDITION_WORDS), so it is not folded there.
 
-Cases today's code gets wrong are strict xfails naming TM11-57 (title
-normalisation). When that fix lands they pass, and strict mode fails CI until
-the marker is removed, so they turn into real guards.
+TM11-57 (title normalisation) closed the title gaps the filter had, so every
+pair is now a real guard. Any case the code still gets wrong is a strict xfail:
+when it starts passing, CI fails until the marker is removed. Accepted false
+positives are pinned at the bottom of this file and listed in
+docs/ARCHITECTURE.md.
 
 The database is an in-memory owned_games table. It answers a select by the
 columns it lists rather than by matching query text, so these tests don't care
@@ -68,6 +70,11 @@ SAME_GAME = [
     TitlePair("Baldur's Gate 3", "Baldurs Gate 3", True),
     TitlePair("Assassin’s Creed® Valhalla", "Assassin's Creed Valhalla", True),
     TitlePair("Pokémon Legends: Arceus", "Pokemon Legends: Arceus", True),
+    TitlePair(
+        "The Legend of Zelda™: Breath of the Wild", "The Legend of Zelda: Breath of the Wild", True
+    ),
+    TitlePair("NieR:Automata™", "NieR: Automata", True),
+    TitlePair("Ratchet & Clank", "Ratchet and Clank", True),
 ]
 
 EDITION_MISMATCH = [
@@ -81,6 +88,10 @@ EDITION_MISMATCH = [
     TitlePair("Grand Theft Auto V: Premium Edition", "Grand Theft Auto V", True),
     TitlePair("The Elder Scrolls V: Skyrim", "The Elder Scrolls V: Skyrim Special Edition", True),
     TitlePair("Dark Souls Remastered", "Dark Souls", True, is_remaster=True),
+    TitlePair("Death Stranding Director's Cut", "Death Stranding", True),
+    TitlePair("Red Dead Redemption 2: Ultimate Edition", "Red Dead Redemption 2", True),
+    TitlePair("Fallout 4: Game of the Year Edition", "Fallout 4", True),
+    TitlePair("BioShock Remastered", "BioShock", True, is_remaster=True),
 ]
 
 SEQUELS = [
@@ -92,6 +103,8 @@ SEQUELS = [
     TitlePair("Left 4 Dead", "Left 4 Dead 2", False),
     TitlePair("Borderlands 2", "Borderlands", False),
     TitlePair("The Witcher 3: Wild Hunt", "The Witcher 3: Wild Hunt - Blood and Wine", False),
+    TitlePair("BioShock", "BioShock Infinite", False),
+    TitlePair("Mass Effect", "Mass Effect 2", False),
 ]
 
 NEAR_MISSES = [
@@ -102,6 +115,8 @@ NEAR_MISSES = [
     TitlePair("Portal", "Portal Stories: Mel", False),
     TitlePair("Rust", "Rusty Lake: Roots", False),
     TitlePair("Marvel's Spider-Man", "Marvel's Spider-Man: Miles Morales", False),
+    TitlePair("Inside", "Inside My Radio", False),
+    TitlePair("Journey", "Journey to the Savage Planet", False),
 ]
 
 GROUPS = {
@@ -111,22 +126,17 @@ GROUPS = {
     "near miss": NEAR_MISSES,
 }
 
-# Cases today's code gets wrong, by layer. Each one is TM11-57's to fix.
-FILTER_GAPS = {
-    "Baldur's Gate 3 / Baldurs Gate 3": "apostrophe becomes a space",
-    "Pokémon Legends: Arceus / Pokemon Legends: Arceus": "accents are kept",
-    "The Elder Scrolls V: Skyrim Special Edition / The Elder Scrolls V: Skyrim": "no editions",
-    "The Witcher 3: Wild Hunt - Game of the Year Edition / The Witcher 3: Wild Hunt": (
-        "no editions"
-    ),
-    "Age of Empires II: Definitive Edition / Age of Empires II": "no editions",
-    "Divinity: Original Sin 2 - Definitive Edition / Divinity: Original Sin 2": "no editions",
-    "Control Ultimate Edition / Control": "no editions",
-    "Grand Theft Auto V: Premium Edition / Grand Theft Auto V": "no editions",
-    "The Elder Scrolls V: Skyrim / The Elder Scrolls V: Skyrim Special Edition": "no editions",
-    "Dark Souls Remastered / Dark Souls": "no editions",
-}
+# Cases today's code gets wrong, by layer, as strict xfails. TM11-57 closed the
+# filter's title gaps; add a pair here with its reason if a new one turns up.
+FILTER_GAPS: dict[str, str] = {}
 MATCHER_GAPS: dict[str, str] = {}
+
+
+def test_the_fixture_set_is_40_real_title_pairs():
+    # TM11-57's acceptance criterion. Grow it, don't shrink it.
+    pairs = [pair for group in GROUPS.values() for pair in group]
+    assert len(pairs) == 40
+    assert len({case_id(p) for p in pairs}) == 40
 
 
 def case_id(pair: TitlePair) -> str:
@@ -302,8 +312,8 @@ async def test_hosted_a_sequel_is_still_recommended(library):
 @pytest.mark.asyncio
 @pytest.mark.xfail(
     strict=True,
-    reason="TM11-57: hosted dedup matches game_id only, so an owned edition row "
-    "doesn't hide the base game's row",
+    reason="accepted gap: hosted dedup matches game_id only, so an owned edition row "
+    "doesn't hide the base game's row (see ARCHITECTURE.md, Ownership)",
 )
 async def test_hosted_an_owned_edition_hides_the_base_game(library):
     skyrim, skyrim_se = uuid4(), uuid4()
@@ -342,3 +352,36 @@ def test_an_import_picks_the_original_over_its_sequel():
 
     assert matcher.match(ImportedTitle("HADES™")).game_id == hades.game_id
     assert matcher.match(ImportedTitle("Hades II")).game_id == hades_ii.game_id
+
+
+# ── accepted false positives (TM11-57) ──────────────────────────────────────
+# REQ007 errs on the side of hiding, so these are hidden on purpose even though
+# a player could argue they are different purchases. Each is listed, with the
+# reason, under Ownership in docs/ARCHITECTURE.md. Changing one is a product
+# decision, not a bug fix.
+
+ACCEPTED_FALSE_POSITIVES = [
+    # A remaster is a separate store product, but the same game to play.
+    TitlePair("BioShock", "BioShock Remastered", True, is_remaster=True),
+    # Owning the base hides the bundle, even though the bundle adds DLC.
+    TitlePair("The Witcher 3: Wild Hunt", "The Witcher 3: Wild Hunt - Complete Edition", True),
+    # An "Enhanced Edition" reworks the original but is still that game.
+    TitlePair("Baldur's Gate", "Baldur's Gate: Enhanced Edition", True),
+]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("pair", ACCEPTED_FALSE_POSITIVES, ids=case_id)
+async def test_accepted_false_positive_is_hidden(library, pair):
+    library([owned_row(pair.owned)])
+
+    assert await recommendable([candidate(pair.candidate)]) == []
+
+
+@pytest.mark.asyncio
+async def test_accepted_false_positive_same_title_different_game_is_hidden(library):
+    # Doom (1993, appid 2280) and DOOM (2016, appid 379720) share a title. The
+    # legacy filter unions every key, so the title match hides the 2016 game.
+    library([owned_row("Doom", steam_appid=2280)])
+
+    assert await recommendable([candidate("DOOM", steam_appid=379720)]) == []

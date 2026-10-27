@@ -18,6 +18,7 @@ from api.services.title_matching import (
     UnmatchedTitle,
     catalogue_from_rows,
     normalise_title,
+    ownership_key,
     strip_edition,
 )
 
@@ -288,3 +289,51 @@ def test_catalogue_from_rows_accepts_db_shapes():
     # a NULL title is indexed by appid only, never as an empty-string title
     matcher = TitleMatcher(games)
     assert isinstance(matcher.match(ImportedTitle("")), UnmatchedTitle)
+
+
+# ─────────────────────────── ownership_key ───────────────────────────
+
+
+@pytest.mark.parametrize(
+    ("raw", "key"),
+    [
+        ("DOOM™", "doom"),
+        ("Assassin’s Creed® Valhalla", "assassins creed valhalla"),
+        ("Pokémon Legends: Arceus", "pokemon legends arceus"),
+        ("Age of Empires II: Definitive Edition", "age of empires ii"),
+        ("The Witcher 3: Wild Hunt - Game of the Year Edition", "the witcher 3 wild hunt"),
+        ("Dark Souls Remastered", "dark souls"),
+        ("Dark Souls: Remastered", "dark souls"),
+        ("BioShock Remastered Edition", "bioshock"),
+        ("Okami HD Remaster", "okami"),
+        ("Remastered", "remastered"),  # nothing would be left
+    ],
+)
+def test_ownership_key_folds_punctuation_trademarks_editions_and_remasters(raw, key):
+    assert ownership_key(raw) == key
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "Final Fantasy VII Remake",  # a remake is a new game
+        "Persona 5 Royal",           # no trailing "edition"
+        "Hades II",
+        "Celeste Classic",
+    ],
+)
+def test_ownership_key_keeps_titles_that_are_other_games(raw):
+    assert ownership_key(raw) == normalise_title(raw)
+
+
+def test_ownership_key_handles_none_and_blank():
+    assert ownership_key(None) == ""
+    assert ownership_key("  ™ ") == ""
+
+
+def test_import_matcher_still_keeps_remasters_apart():
+    # ownership_key folds remasters; the matcher must not, or importing
+    # "Dark Souls Remastered" would count as owning the original's row.
+    original = CatalogueGame(uuid4(), "Dark Souls")
+    result = TitleMatcher([original]).match(ImportedTitle("Dark Souls Remastered"))
+    assert isinstance(result, UnmatchedTitle)
