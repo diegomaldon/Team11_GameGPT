@@ -1441,6 +1441,28 @@
             "title": "K",
             "description": "How many candidates to return.",
             "default": 10
+          },
+          "platforms": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "steam",
+                "xbox",
+                "epic"
+              ]
+            },
+            "type": "array",
+            "title": "Platforms",
+            "description": "Only games available on at least one of these. Empty means any platform."
+          },
+          "genres": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "title": "Genres",
+            "description": "Only games with at least one of these genres, ignoring case. Empty means any genre."
           }
         },
         "type": "object",
@@ -1461,6 +1483,27 @@
             "type": "integer",
             "title": "K"
           },
+          "platforms": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "steam",
+                "xbox",
+                "epic"
+              ]
+            },
+            "type": "array",
+            "title": "Platforms",
+            "description": "Platform filter as applied."
+          },
+          "genres": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Genres",
+            "description": "Genre filter as applied."
+          },
           "model": {
             "type": "string",
             "title": "Model",
@@ -1472,7 +1515,7 @@
             },
             "type": "array",
             "title": "Results",
-            "description": "At most k, best first. Fewer when the catalogue is smaller."
+            "description": "At most k, best first. Fewer when fewer games match, and empty when none do."
           },
           "took_ms": {
             "type": "number",
@@ -1485,6 +1528,8 @@
         "required": [
           "query",
           "k",
+          "platforms",
+          "genres",
           "model",
           "results",
           "took_ms"

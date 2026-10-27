@@ -73,12 +73,12 @@ web/app/(app)/page.tsx  (user submits a query)
 ### Semantic search (TM11-42)
 
 ```
-POST /api/search { query, k }
+POST /api/search { query, k, platforms?, genres? }
   └─ api/routers/search.py  semantic_search()
-       └─ SemanticSearchService.search(query, k)      api/services/semantic_search.py
+       └─ SemanticSearchService.search(query, k, filters)  api/services/semantic_search.py
             ├─ EmbeddingService.embed_query(query)     → 384-dim vector
-            └─ VectorStore.top_k(embedding, k)         → cosine top-k (same SQL as recommend)
-  ← SemanticSearchResponse { query, k, model, results[rank, game_id, title, similarity, …], took_ms }
+            └─ VectorStore.top_k(embedding, k, filters) → cosine top-k; platform/genre in the WHERE (TM11-43)
+  ← SemanticSearchResponse { query, k, platforms, genres, model, results[rank, game_id, title, similarity, …], took_ms }
 ```
 
 The first two steps of recommend, without dropping owned games, the LLM or any

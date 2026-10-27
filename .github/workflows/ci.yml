@@ -296,11 +296,14 @@ jobs:
       - name: Verify the demo account
         run: python scripts/seed_demo.py --check
 
+      # TM11-43: a filtered search must equal the full ranking with the
+      # non-matching games struck out, checked on the seeded catalogue.
       - name: Pytest — seeded database
         run: |
           python -m pytest \
             api/tests/test_seeded_demo_db.py \
-            api/tests/test_db_backed.py -v
+            api/tests/test_db_backed.py \
+            api/tests/test_search_filters_db.py -v
       # TM11-40. The partial HNSW index only serves a query that repeats its cast
       # and model filter, so the SQL VectorStore sends is pinned here. DB faked.
       - name: Pytest — vector store on both schemas

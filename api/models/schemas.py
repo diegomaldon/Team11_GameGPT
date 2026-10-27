@@ -324,10 +324,14 @@ class XboxImportResponse(BaseModel):
     import_id: Optional[UUID] = None
 
 
-# ─────────────────────── /api/search (TM11-42) ───────────────────────
+# ─────────────────── /api/search (TM11-42, TM11-43) ───────────────────
 
 SEMANTIC_SEARCH_DEFAULT_K = 10
 SEMANTIC_SEARCH_MAX_K = 50
+SEARCH_MAX_GENRES = 10
+SEARCH_GENRE_MAX_LENGTH = 50
+
+SearchPlatform = Literal["steam", "xbox", "epic"]
 
 
 class SemanticSearchRequest(BaseModel):
@@ -337,6 +341,15 @@ class SemanticSearchRequest(BaseModel):
                        description="What the player is looking for, in their own words.")
     k: int = Field(SEMANTIC_SEARCH_DEFAULT_K, ge=1, le=SEMANTIC_SEARCH_MAX_K,
                    description="How many candidates to return.")
+    platforms: list[SearchPlatform] = Field(
+        default_factory=list,
+        description="Only games available on at least one of these. Empty means any platform.",
+    )
+    genres: list[str] = Field(
+        default_factory=list, max_length=SEARCH_MAX_GENRES,
+        description="Only games with at least one of these genres, ignoring case. "
+        "Empty means any genre.",
+    )
 
     @field_validator("query")
     @classmethod
@@ -347,6 +360,24 @@ class SemanticSearchRequest(BaseModel):
         if not stripped:
             raise ValueError("query must not be blank")
         return stripped
+
+    @field_validator("platforms")
+    @classmethod
+    def _platforms_once(cls, value: list[str]) -> list[str]:
+        return list(dict.fromkeys(value))
+
+    @field_validator("genres")
+    @classmethod
+    def _clean_genres(cls, value: list[str]) -> list[str]:
+        # Trimmed, and a genre given twice in different case is kept once,
+        # spelled as it was first given.
+        genres: dict[str, str] = {}
+        for genre in value:
+            genre = genre.strip()
+            if not genre or len(genre) > SEARCH_GENRE_MAX_LENGTH:
+                raise ValueError(f"each genre must be 1-{SEARCH_GENRE_MAX_LENGTH} characters")
+            genres.setdefault(genre.lower(), genre)
+        return list(genres.values())
 
 
 class SemanticSearchResult(BaseModel):
@@ -367,8 +398,11 @@ class SemanticSearchResponse(BaseModel):
 
     query: str = Field(..., description="The query as searched, trimmed.")
     k: int
+    platforms: list[SearchPlatform] = Field(..., description="Platform filter as applied.")
+    genres: list[str] = Field(..., description="Genre filter as applied.")
     model: str = Field(..., description="Embedding model the query and catalogue share.")
     results: list[SemanticSearchResult] = Field(
-        ..., description="At most k, best first. Fewer when the catalogue is smaller."
+        ..., description="At most k, best first. Fewer when fewer games match, "
+        "and empty when none do."
     )
     took_ms: float = Field(..., ge=0, description="Embed plus search time on the server.")
