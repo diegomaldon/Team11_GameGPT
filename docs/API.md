@@ -14,6 +14,24 @@ model, run `python scripts/export_openapi.py` and update this file in the same
 pull request. CI fails when `openapi.json` doesn't match the app or a route
 isn't documented here (`api/tests/test_api_contract.py`).
 
+## Contracts for the frontend
+
+What the web app builds against (TM11-21). A **planned** contract is agreed
+but not served yet, so the frontend can build against a fixture first. When the
+route ships, its section loses the `(planned)` marker; CI fails if a planned
+route is served, or a served route has no section.
+
+| Area | Endpoint | Status |
+|------|----------|--------|
+| Library | [`GET /api/library`](#get-apilibrary) | live |
+| Library | [`POST /api/library/sync`](#post-apilibrarysync), [`POST /api/library/sync/jobs`](#post-apilibrarysyncjobs), [`GET /api/library/sync/jobs/{job_id}`](#get-apilibrarysyncjobsjob_id) | live |
+| Library | [`POST /api/library/csv/preview`](#post-apilibrarycsvpreview), [`POST /api/library/csv/commit`](#post-apilibrarycsvcommit), [`POST /api/library/manual`](#post-apilibrarymanual), [`POST /api/library/xbox`](#post-apilibraryxbox) | live |
+| Search | [`GET /api/games/search`](#get-apigamessearch): title autocomplete | live |
+| Search | `POST /api/search`: semantic search (TM11-42) | in review, [PR #45](https://github.com/diegomaldon/Team11_GameGPT/pull/45) |
+| Search | [`POST /api/recommend`](#post-apirecommend): ranked recommendations with reasons | live |
+| Detail | [`GET /api/games/{game_id}`](#get-apigamesgame_id-planned): one game's detail panel | planned (TM11-78, TM11-79) |
+| All | [Errors](#errors): the four error shapes and every error code | live |
+
 ## Conventions
 
 - Content type is `application/json`.
@@ -411,6 +429,61 @@ come first, then shorter titles. `%` and `_` are matched literally.
 
 - **422**: `q` missing or too long, `limit` out of range.
 - **503** `search_failed`: anything else; the cause is only logged.
+
+## `GET /api/games/{game_id}` (planned)
+
+**Not served yet.** The contract for the game detail panel (REQ009, use case
+2.20), agreed so TM11-78 (layout) and TM11-79 (data wiring) can build against a
+fixture first. Every field maps to a column `public.games` already has; nothing
+here needs a migration. Read-only.
+
+| Path | Type | Notes |
+|------|------|-------|
+| `game_id` | uuid | from a recommendation, a search result or a library item |
+
+**200**
+```json
+{
+  "game_id": "bf6fddc6-a4be-4461-8eb9-827239d8dd35",
+  "title": "Stardew Valley",
+  "description": "You've inherited your grandfather's old farm plot in Stardew Valley…",
+  "genres": ["Simulation", "RPG"],
+  "tags": ["Farming Sim", "Cozy", "Multiplayer"],
+  "release_date": "2016-02-26",
+  "developers": ["ConcernedApe"],
+  "publishers": ["ConcernedApe"],
+  "header_image_url": "https://cdn.akamai.steamstatic.com/steam/apps/413150/header.jpg",
+  "review_score": 0.98,
+  "critic_score": 0.89,
+  "steam_appid": 413150,
+  "available_platforms": ["steam", "xbox"],
+  "purchase_links": { "steam": "https://store.steampowered.com/app/413150" },
+  "owned_on": ["steam"]
+}
+```
+| Field | Type | Notes |
+|-------|------|-------|
+| `description` | string \| null | |
+| `genres`, `tags` | string[] | `[]` when unknown, never `null` |
+| `release_date` | string \| null | ISO date, `YYYY-MM-DD` |
+| `developers`, `publishers` | string[] | `[]` when unknown |
+| `header_image_url` | string \| null | https |
+| `review_score`, `critic_score` | float \| null | `0..1`, like everywhere else in this API. Stored as `0..100` |
+| `steam_appid` | int \| null | |
+| `available_platforms` | string[] | lowercase `steam`, `xbox`, `epic`: where the game can be bought |
+| `purchase_links` | object | keyed by lowercase platform. A key is present only when the metadata source supplied a validated link (TM11-37), so `{}` is normal. Never build a link client-side |
+| `owned_on` | string[] | platforms the user owns it on, in badge order (`steam`, `xbox`, `epic`), from `DeduplicationService.owned_platforms` (TM11-58). `[]` when not owned |
+
+**Errors**
+| Status | `error` | When |
+|--------|---------|------|
+| 404 | `game_not_found` | no catalogue game with this id |
+| 422 | | `game_id` isn't a uuid (shape 2 in [Errors](#errors)) |
+| 503 | `game_detail_failed` | anything else; the cause is only logged |
+
+- Register the route after `GET /api/games/search`. Otherwise `search` is read as
+  a `game_id` and answers 422.
+- Page-view logging (TM11-79) is a separate write and not part of this response.
 
 ## `POST /api/library/manual`
 
