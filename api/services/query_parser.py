@@ -13,7 +13,8 @@ reads that description for four kinds of signal:
 Rule-based and deterministic: no model call, so parsing adds no cost or
 provider dependency to a recommend, and every signal traces back to a word in
 the vocabularies below. A negated word ("nothing scary", "no shooters") is
-recorded as excluded, not wanted.
+recorded as excluded, not wanted. That includes titles: "nothing like Dark
+Souls" puts Dark Souls in `excluded_reference_titles`.
 
 Reference titles are matched with normalise_title, the key library import
 matches on. A single-word title needs a comparison cue ("like Celeste") or
@@ -48,7 +49,7 @@ log = logging.getLogger("gamegpt.query_parser")
 
 # Bumped whenever a vocabulary or rule changes, so logged parses from before
 # and after a change can be told apart.
-PARSER_VERSION = "rules-v1"
+PARSER_VERSION = "rules-v2"
 
 # How long the title index is reused before the catalogue is read again.
 CATALOGUE_CACHE_SECONDS = 600.0
@@ -129,7 +130,7 @@ _PLATFORM_PHRASES: dict[tuple[str, ...], tuple[str, ...]] = {
 
 # A negator up to this many words before a signal marks it as excluded.
 _NEGATION_WINDOW = 3
-_NEGATORS = frozenset({"no", "not", "without", "nothing", "never", "dont", "doesnt",
+_NEGATORS = frozenset({"no", "not", "without", "nothing", "never", "dont", "doesnt", "didnt",
                        "isnt", "arent", "avoid", "hate", "except", "non", "zero"})
 # These end a negation's reach: "not scary but funny" only excludes scary.
 _NEGATION_BREAKS = frozenset({",", "but", "though", "although", "however", "instead",
@@ -207,6 +208,8 @@ class ParsedQuery:
     excluded_moods: tuple[str, ...] = ()
     excluded_platforms: tuple[str, ...] = ()
     reference_titles: tuple[ReferenceTitle, ...] = ()
+    # Games the player ruled out: "nothing like Dark Souls", "I don't like Hades".
+    excluded_reference_titles: tuple[ReferenceTitle, ...] = ()
     unrecognised_references: tuple[str, ...] = ()
     word_count: int = 0
     # False when the catalogue couldn't be read, so no title was looked for.
@@ -231,6 +234,10 @@ class ParsedQuery:
             "excluded_platforms": list(self.excluded_platforms),
             "reference_titles": [
                 {"game_id": str(r.game_id), "title": r.title} for r in self.reference_titles
+            ],
+            "excluded_reference_titles": [
+                {"game_id": str(r.game_id), "title": r.title}
+                for r in self.excluded_reference_titles
             ],
             "unrecognised_reference_count": len(self.unrecognised_references),
             "titles_checked": self.titles_checked,
@@ -362,7 +369,9 @@ def _cue_length(tokens: Sequence[str | None], i: int) -> int:
     for cue in _CUES:
         if tuple(tokens[i:i + len(cue)]) == cue:
             if cue == ("like",) and i > 0 and tokens[i - 1] in _LIKE_AS_VERB_AFTER:
-                return 0
+                # "I like Hades" names no comparison, but "I don't like Hades"
+                # rules a game out, so a negated verb still counts (as excluded).
+                return len(cue) if tokens[i - 1] in _NEGATORS else 0
             return len(cue)
     return 0
 
@@ -382,16 +391,22 @@ def _unrecognised_name(tokens: Sequence[str | None], start: int) -> str:
 
 @dataclass
 class _ClauseTitles:
-    references: list[tuple[str, list[UUID]]] = field(default_factory=list)
+    # (as written, game ids, negated)
+    references: list[tuple[str, list[UUID], bool]] = field(default_factory=list)
     unrecognised: list[str] = field(default_factory=list)
 
 
 def _find_titles(tokens: list[str | None], index: TitleIndex) -> _ClauseTitles:
-    """Match reference titles in one clause, setting their words to None."""
+    """Match reference titles in one clause, setting their words to None.
+
+    A title is negated when a negator comes just before its cue ("nothing
+    like Hades"), or before the title itself when it has no cue ("no
+    Stardew Valley clones"). Every title in a negated list is negated.
+    """
     found = _ClauseTitles()
 
-    def take(start: int, end: int, ids: list[UUID]) -> None:
-        found.references.append((" ".join(tokens[start:end]), ids))
+    def take(start: int, end: int, ids: list[UUID], negated: bool) -> None:
+        found.references.append((" ".join(tokens[start:end]), ids, negated))
         tokens[start:end] = [None] * (end - start)
 
     i = 0
@@ -401,6 +416,7 @@ def _find_titles(tokens: list[str | None], index: TitleIndex) -> _ClauseTitles:
             i += 1
             continue
         j = i + cue
+        negated = _is_negated(tokens, i)
         is_first = True
         while j < len(tokens):
             hit = index.longest_match(tokens, j, cued=True)
@@ -409,7 +425,7 @@ def _find_titles(tokens: list[str | None], index: TitleIndex) -> _ClauseTitles:
                     found.unrecognised.append(name)
                 break
             end, ids = hit
-            take(j, end, ids)
+            take(j, end, ids, negated)
             is_first = False
             j = end
             while j < len(tokens) and tokens[j] in _LIST_JOINERS:
@@ -426,7 +442,7 @@ def _find_titles(tokens: list[str | None], index: TitleIndex) -> _ClauseTitles:
             i += 1
             continue
         end, ids = hit
-        take(i, end, ids)
+        take(i, end, ids, _is_negated(tokens, i))
         i = end
     return found
 
@@ -489,7 +505,7 @@ def parse_query(query: str, index: TitleIndex | None) -> ParsedQuery:
     no_genres: list[str] = []
     no_moods: list[str] = []
     no_platforms: list[tuple[str, ...]] = []
-    references: list[tuple[str, list[UUID]]] = []
+    references: list[tuple[str, list[UUID], bool]] = []
     unrecognised: list[str] = []
 
     for words in clauses:
@@ -511,16 +527,18 @@ def parse_query(query: str, index: TitleIndex | None) -> ParsedQuery:
     if index is not None and not references and len(clauses) == 1:
         hit = index.longest_match(clauses[0], 0, cued=True)
         if hit is not None and hit[0] == len(clauses[0]):
-            references.append((" ".join(clauses[0]), hit[1]))
+            references.append((" ".join(clauses[0]), hit[1], False))
             genres, moods, platforms = [], [], []  # its words were a title, not signals
 
     matched: dict[UUID, ReferenceTitle] = {}
-    for as_written, ids in references:
+    ruled_out: dict[UUID, ReferenceTitle] = {}
+    for as_written, ids, negated in references:
         if len(ids) > 1:
             # Two games share the spelling; guessing would compare against the wrong one.
             unrecognised.append(as_written)
-        elif ids[0] not in matched:
-            matched[ids[0]] = ReferenceTitle(ids[0], index.title(ids[0]), as_written)
+            continue
+        found = ruled_out if negated else matched
+        found.setdefault(ids[0], ReferenceTitle(ids[0], index.title(ids[0]), as_written))
 
     return ParsedQuery(
         genres=_unique(genres),
@@ -530,6 +548,7 @@ def parse_query(query: str, index: TitleIndex | None) -> ParsedQuery:
         excluded_moods=_unique(no_moods),
         excluded_platforms=_flatten(no_platforms),
         reference_titles=tuple(matched.values()),
+        excluded_reference_titles=tuple(ruled_out.values()),
         unrecognised_references=_unique(unrecognised),
         word_count=sum(1 for words in clauses for w in words if w != ","),
         titles_checked=index is not None,

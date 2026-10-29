@@ -1,6 +1,6 @@
 # TM11-62 sample query parses
 
-Parser `rules-v1` against the seed catalogue (167 games), written by `scripts/sample_query_parses.py`. Excluded signals are prefixed with `not`.
+Parser `rules-v2` against the seed catalogue (167 games), written by `scripts/sample_query_parses.py`. Excluded signals are prefixed with `not`.
 
 | Query | Genres | Moods | Platforms | Reference titles | Unrecognised |
 |---|---|---|---|---|---|
@@ -18,4 +18,5 @@ Parser `rules-v1` against the seed catalogue (167 games), written by `scripts/sa
 | an epic adventure | Adventure | — | — | — | — |
 | something funny for a party night, no competitive stuff | — | comedy, not competitive | — | — | — |
 | I don't like shooters | not Shooter | — | — | — | — |
+| a game like Celeste, nothing like Dark Souls 3 | — | — | — | Celeste, not Dark Souls III | — |
 | I loved Hollow Knight's art and the way exploring slowly opened up the map. Looking for... | Metroidvania | story-rich, emotional, not difficult, not tense, not fast-paced | steam | Hollow Knight, Ori and the Blind Forest, Celeste | — |

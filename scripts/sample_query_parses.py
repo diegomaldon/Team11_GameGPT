@@ -20,7 +20,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from api.services.query_parser import PARSER_VERSION, ParsedQuery, TitleIndex, parse_query  # noqa: E402
+from api.services.query_parser import (  # noqa: E402
+    PARSER_VERSION,
+    ParsedQuery,
+    TitleIndex,
+    parse_query,
+)
 from api.services.title_matching import CatalogueGame  # noqa: E402
 
 FIXTURE_PATH = Path(__file__).resolve().parent / "fixtures" / "games.json"
@@ -41,6 +46,7 @@ SAMPLE_QUERIES = [
     "an epic adventure",
     "something funny for a party night, no competitive stuff",
     "I don't like shooters",
+    "a game like Celeste, nothing like Dark Souls 3",
     (
         "I loved Hollow Knight's art and the way exploring slowly opened up the map. "
         "Looking for a metroidvania that is not too difficult and has a great story, "
@@ -78,10 +84,13 @@ def render(rows: list[tuple[str, ParsedQuery]], catalogue_size: int) -> str:
         genres = list(p.genres) + [f"not {g}" for g in p.excluded_genres]
         moods = list(p.moods) + [f"not {m}" for m in p.excluded_moods]
         platforms = list(p.platforms) + [f"not {x}" for x in p.excluded_platforms]
+        references = [r.title for r in p.reference_titles] + [
+            f"not {r.title}" for r in p.excluded_reference_titles
+        ]
         shown = query if len(query) <= 90 else query[:87] + "..."
         lines.append(
             f"| {shown} | {_cell(genres)} | {_cell(moods)} | {_cell(platforms)} | "
-            f"{_cell(r.title for r in p.reference_titles)} | "
+            f"{_cell(references)} | "
             f"{_cell(p.unrecognised_references)} |"
         )
     return "\n".join(lines) + "\n"

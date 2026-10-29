@@ -173,8 +173,10 @@ Incremental runs (TM11-41): each run re-embeds only new games and games whose
 - Rule-based: fixed vocabularies in the module, no model call, so it adds no
   cost or provider dependency and each signal traces back to a word. A negated
   word ("nothing scary", "no shooters", "not on Xbox") goes in `excluded_*`
-  instead. A negation reaches three words back and stops at "but", a comma or
-  the end of a sentence.
+  instead, and so does a negated title ("nothing like Dark Souls", "I don't
+  like Hades", "no Stardew Valley clones" → `excluded_reference_titles`). A
+  negation reaches three words back and stops at "but", a comma or the end of
+  a sentence.
 - Titles are matched with `normalise_title` (the library import key), plus the
   usual ways of writing one: roman numerals as digits ("dark souls 3"), no leading
   "the", the part before a subtitle ("witcher 3") and, after a cue only, the part

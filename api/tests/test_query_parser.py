@@ -155,6 +155,36 @@ def test_negation_does_not_cross_a_sentence(index):
     assert parsed.genres == ("Puzzle",)
 
 
+@pytest.mark.parametrize("query, title", [
+    ("nothing like Dark Souls 3", "Dark Souls III"),   # PR #50 review
+    ("not like Hades", "Hades"),
+    ("I don't like Hades", "Hades"),                   # the negated verb still counts
+    ("I don't like Stardew Valley", "Stardew Valley"),
+    ("no Stardew Valley clones", "Stardew Valley"),    # uncued title
+])
+def test_a_negated_title_is_excluded_not_a_reference(index, query, title):
+    parsed = parse_query(query, index)
+    assert parsed.reference_titles == ()
+    assert [r.title for r in parsed.excluded_reference_titles] == [title]
+
+
+def test_wanted_and_ruled_out_titles_in_one_query(index):
+    parsed = parse_query("a game like Celeste, nothing like Hades", index)
+    assert titles(parsed) == ["Celeste"]
+    assert [r.title for r in parsed.excluded_reference_titles] == ["Hades"]
+
+
+def test_a_negated_list_of_titles_is_all_excluded(index):
+    parsed = parse_query("nothing like Hades or Dead Cells", index)
+    assert parsed.reference_titles == ()
+    assert [r.title for r in parsed.excluded_reference_titles] == ["Hades", "Dead Cells"]
+
+
+def test_i_like_names_no_title_either_way(index):
+    parsed = parse_query("I like Hades", index)
+    assert parsed.reference_titles == () and parsed.excluded_reference_titles == ()
+
+
 def test_a_signal_mentioned_twice_is_listed_once(index):
     assert parse_query("relaxing, chill, calm", index).moods == ("relaxing",)
 
@@ -251,6 +281,7 @@ async def test_every_parse_logs_its_signals(index, caplog):
     assert last["moods"] == ["relaxing"]
     assert last["platforms"] == ["steam"]
     assert last["reference_titles"] == [{"game_id": str(ID["Hades"]), "title": "Hades"}]
+    assert last["excluded_reference_titles"] == []
     assert logged[1]["genres"] == [] and logged[1]["word_count"] == 2
     json.dumps(logged)  # the JSON log formatter has to be able to write it
 
