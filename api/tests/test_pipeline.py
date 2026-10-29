@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 import pytest
 
 from api.models import GameCandidate, Recommendation
+from api.services.query_parser import QueryParser
 from api.services.rag_pipeline import RAGPipeline
 
 pytestmark = pytest.mark.asyncio
@@ -44,6 +45,14 @@ class FakeDeduplication:
         return [c for c in candidates if c.title not in self._owned]
 
 
+async def _no_catalogue():
+    return None
+
+
+# Offline: the default parser would read the catalogue from DATABASE_URL.
+OFFLINE_PARSER = QueryParser(load_titles=_no_catalogue)
+
+
 class FakeLLM:
     def __init__(self):
         self.seen_candidates: list[GameCandidate] | None = None
@@ -68,7 +77,7 @@ async def test_pipeline_returns_three_ranked_results(candidates):
     vector_store = FakeVectorStore(candidates)
     dedup = FakeDeduplication(owned_titles=set())
     llm = FakeLLM()
-    pipeline = RAGPipeline(embedding, vector_store, dedup, llm, k=20, n=3)
+    pipeline = RAGPipeline(embedding, vector_store, dedup, llm, k=20, n=3, parser=OFFLINE_PARSER)
 
     recs = await pipeline.recommend(DEV_USER, "a chill game for a podcast night")
 
@@ -85,7 +94,7 @@ async def test_pipeline_excludes_owned_games(candidates):
     vector_store = FakeVectorStore(candidates)
     dedup = FakeDeduplication(owned_titles=owned)
     llm = FakeLLM()
-    pipeline = RAGPipeline(embedding, vector_store, dedup, llm, k=20, n=3)
+    pipeline = RAGPipeline(embedding, vector_store, dedup, llm, k=20, n=3, parser=OFFLINE_PARSER)
 
     recs = await pipeline.recommend(DEV_USER, "cozy")
 
@@ -104,7 +113,7 @@ async def test_pipeline_uses_keyless_services_end_to_end(candidates):
     vector_store = FakeVectorStore(candidates)
     dedup = FakeDeduplication(owned_titles=set())
     llm = LLMService(gemini_api_key=None, anthropic_api_key=None)
-    pipeline = RAGPipeline(embedding, vector_store, dedup, llm, k=20, n=3)
+    pipeline = RAGPipeline(embedding, vector_store, dedup, llm, k=20, n=3, parser=OFFLINE_PARSER)
 
     recs = await pipeline.recommend(DEV_USER, "relaxing game")
 
