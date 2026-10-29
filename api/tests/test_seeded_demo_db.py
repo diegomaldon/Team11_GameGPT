@@ -134,6 +134,18 @@ def test_dedup_drops_the_seeded_library_from_candidates(demo_user):
     assert [c.title for c in kept] == [fresh.title]
 
 
+def test_query_parser_reads_reference_titles_from_the_catalogue(demo_user):
+    # TM11-62. A failed catalogue read only logs a warning, so check it here.
+    from api.services.query_parser import QueryParser, reset_shared_title_index
+
+    reset_shared_title_index()
+    parsed = asyncio.run(QueryParser().parse("chill games like Stardew Valley"))
+
+    assert parsed.titles_checked is True
+    assert [r.title for r in parsed.reference_titles] == ["Stardew Valley"]
+    assert parsed.moods == ("relaxing",)
+
+
 def test_seeded_queries_have_ranked_recommendations_and_feedback(demo_user):
     rows = asyncio.run(_fetch(
         "select q.text, r.rank, r.title, f.vote "

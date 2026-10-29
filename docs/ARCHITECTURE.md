@@ -37,6 +37,7 @@ Supporting layers:
 | Wire models (contract)   | `api/models/schemas.py`                |
 | HTTP routers             | `api/routers/{recommend,search,feedback,library,health}.py` |
 | Retrieval on its own     | `api/services/semantic_search.py` (TM11-42) |
+| Query parsing            | `api/services/query_parser.py` (TM11-62) |
 | Persistence              | `api/db/repositories.py`               |
 | DB connection + pgvector | `api/db/pool.py`                       |
 | Config / env / .env      | `api/config.py`                        |
@@ -58,6 +59,7 @@ web/app/(app)/page.tsx  (user submits a query)
        └─ POST /api/recommend
             └─ api/routers/recommend.py  recommend()
                  ├─ RAGPipeline.recommend(user_id, query)         api/services/rag_pipeline.py
+                 │    ├─ QueryParser.parse(query)                  → genre/mood/platform/title signals, logged (TM11-62)
                  │    ├─ EmbeddingService.embed_query(query)       → 384-dim vector (local HF)
                  │    ├─ VectorStore.top_k(embedding, k=20)        → pgvector cosine top-k
                  │    ├─ DeduplicationService.filter_owned(...)    → drop games in owned_games
@@ -159,6 +161,44 @@ Incremental runs (TM11-41): each run re-embeds only new games and games whose
   can serve it (TM11-40). On the **legacy** `0001_init.sql` slice it searches
   `games.embedding` as before. `DeduplicationService` follows the same switch
   (see below).
+
+### Query parsing (`QueryParser`, TM11-62)
+- REQ011: a player types a description, not filters. `QueryParser.parse(query)`
+  reads it for **genres** (catalogue genre names: "jrpg" → `RPG`, "roguelites" →
+  `Roguelike`), **moods** (catalogue tag names: "chill" → `relaxing`, "spooky" →
+  `tense`), **platforms** (`steam`, `xbox`, `epic`; "pc" is both PC stores) and
+  **reference titles** (catalogue games after a cue: "like Hades", "similar to
+  Stardew Valley"). Labels match `games.genres` and `games.tags` so TM11-65 can
+  use them against rows as they are.
+- Rule-based: fixed vocabularies in the module, no model call, so it adds no
+  cost or provider dependency and each signal traces back to a word. A negated
+  word ("nothing scary", "no shooters", "not on Xbox") goes in `excluded_*`
+  instead, and so does a negated title ("nothing like Dark Souls", "I don't
+  like Hades", "no Stardew Valley clones" → `excluded_reference_titles`). A
+  negation reaches three words back and stops at "but", a comma or the end of
+  a sentence.
+- Titles are matched with `normalise_title` (the library import key), plus the
+  usual ways of writing one: roman numerals as digits ("dark souls 3"), no leading
+  "the", the part before a subtitle ("witcher 3") and, after a cue only, the part
+  after it ("like skyrim"). A one-word title needs a cue or must be the whole
+  query, since "rust" and "control" are also words; multi-word titles count
+  anywhere. Words used by a title are not read as signals ("Dark Souls" is not
+  a dark mood).
+- **Unrecognised titles never fail a query.** A name after a cue that matches no
+  game, or matches two, goes in `unrecognised_references` and nothing else
+  happens. If the catalogue can't be read (no DB, DB down) titles are skipped,
+  `titles_checked` is false, and the other signals still come back. The
+  catalogue's title index is cached for 10 minutes per process.
+- **Every query is logged** as `query.parsed`, with the signals under
+  `query_parse`. The line holds only vocabulary labels, catalogue titles and
+  ids, and counts: never the player's own words, so unrecognised names are a
+  count (as library titles are, TM11-55). `parser_version` changes with the rules.
+
+  ```bash
+  render logs | jq 'select(.msg == "query.parsed") | .query_parse'
+  ```
+- Retrieval does not use the signals yet; the pipeline parses and logs, then
+  embeds the raw query as before. Hybrid retrieval is TM11-65.
 
 ### Ownership (`DeduplicationService`, TM11-58)
 - `check_ownership(user_id, game)` → `Ownership(game_id, platforms)`: whether the
