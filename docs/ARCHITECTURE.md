@@ -200,6 +200,9 @@ Incremental runs (TM11-41): each run re-embeds only new games and games whose
     remakes (*Final Fantasy VII Remake*).
 - Recall, latency and index size: `scripts/eval_vector_index.py` →
   `artifacts/sprint6/tm11-40-vector-index.md`.
+- Retrieval benchmark: 20 prompts with expected titles in
+  `api/fixtures/query_benchmark.json`, loaded by `api/services/query_benchmark.py`
+  and scored by both eval scripts ([query-benchmark.md](query-benchmark.md), TM11-63).
 
 ### Steam (`LibrarySyncService`)
 - Real `IPlayerService/GetOwnedGames` call via httpx (needs only an API key +
