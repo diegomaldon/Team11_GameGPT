@@ -36,35 +36,42 @@ import httpx  # noqa: E402
 from api.db import has_db  # noqa: E402
 from api.db.schema import catalogue_shape  # noqa: E402
 from api.main import create_app  # noqa: E402
-from eval_vector_index import QUERIES, percentile  # noqa: E402
+from api.services.query_benchmark import BenchmarkQuery  # noqa: E402
+from eval_vector_index import BENCHMARK, percentile  # noqa: E402
 
 ARTIFACT_DIR = Path("artifacts/sprint7")
 P95_BUDGET_MS = 1000.0
 
 
+def search_body(query: BenchmarkQuery, k: int) -> dict:
+    """The POST /api/search body for one benchmark prompt, filters included."""
+    return {"query": query.prompt, "k": k,
+            "platforms": list(query.filters.platforms), "genres": list(query.filters.genres)}
+
+
 async def evaluate(k: int, repeats: int) -> dict:
     transport = httpx.ASGITransport(app=create_app())
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-        queries = [q for q, _ in QUERIES]
+        bodies = [search_body(query, k) for query in BENCHMARK]
 
         started = time.perf_counter()
-        first = await client.post("/api/search", json={"query": queries[0], "k": k})
+        first = await client.post("/api/search", json=bodies[0])
         cold_ms = (time.perf_counter() - started) * 1000
         first.raise_for_status()
 
-        for query in queries:  # warm: one untimed search per query
-            (await client.post("/api/search", json={"query": query, "k": k})).raise_for_status()
+        for body in bodies:  # warm: one untimed search per query
+            (await client.post("/api/search", json=body)).raise_for_status()
 
         request_ms, server_ms, hits = [], [], 0
-        for query, expected in QUERIES:
+        for query, body in zip(BENCHMARK, bodies):
             for _ in range(repeats):
                 started = time.perf_counter()
-                resp = await client.post("/api/search", json={"query": query, "k": k})
+                resp = await client.post("/api/search", json=body)
                 request_ms.append((time.perf_counter() - started) * 1000)
                 resp.raise_for_status()
                 server_ms.append(resp.json()["took_ms"])
             titles = [r["title"] for r in resp.json()["results"]]
-            hits += any(t in expected for t in titles)
+            hits += query.hit_rank(titles) is not None
         model = resp.json()["model"]
 
     def summary(values: list[float]) -> dict:
@@ -76,7 +83,7 @@ async def evaluate(k: int, repeats: int) -> dict:
         "schema": await catalogue_shape(),
         "model": model,
         "k": k,
-        "queries": len(QUERIES),
+        "queries": len(BENCHMARK),
         "repeats_per_query": repeats,
         "cold_first_request_ms": round(cold_ms, 2),
         "request_ms": summary(request_ms),
@@ -111,7 +118,7 @@ def to_markdown(report: dict) -> str:
         "",
         f"The expected game was in the top {report['k']} for "
         f"{report['queries_with_expected_game_in_top_k']} of {report['queries']} queries "
-        "(the TM11-40 query set).",
+        "(the TM11-63 benchmark, with each prompt's filters).",
         "",
     ])
 
