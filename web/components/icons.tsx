@@ -249,3 +249,17 @@ export function PlayStation(props: IconProps) {
     </svg>
   );
 }
+export function Pause(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M9 5v14M15 5v14" />
+    </svg>
+  );
+}
+export function Play(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M8 5.5v13l10-6.5-10-6.5z" />
+    </svg>
+  );
+}
