@@ -11,7 +11,7 @@ import type { LibrarySyncJob } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/session";
 import { completeXboxImport, type XboxImportResult } from "@/lib/auth/xboxClient";
 import { savePending, takePending, XBOX_REFRESH_URL } from "./libraryRefresh";
-import { useLibraryRefresh } from "./useLibraryRefresh";
+import { ACCOUNTS_FAILED_MESSAGE, useLibraryRefresh } from "./useLibraryRefresh";
 
 const current = vi.hoisted(() => ({ db: null as unknown as AccountsDb }));
 vi.mock("@/lib/supabase", () => ({
@@ -197,6 +197,19 @@ describe("AC3 the library re-renders when the refresh finishes", () => {
   });
 });
 
+describe("Xbox results the Library didn't start", () => {
+  it("hands a link result to Settings, which finishes the link", async () => {
+    search.params = new URLSearchParams("xbox=verified");
+
+    const { hook } = setup([STEAM]);
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/settings?xbox=verified"));
+    expect(hook.result.current.statuses).toEqual({});
+    expect(completeXboxImport).not.toHaveBeenCalled();
+    expect(runLibrarySync).not.toHaveBeenCalled();
+  });
+});
+
 describe("AC4 a failure offers a retry and leaves the data intact", () => {
   it("keeps the Xbox import and retries only the failed Steam sync", async () => {
     savePending(["steam", "xbox"]);
@@ -255,6 +268,41 @@ describe("AC4 a failure offers a retry and leaves the data intact", () => {
 
     await waitFor(() => expect(hook.result.current.statuses.xbox?.state).toBe("succeeded"));
     expect(runLibrarySync).not.toHaveBeenCalled();
+  });
+
+  it("says a cancelled Xbox sign-in skipped Xbox, and offers to retry it", async () => {
+    savePending(["xbox"]);
+    search.params = new URLSearchParams("xbox=cancelled");
+
+    const { hook } = setup([XBOX]);
+
+    await waitFor(() => expect(hook.result.current.hasFailures).toBe(true));
+    expect(hook.result.current.statuses.xbox).toEqual({
+      state: "failed",
+      message: "Xbox sign-in was cancelled, so your Xbox games weren't refreshed.",
+    });
+  });
+
+  it("explains a failed accounts read after the sign-in, with a retry for both", async () => {
+    savePending(["steam", "xbox"]);
+    search.params = new URLSearchParams("xbox=import-ready");
+    const fake = fakeAccountsDb(USER, [STEAM, XBOX]);
+    fake.fail("select");
+    current.db = fake.db;
+    vi.mocked(useAuth).mockReturnValue({
+      status: "authenticated", user: { id: USER }, session: { access_token: "jwt" },
+    } as unknown as ReturnType<typeof useAuth>);
+
+    const hook = renderHook(() => useLibraryRefresh(vi.fn()));
+
+    await waitFor(() => expect(hook.result.current.hasFailures).toBe(true));
+    const failed = { state: "failed", message: ACCOUNTS_FAILED_MESSAGE };
+    expect(hook.result.current.statuses).toEqual({ steam: failed, xbox: failed });
+    expect(completeXboxImport).not.toHaveBeenCalled();
+    expect(replace).toHaveBeenCalledWith("/library");
+
+    act(() => hook.result.current.retry());
+    expect(takePending()).toEqual(["steam", "xbox"]);
   });
 
   it("reports a Steam sync it lost track of", async () => {

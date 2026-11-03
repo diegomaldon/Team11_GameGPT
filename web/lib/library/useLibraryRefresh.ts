@@ -58,6 +58,13 @@ export type LibraryRefresh = {
 export const STEAM_FAILED_MESSAGE = "The Steam sync failed. Your Steam games are unchanged.";
 export const STEAM_LOST_MESSAGE =
   "We lost track of the Steam sync. Check your library, or try again.";
+export const XBOX_CANCELLED_MESSAGE =
+  "Xbox sign-in was cancelled, so your Xbox games weren't refreshed.";
+export const ACCOUNTS_FAILED_MESSAGE =
+  "We couldn't load your linked accounts, so nothing was refreshed. Try again.";
+
+/** Results of the import sign-in a Refresh starts. Anything else goes to Settings. */
+const REFRESH_RESULTS = ["import-ready", "cancelled", "error"];
 
 /** What the Xbox sign-in came back with: ?xbox=import-ready, or a cancel or error. */
 type XboxReturn = { result: string; reason: string | null };
@@ -141,6 +148,10 @@ export function useLibraryRefresh(onLibraryChanged: () => void): LibraryRefresh 
 
   const importXbox = useCallback(
     async ({ result, reason }: XboxReturn) => {
+      if (result === "cancelled") {
+        setStatus("xbox", { state: "failed", message: XBOX_CANCELLED_MESSAGE });
+        return;
+      }
       if (result !== "import-ready") {
         const message = describeXboxResult(result, reason)?.message;
         setStatus("xbox", { state: "failed", message: message ?? describeXboxErrorReason(reason) });
@@ -194,19 +205,34 @@ export function useLibraryRefresh(onLibraryChanged: () => void): LibraryRefresh 
 
   // Back from the Xbox sign-in: import Xbox and sync whatever else was pending.
   useEffect(() => {
-    if (
-      !xboxResult ||
-      isReturnHandled.current ||
-      authStatus === "loading" ||
-      accountsState.status !== "ready"
-    ) {
+    if (!xboxResult || isReturnHandled.current || authStatus === "loading") {
+      return;
+    }
+    if (!REFRESH_RESULTS.includes(xboxResult)) {
+      // A link result: the Library didn't start it, and Settings knows how to finish it.
+      isReturnHandled.current = true;
+      router.replace(`/settings?${params.toString()}`);
+      return;
+    }
+    if (accountsState.status === "loading") {
       return;
     }
     isReturnHandled.current = true;
     const pending = takePending() ?? platformsToSync(plan);
     router.replace("/library"); // so a reload doesn't import again
+    if (accountsState.status === "error") {
+      // Without the accounts there is no steamID to sync, so fail what was pending and
+      // let Retry start the refresh over.
+      const failed: PlatformStatus = { state: "failed", message: ACCOUNTS_FAILED_MESSAGE };
+      for (const platform of new Set<RefreshPlatform>([...pending, "xbox"])) {
+        setStatus(platform, failed);
+      }
+      return;
+    }
     void run(pending, { result: xboxResult, reason: xboxReason });
-  }, [xboxResult, xboxReason, authStatus, accountsState.status, plan, router, run]);
+  }, [
+    xboxResult, xboxReason, params, authStatus, accountsState.status, plan, router, run, setStatus,
+  ]);
 
   const refresh = useCallback(() => {
     setStatuses({});
