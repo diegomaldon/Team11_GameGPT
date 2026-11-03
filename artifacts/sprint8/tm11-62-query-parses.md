@@ -1,6 +1,6 @@
 # TM11-62 sample query parses
 
-Parser `rules-v2` against the seed catalogue (167 games), written by `scripts/sample_query_parses.py`. Excluded signals are prefixed with `not`.
+Parser `rules-v3` against the seed catalogue (167 games), written by `scripts/sample_query_parses.py`. Excluded signals are prefixed with `not`.
 
 | Query | Genres | Moods | Platforms | Reference titles | Unrecognised |
 |---|---|---|---|---|---|

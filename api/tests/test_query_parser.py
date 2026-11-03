@@ -36,7 +36,11 @@ def index() -> TitleIndex:
 
 
 def titles(parsed) -> list[str]:
-    return [r.title for r in parsed.reference_titles]
+    return titles_of(parsed.reference_titles)
+
+
+def titles_of(references) -> list[str]:
+    return [r.title for r in references]
 
 
 # ───────────── AC: genre, mood, platform and reference-title signals ─────────────
@@ -89,6 +93,15 @@ def test_epic_as_an_adjective_is_not_a_platform(index):
 
 def test_epic_games_store_is_a_platform(index):
     assert parse_query("free on the Epic Games Store", index).platforms == ("epic",)
+
+
+@pytest.mark.parametrize("query, platforms", [
+    ("action roguelikes on Epic", ("epic",)),
+    ("something cozy on epic, please", ("epic",)),
+    ("I want to go on epic adventures", ()),  # PR #50 review: the adjective after "on"
+])
+def test_on_epic_counts_only_at_the_end_of_a_clause(index, query, platforms):
+    assert parse_query(query, index).platforms == platforms
 
 
 def test_a_list_of_references_is_read_in_order(index):
@@ -185,6 +198,37 @@ def test_i_like_names_no_title_either_way(index):
     assert parsed.reference_titles == () and parsed.excluded_reference_titles == ()
 
 
+def test_a_label_wanted_and_excluded_takes_its_last_mention(index):
+    # PR #50 review: "horror" is also the tense mood.
+    parsed = parse_query("no horror, but i want something tense", index)
+    assert parsed.moods == ("tense",)
+    assert parsed.excluded_moods == ()
+    assert parsed.excluded_genres == ("Horror",)
+
+    parsed = parse_query("something tense. Actually no, nothing scary", index)
+    assert parsed.moods == ()
+    assert parsed.excluded_moods == ("tense",)
+
+
+def test_a_title_wanted_and_excluded_takes_its_last_mention(index):
+    parsed = parse_query("like Hades. Actually, nothing like Hades", index)
+    assert parsed.reference_titles == ()
+    assert titles_of(parsed.excluded_reference_titles) == ["Hades"]
+
+
+def test_no_label_is_ever_both_wanted_and_excluded(index):
+    for query in ("no horror, but i want something tense", "chill, not chill, chill",
+                  "on pc but not on epic games", "like Hades, nothing like Hades"):
+        parsed = parse_query(query, index)
+        for wanted, excluded in (
+            (parsed.genres, parsed.excluded_genres),
+            (parsed.moods, parsed.excluded_moods),
+            (parsed.platforms, parsed.excluded_platforms),
+            (parsed.reference_titles, parsed.excluded_reference_titles),
+        ):
+            assert not set(wanted) & set(excluded), query
+
+
 def test_a_signal_mentioned_twice_is_listed_once(index):
     assert parse_query("relaxing, chill, calm", index).moods == ("relaxing",)
 
@@ -253,6 +297,25 @@ async def test_catalogue_failure_degrades_instead_of_raising(caplog):
     assert [r.getMessage() for r in caplog.records] == [
         "query.titles_unavailable", "query.parsed",
     ]
+
+
+@pytest.mark.asyncio
+async def test_a_parser_bug_degrades_instead_of_failing_the_recommend(index, caplog, monkeypatch):
+    # PR #50 review: only the catalogue load was guarded.
+    import api.services.query_parser as query_parser
+
+    def broken(query, index):
+        raise ValueError("bug in a rule")
+
+    async def load():
+        return index
+
+    monkeypatch.setattr(query_parser, "parse_query", broken)
+    caplog.set_level(logging.INFO, logger="gamegpt.query_parser")
+    parsed = await QueryParser(load_titles=load).parse("chill games like Hades")
+
+    assert parsed == query_parser.ParsedQuery(titles_checked=False)
+    assert [r.getMessage() for r in caplog.records] == ["query.parse_failed", "query.parsed"]
 
 
 def test_an_empty_catalogue_is_handled():

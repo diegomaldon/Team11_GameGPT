@@ -49,7 +49,7 @@ log = logging.getLogger("gamegpt.query_parser")
 
 # Bumped whenever a vocabulary or rule changes, so logged parses from before
 # and after a change can be told apart.
-PARSER_VERSION = "rules-v2"
+PARSER_VERSION = "rules-v3"
 
 # How long the title index is reused before the catalogue is read again.
 CATALOGUE_CACHE_SECONDS = 600.0
@@ -123,9 +123,13 @@ _PLATFORM_PHRASES: dict[tuple[str, ...], tuple[str, ...]] = {
     ("steam",): ("steam", "steam deck"),
     ("xbox",): ("xbox", "xbox one", "xbox series x", "xbox series s", "series x",
                 "game pass", "gamepass"),
-    ("epic",): ("epic games", "epic games store", "epic store", "epic launcher", "egs",
-                "on epic"),
+    ("epic",): ("epic games", "epic games store", "epic store", "epic launcher", "egs"),
     ("steam", "epic"): ("pc",),
+}
+# Phrases that only count at the end of a clause: "roguelikes on Epic" names the
+# store, "on epic adventures" doesn't.
+_PLATFORM_PHRASES_AT_CLAUSE_END: dict[tuple[str, ...], tuple[str, ...]] = {
+    ("epic",): ("on epic",),
 }
 
 # A negator up to this many words before a signal marks it as excluded.
@@ -182,6 +186,7 @@ def _phrase_table(phrases: dict[Any, tuple[str, ...]], *, plurals: bool) -> dict
 _GENRES = _phrase_table(_GENRE_PHRASES, plurals=True)
 _MOODS = _phrase_table(_MOOD_PHRASES, plurals=False)
 _PLATFORMS = _phrase_table(_PLATFORM_PHRASES, plurals=False)
+_PLATFORMS_AT_CLAUSE_END = _phrase_table(_PLATFORM_PHRASES_AT_CLAUSE_END, plurals=False)
 _SIGNAL_FIRST_WORDS = frozenset(t[0] for table in (_GENRES, _MOODS) for t in table)
 
 
@@ -456,55 +461,71 @@ def _is_negated(tokens: Sequence[str | None], i: int) -> bool:
     return False
 
 
-def _scan(tokens: Sequence[str | None], table: dict) -> tuple[list, list]:
-    """(wanted labels, excluded labels) for every phrase of `table` in `tokens`.
+def _scan(
+    tokens: Sequence[str | None], table: dict, at_clause_end: dict | None = None,
+) -> list[tuple[Any, bool]]:
+    """(label, negated) for every phrase of `table` in `tokens`, in order.
 
+    Phrases in `at_clause_end` count only when nothing but a comma follows.
     A negation carries along an "or" list: in "nothing scary or fast paced"
     both are excluded, though "fast" is past the negation window.
     """
-    wanted, excluded = [], []
-    longest = max(len(k) for k in table)
+    at_clause_end = at_clause_end or {}
+    found = []
+    longest = max(len(k) for k in (*table, *at_clause_end))
     negated_until = -1  # end of the last excluded phrase
     i = 0
     while i < len(tokens):
         for length in range(min(longest, len(tokens) - i), 0, -1):
             words = tuple(tokens[i:i + length])
             label = table.get(words) if None not in words else None
+            if label is None and words in at_clause_end:
+                ends_clause = i + length == len(tokens) or tokens[i + length] == ","
+                label = at_clause_end[words] if ends_clause else None
             if label is not None:
                 continues_list = (
                     negated_until >= 0
                     and i > negated_until
                     and all(t in ("or", "nor") for t in tokens[negated_until:i])
                 )
-                if continues_list or _is_negated(tokens, i):
-                    excluded.append(label)
+                negated = continues_list or _is_negated(tokens, i)
+                if negated:
                     negated_until = i + length
-                else:
-                    wanted.append(label)
+                found.append((label, negated))
                 i += length
                 break
         else:
             i += 1
-    return wanted, excluded
+    return found
 
 
-def _unique(items: Iterable[Any]) -> tuple:
-    return tuple(dict.fromkeys(items))
+def _settle(mentions: Iterable[tuple[Any, bool]]) -> tuple[tuple, tuple]:
+    """(wanted, excluded) labels, in first-mention order.
+
+    A label mentioned both ways takes its last mention, the way people correct
+    themselves: "no horror, but something tense" wants tense, though "horror"
+    is also a tense mood.
+    """
+    last: dict[Any, bool] = {}
+    for label, negated in mentions:
+        last[label] = negated
+    return (
+        tuple(label for label, negated in last.items() if not negated),
+        tuple(label for label, negated in last.items() if negated),
+    )
 
 
-def _flatten(platform_groups: Iterable[tuple[str, ...]]) -> tuple[str, ...]:
-    return _unique(p for group in platform_groups for p in group)
+def _per_platform(mentions: Iterable[tuple[tuple[str, ...], bool]]) -> list[tuple[str, bool]]:
+    """Split "pc" (steam and epic) into one mention per platform."""
+    return [(p, negated) for group, negated in mentions for p in group]
 
 
 def parse_query(query: str, index: TitleIndex | None) -> ParsedQuery:
     """Signals in `query`. With no `index`, reference titles aren't looked for."""
     clauses = _clauses(query)
-    genres: list[str] = []
-    moods: list[str] = []
-    platforms: list[tuple[str, ...]] = []
-    no_genres: list[str] = []
-    no_moods: list[str] = []
-    no_platforms: list[tuple[str, ...]] = []
+    genres: list[tuple[str, bool]] = []
+    moods: list[tuple[str, bool]] = []
+    platforms: list[tuple[str, bool]] = []
     references: list[tuple[str, list[UUID], bool]] = []
     unrecognised: list[str] = []
 
@@ -514,14 +535,9 @@ def parse_query(query: str, index: TitleIndex | None) -> ParsedQuery:
             found = _find_titles(tokens, index)
             references += found.references
             unrecognised += found.unrecognised
-        for table, wanted, excluded in (
-            (_GENRES, genres, no_genres),
-            (_MOODS, moods, no_moods),
-            (_PLATFORMS, platforms, no_platforms),
-        ):
-            more, fewer = _scan(tokens, table)
-            wanted += more
-            excluded += fewer
+        genres += _scan(tokens, _GENRES)
+        moods += _scan(tokens, _MOODS)
+        platforms += _per_platform(_scan(tokens, _PLATFORMS, _PLATFORMS_AT_CLAUSE_END))
 
     # A query that is nothing but a title ("hades") names that game, cue or not.
     if index is not None and not references and len(clauses) == 1:
@@ -530,26 +546,30 @@ def parse_query(query: str, index: TitleIndex | None) -> ParsedQuery:
             references.append((" ".join(clauses[0]), hit[1], False))
             genres, moods, platforms = [], [], []  # its words were a title, not signals
 
-    matched: dict[UUID, ReferenceTitle] = {}
-    ruled_out: dict[UUID, ReferenceTitle] = {}
+    titles: dict[UUID, ReferenceTitle] = {}
+    title_mentions: list[tuple[UUID, bool]] = []
     for as_written, ids, negated in references:
         if len(ids) > 1:
             # Two games share the spelling; guessing would compare against the wrong one.
             unrecognised.append(as_written)
             continue
-        found = ruled_out if negated else matched
-        found.setdefault(ids[0], ReferenceTitle(ids[0], index.title(ids[0]), as_written))
+        titles.setdefault(ids[0], ReferenceTitle(ids[0], index.title(ids[0]), as_written))
+        title_mentions.append((ids[0], negated))
 
+    wanted_genres, no_genres = _settle(genres)
+    wanted_moods, no_moods = _settle(moods)
+    wanted_platforms, no_platforms = _settle(platforms)
+    wanted_titles, no_titles = _settle(title_mentions)
     return ParsedQuery(
-        genres=_unique(genres),
-        moods=_unique(moods),
-        platforms=_flatten(platforms),
-        excluded_genres=_unique(no_genres),
-        excluded_moods=_unique(no_moods),
-        excluded_platforms=_flatten(no_platforms),
-        reference_titles=tuple(matched.values()),
-        excluded_reference_titles=tuple(ruled_out.values()),
-        unrecognised_references=_unique(unrecognised),
+        genres=wanted_genres,
+        moods=wanted_moods,
+        platforms=wanted_platforms,
+        excluded_genres=no_genres,
+        excluded_moods=no_moods,
+        excluded_platforms=no_platforms,
+        reference_titles=tuple(titles[i] for i in wanted_titles),
+        excluded_reference_titles=tuple(titles[i] for i in no_titles),
+        unrecognised_references=tuple(dict.fromkeys(unrecognised)),
         word_count=sum(1 for words in clauses for w in words if w != ","),
         titles_checked=index is not None,
     )
@@ -590,13 +610,22 @@ class QueryParser:
         self._load_titles = load_titles
 
     async def parse(self, query: str) -> ParsedQuery:
-        """Parse `query` and log the result. Never raises for a query's content."""
+        """Parse `query` and log the result. Never raises.
+
+        Nothing downstream depends on the signals yet, so a parser bug must not
+        fail the recommend it runs inside: it is logged and an empty parse
+        comes back instead.
+        """
         try:
             index = await self._load_titles()
         except Exception:
             # Titles are one signal of four; the others don't need the catalogue.
             log.warning("query.titles_unavailable", exc_info=True)
             index = None
-        parsed = parse_query(query, index)
+        try:
+            parsed = parse_query(query, index)
+        except Exception:
+            log.exception("query.parse_failed")
+            parsed = ParsedQuery(titles_checked=False)
         log.info("query.parsed", extra={"query_parse": parsed.log_fields()})
         return parsed

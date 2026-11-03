@@ -166,7 +166,8 @@ Incremental runs (TM11-41): each run re-embeds only new games and games whose
 - REQ011: a player types a description, not filters. `QueryParser.parse(query)`
   reads it for **genres** (catalogue genre names: "jrpg" → `RPG`, "roguelites" →
   `Roguelike`), **moods** (catalogue tag names: "chill" → `relaxing`, "spooky" →
-  `tense`), **platforms** (`steam`, `xbox`, `epic`; "pc" is both PC stores) and
+  `tense`), **platforms** (`steam`, `xbox`, `epic`; "pc" is both PC stores; "on
+  epic" only at the end of a clause, so "on epic adventures" isn't a store) and
   **reference titles** (catalogue games after a cue: "like Hades", "similar to
   Stardew Valley"). Labels match `games.genres` and `games.tags` so TM11-65 can
   use them against rows as they are.
@@ -176,7 +177,9 @@ Incremental runs (TM11-41): each run re-embeds only new games and games whose
   instead, and so does a negated title ("nothing like Dark Souls", "I don't
   like Hades", "no Stardew Valley clones" → `excluded_reference_titles`). A
   negation reaches three words back and stops at "but", a comma or the end of
-  a sentence.
+  a sentence. A label mentioned both ways takes its last mention, so nothing is
+  ever both wanted and excluded: "no horror, but something tense" wants `tense`
+  even though "horror" is also that mood.
 - Titles are matched with `normalise_title` (the library import key), plus the
   usual ways of writing one: roman numerals as digits ("dark souls 3"), no leading
   "the", the part before a subtitle ("witcher 3") and, after a cue only, the part
@@ -188,7 +191,9 @@ Incremental runs (TM11-41): each run re-embeds only new games and games whose
   game, or matches two, goes in `unrecognised_references` and nothing else
   happens. If the catalogue can't be read (no DB, DB down) titles are skipped,
   `titles_checked` is false, and the other signals still come back. The
-  catalogue's title index is cached for 10 minutes per process.
+  catalogue's title index is cached for 10 minutes per process. `parse()` never
+  raises: a parser bug logs `query.parse_failed` and returns an empty parse, so
+  it can't fail the recommend it runs inside.
 - **Every query is logged** as `query.parsed`, with the signals under
   `query_parse`. The line holds only vocabulary labels, catalogue titles and
   ids, and counts: never the player's own words, so unrecognised names are a
