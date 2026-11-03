@@ -1,16 +1,22 @@
 "use client";
 
+// The signed-in chrome (TM11-142): one header with the GameGPT wordmark, a centred pill
+// for Discover · Library · Settings, and the account button showing the user's name.
+// It replaces the old sidebar and the mobile top and bottom bars. Below 640px the pill
+// moves to its own row under the wordmark and spreads across the screen.
+
+import { useEffect, useId, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMock } from "@/lib/mock/store";
 import { useAuth } from "@/lib/auth/session";
 import { Avatar, cx } from "./ui";
-import { Compass, Controller, Gear, Library, LogOut } from "./icons";
+import { ChevronDown, Compass, Gear, Library, LogOut, Sliders } from "./icons";
 
 const NAV = [
   { href: "/", label: "Discover", Icon: Compass },
   { href: "/library", label: "Library", Icon: Library },
-  { href: "/settings", label: "Settings", Icon: Gear },
+  { href: "/settings", label: "Settings", Icon: Sliders },
 ] as const;
 
 function isActive(pathname: string, href: string) {
@@ -36,7 +42,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // Same coalesce order as handle_new_user() in migration 20260922120000: our own
   // registration form sends display_name, Google sends full_name and name. Checking only
-  // display_name meant a Google user fell through to the mock profile and the sidebar
+  // display_name meant a Google user fell through to the mock profile and the header
   // showed a fake name next to their real email.
   const meta = user?.user_metadata as Record<string, unknown> | undefined;
   const displayName =
@@ -53,18 +59,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh">
-      {/* ── Desktop sidebar ── */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-[var(--border)] bg-[var(--surface)] px-3 py-5 md:flex">
-        <Link href="/" className="mb-6 flex items-center gap-2.5 px-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent)] text-[var(--on-accent)]">
-            <Controller className="h-5 w-5" />
-          </span>
-          <span className="font-display text-lg font-bold tracking-tight">
-            GameGPT
-          </span>
+      <header className="mx-auto flex w-full max-w-[1440px] flex-wrap items-center gap-x-4 gap-y-3 px-4 py-4 sm:flex-nowrap sm:px-8 sm:py-5 lg:px-12">
+        <Link
+          href="/"
+          className="flex-1 font-display text-[26px] leading-none text-[var(--heading)] sm:basis-0"
+        >
+          GameGPT
         </Link>
 
-        <nav className="flex flex-1 flex-col gap-1">
+        <nav
+          aria-label="Main"
+          className="order-3 flex w-full justify-between gap-1 rounded-full border border-[var(--border)] bg-[var(--surface)] p-[5px] sm:order-none sm:w-auto sm:justify-start"
+        >
           {NAV.map(({ href, label, Icon }) => {
             const active = isActive(pathname, href);
             return (
@@ -73,83 +79,106 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={cx(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                  "flex min-h-10 flex-1 items-center justify-center gap-2 rounded-full px-4 text-sm transition-colors sm:flex-none",
                   active
-                    ? "bg-[var(--raised-2)] text-[var(--heading)]"
-                    : "text-[var(--ink-soft)] hover:bg-neutral-100 hover:text-[var(--ink)]",
+                    ? "bg-[var(--accent)] font-semibold text-[var(--on-accent)]"
+                    : "font-medium text-[var(--ink-faint)] hover:bg-[var(--raised)] hover:text-[var(--heading)]",
                 )}
               >
-                <Icon className="h-5 w-5" />
+                <Icon className="h-[18px] w-[18px]" />
                 {label}
               </Link>
             );
           })}
         </nav>
 
-        <div className="mt-2 flex items-center gap-2.5 rounded-xl border border-[var(--border)] p-2.5">
-          <Avatar name={displayName} size={34} />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-semibold">{displayName}</p>
-            <p className="truncate text-xs text-[var(--ink-faint)]">
-              {email}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            aria-label="Sign out"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-neutral-100 hover:text-[var(--ink)]"
-          >
-            <LogOut className="h-[18px] w-[18px]" />
-          </button>
+        <div className="flex flex-1 justify-end sm:basis-0">
+          <AccountMenu name={displayName} email={email} onSignOut={handleSignOut} />
         </div>
-      </aside>
-
-      {/* ── Mobile top bar ── */}
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-5 py-3 backdrop-blur md:hidden">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--accent)] text-[var(--on-accent)]">
-            <Controller className="h-[18px] w-[18px]" />
-          </span>
-          <span className="font-display text-base font-bold tracking-tight">
-            GameGPT
-          </span>
-        </Link>
-        <Link href="/settings" aria-label="Account settings">
-          <Avatar name={displayName} size={32} />
-        </Link>
       </header>
 
-      {/* ── Content ── */}
-      <main className="md:pl-60">
-        <div className="mx-auto w-full max-w-3xl px-5 py-8 pb-28 sm:px-6 md:pb-14">
-          {children}
-        </div>
+      <main className="mx-auto w-full max-w-[1440px] px-4 pb-16 pt-4 sm:px-8 lg:px-12">
+        {children}
       </main>
+    </div>
+  );
+}
 
-      {/* ── Mobile bottom nav ── */}
-      <nav
-        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-t border-[var(--border)] bg-[var(--surface)] backdrop-blur md:hidden"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+/**
+ * The account button at the top right: the user's name and initials. It opens a small
+ * panel with their email, a Settings link and Sign out. A disclosure, not an ARIA menu:
+ * the panel holds an ordinary link and button, so Tab moves through them as usual.
+ */
+function AccountMenu({
+  name,
+  email,
+  onSignOut,
+}: {
+  name: string;
+  email: string;
+  onSignOut: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const panelId = useId();
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+
+  // Close on navigation, on Escape, and on a click anywhere outside the menu.
+  useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const onDown = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+    };
+  }, [open]);
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen((v) => !v)}
+        className="flex min-h-11 items-center gap-3 rounded-full border border-[var(--border)] py-1 pl-4 pr-1 text-sm font-medium text-[var(--ink)] transition-colors hover:bg-[var(--raised)]"
       >
-        {NAV.map(({ href, label, Icon }) => {
-          const active = isActive(pathname, href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              aria-current={active ? "page" : undefined}
-              className={cx(
-                "flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors",
-                active ? "text-[var(--heading)]" : "text-[var(--ink-faint)]",
-              )}
-            >
-              <Icon className="h-[22px] w-[22px]" />
-              {label}
-            </Link>
-          );
-        })}
-      </nav>
+        <span className="max-w-[14ch] truncate">{name}</span>
+        <ChevronDown className="h-4 w-4 text-[var(--ink-faint)]" />
+        <Avatar name={name} size={34} />
+      </button>
+
+      {open && (
+        <div
+          id={panelId}
+          className="absolute right-0 top-[calc(100%+8px)] z-40 w-64 animate-fade-up rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-2 shadow-lift"
+        >
+          <div className="px-3 pb-3 pt-2">
+            <p className="truncate text-sm font-semibold text-[var(--heading)]">{name}</p>
+            <p className="truncate text-xs text-[var(--ink-faint)]">{email}</p>
+          </div>
+          <Link
+            href="/settings"
+            className="flex min-h-11 items-center gap-3 rounded-2xl px-3 text-sm text-[var(--ink)] hover:bg-[var(--raised)]"
+          >
+            <Gear className="h-[18px] w-[18px] text-[var(--ink-faint)]" />
+            Account settings
+          </Link>
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 text-left text-sm text-[var(--ink)] hover:bg-[var(--raised)]"
+          >
+            <LogOut className="h-[18px] w-[18px] text-[var(--ink-faint)]" />
+            Sign out
+          </button>
+        </div>
+      )}
     </div>
   );
 }
