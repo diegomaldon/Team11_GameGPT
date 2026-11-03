@@ -55,11 +55,11 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <Card className="p-5 sm:p-6">
+    <Card className="p-6 sm:p-8">
       <div className="mb-4">
-        <h2 className="font-display text-base font-semibold">{title}</h2>
+        <h2 className="font-display text-[28px] leading-tight">{title}</h2>
         {description && (
-          <p className="mt-0.5 text-[13px] text-[var(--ink-soft)]">{description}</p>
+          <p className="mt-1 text-sm text-[var(--ink-faint)]">{description}</p>
         )}
       </div>
       {children}
@@ -90,7 +90,7 @@ function ProfileCard() {
       <div className="flex items-center gap-4">
         <Avatar name={state.profile.name} size={56} />
         <div>
-          <p className="font-display text-lg font-semibold">{state.profile.name}</p>
+          <p className="font-display text-2xl">{state.profile.name}</p>
           <p className="text-sm text-[var(--ink-faint)]">{state.profile.email}</p>
         </div>
       </div>
@@ -186,8 +186,8 @@ function DangerCard() {
   }
 
   return (
-    <Card className={cx("p-5 sm:p-6")}>
-      <h2 className="font-display text-base font-semibold">Account</h2>
+    <Card className={cx("p-6 sm:p-8")}>
+      <h2 className="font-display text-[28px] leading-tight">Account</h2>
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-medium">Sign out</p>

@@ -79,10 +79,10 @@ export function LinkedAccountsCard() {
   const noneLinked = state.status === "ready" && !accounts.some((a) => a.connected);
 
   return (
-    <Card className="p-5 sm:p-6">
+    <Card className="p-6 sm:p-8">
       <div className="mb-4">
-        <h2 className="font-display text-base font-semibold">Linked accounts</h2>
-        <p className="mt-0.5 text-[13px] text-[var(--ink-soft)]">
+        <h2 className="font-display text-[28px] leading-tight">Linked accounts</h2>
+        <p className="mt-1 text-sm text-[var(--ink-faint)]">
           Connect a platform to import your owned games automatically.
         </p>
       </div>

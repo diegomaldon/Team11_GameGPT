@@ -14,6 +14,9 @@
 //
 // TM11-60: Refresh re-syncs every linked platform (lib/library/useLibraryRefresh.ts)
 // and the list is read again in place when it finishes.
+//
+// TM11-142: games show as cover cards in a virtual grid (VirtualGrid), with Steam art
+// where there is an app id and an initials tile otherwise.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -46,7 +49,8 @@ import {
 import { AddGameModal } from "@/components/library/AddGameModal";
 import { CsvImportModal } from "@/components/library/CsvImportModal";
 import { RefreshStatus } from "@/components/library/RefreshStatus";
-import { VirtualList } from "@/components/library/VirtualList";
+import { VirtualGrid, type GridShape } from "@/components/library/VirtualGrid";
+import { GameArt } from "@/components/discover/GameArt";
 import { Button, PageHeader, Select, TextInput, cx } from "@/components/ui";
 import {
   Check,
@@ -67,8 +71,14 @@ const FILTERS: { key: PlatformFilter; label: string }[] = [
   { key: "other", label: "Other" },
 ];
 
-/** One row is 72px tall plus an 8px gap. VirtualList needs it fixed. */
-const ROW_HEIGHT = 80;
+/** Cover card sizes. GameCard's caption must be exactly captionHeight tall. */
+const GRID_SHAPE: GridShape = {
+  minCardWidth: 168,
+  gap: 20,
+  rowGap: 28,
+  captionHeight: 64,
+  minColumns: 2,
+};
 
 type Remote =
   | { status: "loading" }
@@ -81,11 +91,11 @@ function PlatformTag({ platform }: { platform: GamePlatform }) {
   return (
     <span
       title={label}
-      className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-semibold text-[var(--ink-soft)]"
+      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[var(--border-strong)] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--label)]"
     >
       {Icon && <Icon className="h-3.5 w-3.5" aria-hidden="true" />}
-      {/* Icon-only on phones so four badges still fit on one line. */}
-      <span className={Icon ? "sr-only sm:not-sr-only" : undefined}>{label}</span>
+      {/* Icon-only on cards, so several badges fit beside the playtime. */}
+      <span className={Icon ? "sr-only" : undefined}>{label}</span>
     </span>
   );
 }
@@ -201,7 +211,7 @@ export default function LibraryPage() {
       {toast && (
         <div
           role="status"
-          className="mb-4 inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[13px] font-medium text-emerald-700"
+          className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-[13px] font-medium text-emerald-700"
         >
           <Check className="h-4 w-4" />
           {toast}
@@ -211,7 +221,7 @@ export default function LibraryPage() {
       {failed && (
         <div
           role="alert"
-          className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] text-rose-700"
+          className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-3 text-[13px] text-rose-700"
         >
           <span>
             Couldn&apos;t load your imported games.
@@ -226,7 +236,7 @@ export default function LibraryPage() {
       {loading ? (
         <div
           role="status"
-          className="flex items-center justify-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-6 py-14 text-sm text-[var(--ink-faint)]"
+          className="flex items-center justify-center gap-2 rounded-3xl border border-[var(--border)] bg-[var(--surface)] px-6 py-14 text-sm text-[var(--ink-faint)]"
         >
           <Spinner className="h-4 w-4" />
           Loading your library…
@@ -237,14 +247,43 @@ export default function LibraryPage() {
         !failed && <EmptyLibrary onAdd={() => setOpen(true)} />
       ) : (
         <>
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+          <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center">
+            {/* Filters */}
+            <div
+              role="group"
+              aria-label="Platform"
+              className="flex flex-wrap gap-1 self-start rounded-full border border-[var(--border)] bg-[var(--surface)] p-1"
+            >
+              {FILTERS.map((f) => {
+                const count = f.key === "all" ? rows.length : counts[f.key];
+                if (f.key !== "all" && count === 0) return null;
+                const on = active === f.key;
+                return (
+                  <button
+                    key={f.key}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => updateView({ platform: f.key })}
+                    className={cx(
+                      "min-h-10 rounded-full px-4 text-sm font-medium transition-colors",
+                      on
+                        ? "bg-[var(--raised-2)] text-[var(--heading)]"
+                        : "text-[var(--ink-faint)] hover:text-[var(--heading)]",
+                    )}
+                  >
+                    {f.label}
+                    <span className="ml-1.5 opacity-70">{count.toLocaleString("en-US")}</span>
+                  </button>
+                );
+              })}
+            </div>
             <div className="relative flex-1">
               <label htmlFor="library-search" className="sr-only">
                 Search your library
               </label>
               <Search
                 className={cx(
-                  "pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2",
+                  "pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2",
                   "text-[var(--ink-faint)]",
                 )}
                 aria-hidden="true"
@@ -256,7 +295,7 @@ export default function LibraryPage() {
                 autoComplete="off"
                 value={view.query}
                 onChange={(e) => updateView({ query: e.target.value })}
-                className="pl-10 pr-10 [&::-webkit-search-cancel-button]:hidden"
+                className="pl-12 pr-12 [&::-webkit-search-cancel-button]:hidden"
               />
               {view.query && (
                 <button
@@ -264,15 +303,15 @@ export default function LibraryPage() {
                   onClick={() => updateView({ query: "" })}
                   aria-label="Clear search"
                   className={cx(
-                    "absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center",
-                    "justify-center rounded-lg text-[var(--ink-faint)] hover:bg-neutral-100",
+                    "absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center",
+                    "justify-center rounded-full text-[var(--ink-faint)] hover:bg-[var(--raised-2)]",
                   )}
                 >
                   <X className="h-4 w-4" />
                 </button>
               )}
             </div>
-            <div className="sm:w-48">
+            <div className="lg:w-52">
               <label htmlFor="library-sort" className="sr-only">
                 Sort by
               </label>
@@ -290,34 +329,6 @@ export default function LibraryPage() {
             </div>
           </div>
 
-          {/* Filters */}
-          <div className="mb-5 flex flex-wrap gap-2">
-            {FILTERS.map((f) => {
-              const count = f.key === "all" ? rows.length : counts[f.key];
-              if (f.key !== "all" && count === 0) return null;
-              const on = active === f.key;
-              return (
-                <button
-                  key={f.key}
-                  type="button"
-                  aria-pressed={on}
-                  onClick={() => updateView({ platform: f.key })}
-                  className={cx(
-                    "rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors",
-                    on
-                      ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)]"
-                      : "border-[var(--border)] bg-[var(--surface)] text-[var(--ink-soft)] hover:border-neutral-300",
-                  )}
-                >
-                  {f.label}
-                  <span className={cx("ml-1.5", on ? "text-[var(--on-accent)] opacity-70" : "text-[var(--ink-faint)]")}>
-                    {count.toLocaleString("en-US")}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
           {searching && (
             <p role="status" className="mb-3 text-[13px] text-[var(--ink-faint)]">
               {shown.length === 0
@@ -326,12 +337,12 @@ export default function LibraryPage() {
             </p>
           )}
 
-          <VirtualList
+          <VirtualGrid
             items={shown}
-            rowHeight={ROW_HEIGHT}
+            shape={GRID_SHAPE}
             getKey={(r) => r.key}
             label="Owned games"
-            renderRow={(r) => <GameRow row={r} onRemove={() => remove(r)} />}
+            renderCard={(r) => <GameCard row={r} onRemove={() => remove(r)} />}
           />
         </>
       )}
@@ -364,56 +375,57 @@ function matchNoun(count: number): string {
   return count === 1 ? "game matches" : "games match";
 }
 
-function GameRow({ row, onRemove }: { row: UnifiedGame; onRemove: () => void }) {
+function GameCard({ row, onRemove }: { row: UnifiedGame; onRemove: () => void }) {
   const playtime = row.imported
     ? (formatPlaytime(row.playtimeMinutes) ?? "Not played yet")
     : null;
   return (
-    <div className="flex h-[72px] items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 shadow-card">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-neutral-100 font-display text-sm font-bold text-[var(--ink-soft)]">
-        {row.title.slice(0, 2).toUpperCase()}
+    <div className="group flex h-full flex-col">
+      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--raised-2)]">
+        <GameArt appId={row.appid} title={row.title} sizes="(min-width: 640px) 200px, 45vw" decorative />
+        {/* Imported copies come back on the next sync, so only hand-added ones can be removed. */}
+        {row.manualIds.length > 0 && (
+          <button
+            type="button"
+            onClick={onRemove}
+            aria-label={row.imported ? `Remove hand-added ${row.title}` : `Remove ${row.title}`}
+            className="absolute right-2 top-2 flex h-10 w-10 items-center justify-center rounded-full bg-[rgb(5_10_24/0.85)] text-[var(--ink)] transition-colors hover:bg-rose-50 hover:text-rose-600"
+          >
+            <Trash className="h-[18px] w-[18px]" />
+          </button>
+        )}
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold">{row.title}</p>
-        <div className="mt-1 flex items-center gap-1.5 overflow-hidden">
-          {row.platforms.map((p) => (
-            <PlatformTag key={p} platform={p} />
-          ))}
-          {playtime && (
-            <span className="ml-1 shrink-0 text-xs text-[var(--ink-faint)]">{playtime}</span>
-          )}
+      {/* Exactly GRID_SHAPE.captionHeight tall: VirtualGrid's row maths depends on it. */}
+      <div className="flex h-16 flex-col justify-center gap-1.5 overflow-hidden">
+        <p className="truncate text-[15px] font-medium text-[var(--ink)]">{row.title}</p>
+        <div className="flex items-center justify-between gap-2 text-[13px] text-[var(--ink-faint)]">
+          <span className="truncate">{playtime}</span>
+          <span className="flex shrink-0 gap-1">
+            {row.platforms.map((p) => (
+              <PlatformTag key={p} platform={p} />
+            ))}
+          </span>
         </div>
       </div>
-      {/* Imported copies come back on the next sync, so only hand-added ones can be removed. */}
-      {row.manualIds.length > 0 && (
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label={row.imported ? `Remove hand-added ${row.title}` : `Remove ${row.title}`}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[var(--ink-faint)] transition-colors hover:bg-rose-50 hover:text-rose-600"
-        >
-          <Trash className="h-[18px] w-[18px]" />
-        </button>
-      )}
     </div>
   );
 }
 
 function EmptyLibrary({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="flex flex-col items-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-14 text-center">
-      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-neutral-100 text-[var(--ink-faint)]">
+    <div className="flex flex-col items-center rounded-3xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] px-6 py-16 text-center">
+      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--raised-2)] text-[var(--ink-faint)]">
         <LibraryIcon className="h-5 w-5" />
       </span>
-      <p className="mt-3 text-sm font-semibold">Your library is empty</p>
-      <p className="mt-1 max-w-xs text-xs text-[var(--ink-faint)]">
+      <p className="mt-4 font-display text-2xl">Your library is empty</p>
+      <p className="mt-2 max-w-sm text-sm text-[var(--ink-faint)]">
         Link a platform to import the games you own. GameGPT uses your library
         to skip games you already have.
       </p>
-      <div className="mt-4 flex flex-wrap justify-center gap-2">
+      <div className="mt-6 flex flex-wrap justify-center gap-2">
         <Link
           href="/settings"
-          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-[var(--accent)] px-3.5 text-[13px] font-semibold text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)]"
+          className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-[var(--accent)] px-4 text-[13px] font-semibold text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)]"
         >
           Link a platform
         </Link>
