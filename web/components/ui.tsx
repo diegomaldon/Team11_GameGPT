@@ -107,7 +107,7 @@ export function Field({
 }
 
 const inputCls =
-  "h-12 w-full rounded-full border border-[var(--border)] bg-[var(--bg)] px-5 text-[15px] text-[var(--ink)] outline-none transition-colors focus:border-[var(--accent)] disabled:bg-[var(--surface)] disabled:text-[var(--ink-faint)]";
+  "h-12 w-full rounded-full border border-[var(--border-input)] bg-[var(--bg)] px-5 text-[15px] text-[var(--ink)] outline-none transition-colors focus:border-[var(--accent)] disabled:bg-[var(--surface)] disabled:text-[var(--ink-faint)]";
 
 export function TextInput(
   props: React.InputHTMLAttributes<HTMLInputElement>,
@@ -142,7 +142,7 @@ export function Toggle({
         "relative h-7 w-12 shrink-0 rounded-full transition-colors",
         checked
           ? "bg-[var(--accent)]"
-          : "bg-[var(--bg)] ring-1 ring-inset ring-[var(--border-strong)]",
+          : "bg-[var(--bg)] ring-1 ring-inset ring-[var(--border-input)]",
       )}
     >
       <span

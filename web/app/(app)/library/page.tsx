@@ -383,29 +383,32 @@ function GameCard({ row, onRemove }: { row: UnifiedGame; onRemove: () => void })
     <div className="group flex h-full flex-col">
       <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--raised-2)]">
         <GameArt appId={row.appid} title={row.title} sizes="(min-width: 640px) 200px, 45vw" decorative />
+      </div>
+      {/* Exactly GRID_SHAPE.captionHeight tall: VirtualGrid's row maths depends on it.
+          The remove button sits here, not on the cover, so it never hides the art. */}
+      <div className="flex h-16 items-center gap-1.5 overflow-hidden">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <p className="truncate text-[15px] font-medium text-[var(--ink)]">{row.title}</p>
+          <div className="flex items-center gap-2 text-[13px] text-[var(--ink-faint)]">
+            <span className="flex shrink-0 gap-1">
+              {row.platforms.map((p) => (
+                <PlatformTag key={p} platform={p} />
+              ))}
+            </span>
+            <span className="truncate">{playtime}</span>
+          </div>
+        </div>
         {/* Imported copies come back on the next sync, so only hand-added ones can be removed. */}
         {row.manualIds.length > 0 && (
           <button
             type="button"
             onClick={onRemove}
             aria-label={row.imported ? `Remove hand-added ${row.title}` : `Remove ${row.title}`}
-            className="absolute right-2 top-2 flex h-10 w-10 items-center justify-center rounded-full bg-[rgb(5_10_24/0.85)] text-[var(--ink)] transition-colors hover:bg-rose-50 hover:text-rose-600"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--ink-faint)] transition-colors hover:bg-rose-50 hover:text-rose-600"
           >
             <Trash className="h-[18px] w-[18px]" />
           </button>
         )}
-      </div>
-      {/* Exactly GRID_SHAPE.captionHeight tall: VirtualGrid's row maths depends on it. */}
-      <div className="flex h-16 flex-col justify-center gap-1.5 overflow-hidden">
-        <p className="truncate text-[15px] font-medium text-[var(--ink)]">{row.title}</p>
-        <div className="flex items-center justify-between gap-2 text-[13px] text-[var(--ink-faint)]">
-          <span className="truncate">{playtime}</span>
-          <span className="flex shrink-0 gap-1">
-            {row.platforms.map((p) => (
-              <PlatformTag key={p} platform={p} />
-            ))}
-          </span>
-        </div>
       </div>
     </div>
   );

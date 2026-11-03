@@ -94,7 +94,7 @@ export default function DiscoverPage() {
             e.preventDefault();
             void run(query);
           }}
-          className="mt-8 flex items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--surface)] p-2 pl-5 text-left focus-within:border-[var(--accent)] sm:pl-6"
+          className="mt-8 flex items-center gap-2 rounded-full border border-[var(--border-input)] bg-[var(--surface)] p-2 pl-5 text-left focus-within:border-[var(--accent)] sm:pl-6"
         >
           <Search className="hidden h-5 w-5 shrink-0 text-[var(--ink-faint)] sm:block" />
           <input

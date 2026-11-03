@@ -29,7 +29,7 @@ import {
 // Matches TextInput in components/ui.tsx. Plain inputs here because react-hook-form's
 // register() hands each one its own ref and handlers.
 const INPUT_CLASS =
-  'h-12 w-full rounded-full border border-[var(--border)] bg-[var(--bg)] px-5 text-[15px] text-[var(--ink)] outline-none transition-colors focus:border-[var(--accent)] aria-[invalid=true]:border-rose-300';
+  'h-12 w-full rounded-full border border-[var(--border-input)] bg-[var(--bg)] px-5 text-[15px] text-[var(--ink)] outline-none transition-colors focus:border-[var(--accent)] aria-[invalid=true]:border-rose-300';
 
 type FormState =
   | { kind: 'idle' }

@@ -61,7 +61,8 @@ backend (out of scope for the skeleton). Only Discover exercises the RAG slice.
   | `--bg` | `#050a18` | Page ground, inputs inside cards |
   | `--surface` | `#0a1430` | Cards, panels, the header pill |
   | `--raised` / `--raised-2` | `#0f1c3d` / `#13234a` | Hover, selected filter, chips |
-  | `--border` / `--border-strong` | `#1c2c58` / `#2a3c70` | Card edges / secondary buttons |
+  | `--border` / `--border-strong` | `#1c2c58` / `#2a3c70` | Card edges / secondary buttons (decorative: the text inside carries the meaning) |
+  | `--border-input` | `#5a6ea3` | Edges of inputs, selects, the search bar and the off toggle. 3.6:1 on `--surface` and 4:1 on `--bg`, so a control's boundary passes WCAG 1.4.11 |
   | `--ink` / `--ink-soft` / `--ink-faint` | `#e8e1d0` / `#c4cadb` / `#a3acc6` | Body text, from strongest to quietest. `--ink-faint` is still 7:1 on `--surface` |
   | `--heading` | `#f1e7d0` | Serif headings |
   | `--label` | `#cfc3a6` | Form labels, small-caps eyebrows, platform badges |

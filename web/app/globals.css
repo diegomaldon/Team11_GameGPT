@@ -14,6 +14,9 @@
   --raised-2: #13234a; /* selected item, chip hover */
   --border: #1c2c58;
   --border-strong: #2a3c70;
+  /* Edges of inputs, selects and the off toggle: 3.6:1 on --surface, 4:1 on --bg,
+     so the control's boundary passes WCAG 1.4.11 (non-text contrast). */
+  --border-input: #5a6ea3;
   --ink: #e8e1d0; /* body text: warm off-white */
   --ink-soft: #c4cadb;
   --ink-faint: #a3acc6; /* still 7:1 on --surface */
