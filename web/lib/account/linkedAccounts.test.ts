@@ -1,7 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ApiError } from "@/lib/api/apiError";
 import { fakeAccountsDb, type StoredAccount } from "./fakeAccountsDb";
 import {
   AccountsError,
+  disconnectAndClearLibrary,
   disconnectPlatform,
   formatLastSynced,
   linkManualPlatform,
@@ -110,6 +112,70 @@ describe("disconnectPlatform: AC2 disconnect", () => {
     await expect(disconnectPlatform(fake.db, USER, "steam")).rejects.toBeInstanceOf(
       AccountsError,
     );
+  });
+});
+
+describe("disconnectAndClearLibrary: TM11-61 disconnect and recalculate the library", () => {
+  it("clears that platform's games, then deletes its row", async () => {
+    const fake = fakeAccountsDb(USER, [STEAM]);
+    const order: string[] = [];
+    const removeGames = vi.fn(async (platform: string) => {
+      order.push(`library:${platform}`);
+      expect(fake.rows).toHaveLength(1); // the row is still there while the library clears
+    });
+    await disconnectAndClearLibrary(fake.db, USER, "steam", removeGames);
+    order.push("row deleted");
+    expect(order).toEqual(["library:steam", "row deleted"]);
+    expect(fake.rows).toEqual([]);
+  });
+
+  it("only touches the platform being disconnected", async () => {
+    const xbox = { ...STEAM, platform: "XBOX", platform_user_id: "2533274812345678" };
+    const fake = fakeAccountsDb(USER, [STEAM, xbox]);
+    const removeGames = vi.fn(async () => undefined);
+    await disconnectAndClearLibrary(fake.db, USER, "xbox", removeGames);
+    expect(removeGames).toHaveBeenCalledWith("xbox");
+    expect(fake.rows.map((r) => r.platform)).toEqual(["STEAM"]);
+  });
+
+  it("keeps the account linked when the library can't be cleared", async () => {
+    const fake = fakeAccountsDb(USER, [STEAM]);
+    const removeGames = vi.fn(async () => {
+      throw new TypeError("Failed to fetch");
+    });
+    await expect(disconnectAndClearLibrary(fake.db, USER, "steam", removeGames)).rejects.toThrow(
+      "Couldn't remove this platform's games. Nothing was disconnected.",
+    );
+    expect(fake.rows).toHaveLength(1);
+  });
+
+  it("passes on the server's message, such as a Steam import still running", async () => {
+    const fake = fakeAccountsDb(USER, [STEAM]);
+    const message = "A Steam import is still running. Wait for it to finish, then disconnect.";
+    const removeGames = vi.fn(async () => {
+      throw new ApiError("DELETE failed", 409, null, "sync_running", message);
+    });
+    await expect(
+      disconnectAndClearLibrary(fake.db, USER, "steam", removeGames),
+    ).rejects.toMatchObject({ reason: "save", message });
+    expect(fake.rows).toHaveLength(1);
+  });
+
+  it("refuses PlayStation without calling the API", async () => {
+    const { db } = fakeAccountsDb(USER);
+    const removeGames = vi.fn(async () => undefined);
+    await expect(
+      disconnectAndClearLibrary(db, USER, "playstation", removeGames),
+    ).rejects.toMatchObject({ reason: "unsupported" });
+    expect(removeGames).not.toHaveBeenCalled();
+  });
+
+  it("frees the platform to be linked again straight away", async () => {
+    const epic: StoredAccount = { ...STEAM, platform: "EPIC", platform_user_id: "NinjaGamer_7" };
+    const fake = fakeAccountsDb(USER, [epic]);
+    await disconnectAndClearLibrary(fake.db, USER, "epic", async () => undefined);
+    await linkManualPlatform(fake.db, USER, "epic", "NinjaGamer_7", NOW);
+    expect(fake.rows).toMatchObject([{ platform: "EPIC", platform_user_id: "NinjaGamer_7" }]);
   });
 });
 
