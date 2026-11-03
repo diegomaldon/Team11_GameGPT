@@ -8,7 +8,8 @@ import { safeNext } from "@/lib/auth/redirect";
 import { signInWithPassword } from "@/lib/auth/signin";
 import { startGoogleSignIn } from "@/lib/auth/oauth";
 import { Button, Field, TextInput } from "@/components/ui";
-import { Controller, Google } from "@/components/icons";
+import { Google } from "@/components/icons";
+import { AuthLayout } from "@/components/auth/AuthLayout";
 
 /**
  * GameGPT · E2 Identity & Account Management
@@ -95,91 +96,82 @@ function SignInForm() {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center px-5 py-10">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 flex flex-col items-center text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--accent)] text-[var(--on-accent)]">
-            <Controller className="h-6 w-6" />
-          </span>
-          <h1 className="mt-4 font-display text-2xl font-bold tracking-tight">
-            Welcome to GameGPT
-          </h1>
-          <p className="mt-1.5 text-sm text-[var(--ink-soft)]">
-            Sign in to link your libraries and get recommendations.
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-card">
-          {formError && (
-            <p
-              role="alert"
-              className="mb-4 rounded-xl bg-red-50 px-3 py-2.5 text-sm text-red-700"
-            >
-              {formError}
-            </p>
-          )}
-
-          <Button
-            variant="secondary"
-            size="md"
-            loading={busy === "google"}
-            disabled={busy !== null}
-            onClick={handleGoogle}
-            className="w-full"
-          >
-            {busy !== "google" && <Google className="h-[18px] w-[18px]" />}
-            Continue with Google
-          </Button>
-
-          <div className="my-5 flex items-center gap-3 text-xs text-[var(--ink-faint)]">
-            <span className="h-px flex-1 bg-[var(--border)]" />
-            or
-            <span className="h-px flex-1 bg-[var(--border)]" />
-          </div>
-
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3" noValidate>
-            <Field label="Email" htmlFor="email" error={fieldErrors.email?.[0]}>
-              <TextInput
-                id="email"
-                type="email"
-                autoComplete="email"
-                inputMode="email"
-                placeholder="you@school.edu"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </Field>
-
-            <Field label="Password" htmlFor="password" error={fieldErrors.password?.[0]}>
-              <TextInput
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </Field>
-
-            <Button
-              type="submit"
-              size="md"
-              loading={busy === "password"}
-              disabled={busy !== null}
-              className="w-full"
-            >
-              Sign in
-            </Button>
-          </form>
-        </div>
-
-        <p className="mt-5 text-center text-sm text-[var(--ink-soft)]">
-          No account?{" "}
-          <Link href="/register" className="font-medium underline">
-            Create one
-          </Link>
+    <AuthLayout>
+      <div>
+        <h1 className="font-display text-[48px] leading-[1.05]">Welcome back.</h1>
+        <p className="mt-2.5 text-base leading-relaxed text-[var(--ink-faint)]">
+          Sign in to pick up your library and recommendations.
         </p>
       </div>
-    </main>
+
+      {formError && (
+        <p
+          role="alert"
+          className="rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          {formError}
+        </p>
+      )}
+
+      <Button
+        variant="secondary"
+        size="md"
+        loading={busy === "google"}
+        disabled={busy !== null}
+        onClick={handleGoogle}
+        className="w-full"
+      >
+        {busy !== "google" && <Google className="h-[18px] w-[18px]" />}
+        Continue with Google
+      </Button>
+
+      <div className="flex items-center gap-3 text-xs uppercase tracking-[0.1em] text-[var(--ink-faint)]">
+        <span className="h-px flex-1 bg-[var(--border)]" />
+        or
+        <span className="h-px flex-1 bg-[var(--border)]" />
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+        <Field label="Email" htmlFor="email" error={fieldErrors.email?.[0]}>
+          <TextInput
+            id="email"
+            type="email"
+            autoComplete="email"
+            inputMode="email"
+            placeholder="you@school.edu"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </Field>
+
+        <Field label="Password" htmlFor="password" error={fieldErrors.password?.[0]}>
+          <TextInput
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </Field>
+
+        <Button
+          type="submit"
+          size="md"
+          loading={busy === "password"}
+          disabled={busy !== null}
+          className="mt-2 w-full"
+        >
+          Sign in
+        </Button>
+      </form>
+
+      <p className="text-sm text-[var(--ink-faint)]">
+        New to GameGPT?{" "}
+        <Link href="/register" className="font-medium text-[var(--heading)] underline-offset-4 hover:underline">
+          Create an account
+        </Link>
+      </p>
+    </AuthLayout>
   );
 }
 

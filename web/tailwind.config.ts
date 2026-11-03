@@ -80,10 +80,22 @@ export default {
           "0%": { opacity: "0.3" },
           "100%": { opacity: "1" },
         },
+        // The sign-in cover wall: each column holds its covers twice and scrolls by half.
+        "wall-up": {
+          "0%": { transform: "translateY(0)" },
+          "100%": { transform: "translateY(-50%)" },
+        },
+        "wall-down": {
+          "0%": { transform: "translateY(-50%)" },
+          "100%": { transform: "translateY(0)" },
+        },
       },
       animation: {
         "fade-up": "fade-up 0.35s cubic-bezier(0.16,1,0.3,1) both",
         "fade-in": "fade-in 0.6s cubic-bezier(0.4,0,0.2,1) both",
+        "wall-up": "wall-up 50s linear infinite",
+        "wall-down": "wall-down 60s linear infinite",
+        "wall-up-slow": "wall-up 70s linear infinite",
       },
     },
   },

@@ -25,7 +25,7 @@ const VIEWPORTS = [
 // test fails (rather than false-passing on Next's dev error overlay) if the
 // page crashes to render.
 const PUBLIC_PAGES = [
-  { name: "signin", path: "/signin", heading: /Welcome to GameGPT/ },
+  { name: "signin", path: "/signin", heading: /Welcome back/ },
   { name: "register", path: "/register", heading: /Create your account/ },
 ] as const;
 
