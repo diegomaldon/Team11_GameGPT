@@ -224,6 +224,12 @@ jobs:
         working-directory: .
         run: python -m pytest api/tests/test_semantic_search.py -v
 
+      # TM11-62. The four signals, unknown titles ignored, a log line per query,
+      # and one-word to paragraph queries are acceptance criteria. No database.
+      - name: Pytest — query parsing
+        working-directory: .
+        run: python -m pytest api/tests/test_query_parser.py api/tests/test_pipeline.py -v
+
       # TM11-21. openapi.json is what the web types are generated from, so a
       # route or model change that isn't exported to it fails here.
       - name: Pytest — API contract

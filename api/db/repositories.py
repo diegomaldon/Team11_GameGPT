@@ -23,6 +23,7 @@ from tenacity import (
 )
 
 from api.db import connection
+from api.db.schema import catalogue_shape
 from api.models import FeedbackRequest, LibraryItem, Recommendation
 
 if TYPE_CHECKING:  # runtime import would cycle through api.services.__init__
@@ -305,6 +306,21 @@ async def list_catalogue_games() -> list[dict[str, Any]]:
     async with connection() as conn:
         async with conn.cursor() as cur:
             await cur.execute("select game_id, title, steam_appid from public.games")
+            rows = await cur.fetchall()
+    return [{"game_id": r[0], "title": r[1], "steam_appid": r[2]} for r in rows]
+
+
+async def list_catalogue_titles() -> list[dict[str, Any]]:
+    """Every catalogue game's id and title, on either shape (TM11-62).
+
+    QueryParser matches reference titles against these. Not retried: a
+    recommend shouldn't wait on retries for a lookup it can do without.
+    """
+    id_column = "game_id" if await catalogue_shape() == "hosted" else "id"
+    async with connection() as conn:
+        async with conn.cursor() as cur:
+            # id_column is one of two literals above, never user input.
+            await cur.execute(f"select {id_column}, title, steam_appid from public.games")
             rows = await cur.fetchall()
     return [{"game_id": r[0], "title": r[1], "steam_appid": r[2]} for r in rows]
 
