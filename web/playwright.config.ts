@@ -4,7 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
  * GameGPT · REQ039 · Mobile / responsive E2E.
  *
  * Verifies the app is fully usable on a phone with nothing installed: no
- * horizontal scroll and no clipped controls at 375 / 768 / 1440 px, in both
+ * horizontal scroll and no clipped controls at 320 / 360 / 375 / 768 / 1440 px, in both
  * Chrome (Chromium) and Safari (WebKit). These are the two engines that ship on
  * real phones — Chrome on Android and every iOS browser (all iOS browsers are
  * WebKit under the hood). Emulation is not a literal replacement for a physical

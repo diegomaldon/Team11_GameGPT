@@ -85,7 +85,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     : "font-medium text-[var(--ink-faint)] hover:bg-[var(--raised)] hover:text-[var(--heading)]",
                 )}
               >
-                <Icon className="h-[18px] w-[18px]" />
+                <Icon className="h-[18px] w-[18px] max-[389px]:hidden" />
                 {label}
               </Link>
             );

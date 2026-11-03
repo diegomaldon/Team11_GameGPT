@@ -5,7 +5,7 @@
 // suggested prompts, then the ranked picks. Any featured game can start a search for
 // games like it; the page then scrolls to the results.
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { recommend, sendFeedback } from "@/lib/api/client";
 import type { Recommendation, RecommendResponse, Vote } from "@/lib/api/types";
 import { PROMPT_GROUPS, promptLike } from "@/lib/discover/featured";
@@ -35,6 +35,15 @@ export default function DiscoverPage() {
   const [result, setResult] = useState<RecommendResponse | null>(null);
   const [voted, setVoted] = useState<Record<number, Vote>>({});
   const resultsRef = useRef<HTMLElement>(null);
+  // The full example is cut mid-word behind the button on phones, so they get a shorter one.
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 640px)");
+    const update = () => setWide(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   async function run(q: string) {
     const trimmed = q.trim();
@@ -100,7 +109,7 @@ export default function DiscoverPage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="A cozy farming game I can play on Xbox…"
+            placeholder={wide ? "A cozy farming game I can play on Xbox…" : "A cozy farming game…"}
             aria-label="Describe the game you want"
             enterKeyHint="search"
             className="h-12 min-w-0 flex-1 bg-transparent text-[17px] text-[var(--ink)] outline-none"
