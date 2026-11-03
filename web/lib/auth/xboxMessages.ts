@@ -28,15 +28,19 @@ export type XboxErrorReason =
 // Where the callback sends the user, and what the page says
 // ---------------------------------------------------------------------------
 
+/** Pages that read the `?xbox=` result. The Library's Refresh imports from there (TM11-60). */
+const RESULT_PAGES = ["/settings", "/library"];
+
 export function xboxLinkedAccountsResult(
   result: "verified" | "import-ready" | "cancelled" | "error",
   extra?: { reason?: XboxErrorReason; next?: string | null },
 ): string {
-  const url = new URL("/settings", "http://placeholder.invalid");
+  const next = safeNext(extra?.next);
+  const page = RESULT_PAGES.includes(next) ? next : "/settings";
+  const url = new URL(page, "http://placeholder.invalid");
   url.searchParams.set("xbox", result);
   if (extra?.reason) url.searchParams.set("reason", extra.reason);
-  const next = safeNext(extra?.next);
-  if (next !== "/") url.searchParams.set("next", next);
+  if (next !== "/" && next !== page) url.searchParams.set("next", next);
   return `${url.pathname}${url.search}`;
 }
 

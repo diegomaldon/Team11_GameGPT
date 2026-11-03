@@ -89,6 +89,11 @@ games** button. The decision behind the flow is recorded in the
      it writes to the account this route checked. The XSTS token is never sent to the API.
 4. The page shows the result and stamps `last_synced_at` on the Xbox row.
 
+The Library page's **Refresh** (TM11-60) uses the same flow with `next=/library`. The
+callback returns to `/library?xbox=import-ready` instead of Settings; only pages that read
+the result (`/settings`, `/library`) can be returned to. Before leaving, the page saves the
+platforms still to sync in `sessionStorage`, so Steam syncs too once the import is back.
+
 **Idempotent.** Each row is keyed on the Xbox titleId (`owned_games.external_id`,
 migration `20261020120000`), so importing again updates rows and adds none. A game
 already added on Xbox by CSV or by hand is left alone (`already_owned`).

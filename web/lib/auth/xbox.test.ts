@@ -218,12 +218,30 @@ describe("AC2 — auth failures and unsupported accounts get clear messages", ()
     );
   });
 
-  it("always sends the user back to Settings, and never off-site", () => {
+  it("sends the user back to Settings by default, and never off-site", () => {
     expect(xboxLinkedAccountsResult("error", { reason: "child" })).toBe(
       "/settings?xbox=error&reason=child",
     );
     expect(xboxLinkedAccountsResult("verified", { next: "https://evil.example" })).toBe(
       "/settings?xbox=verified",
+    );
+    expect(xboxLinkedAccountsResult("verified", { next: "/settings" })).toBe(
+      "/settings?xbox=verified",
+    );
+  });
+
+  it("returns to the Library when its Refresh started the sign-in (TM11-60)", () => {
+    expect(xboxLinkedAccountsResult("import-ready", { next: "/library" })).toBe(
+      "/library?xbox=import-ready",
+    );
+    expect(xboxLinkedAccountsResult("error", { reason: "private", next: "/library" })).toBe(
+      "/library?xbox=error&reason=private",
+    );
+  });
+
+  it("only returns to pages that read the result", () => {
+    expect(xboxLinkedAccountsResult("verified", { next: "/recommend" })).toBe(
+      "/settings?xbox=verified&next=%2Frecommend",
     );
   });
 });
