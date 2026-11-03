@@ -8,7 +8,8 @@ import userEvent from "@testing-library/user-event";
 import { fakeAccountsDb, type StoredAccount } from "@/lib/account/fakeAccountsDb";
 import type { AccountsDb } from "@/lib/account/linkedAccounts";
 import { useAuth } from "@/lib/auth/session";
-import { runLibrarySync } from "@/lib/api/client";
+import { ApiError } from "@/lib/api/apiError";
+import { removePlatformGames, runLibrarySync } from "@/lib/api/client";
 import { LinkedAccountsCard } from "./LinkedAccountsCard";
 
 // accountsDb is read once at import, so the mock forwards to whichever fake is current.
@@ -17,7 +18,10 @@ vi.mock("@/lib/supabase", () => ({
   supabase: { from: (table: "platform_accounts") => current.db.from(table) },
 }));
 vi.mock("@/lib/auth/session", () => ({ useAuth: vi.fn() }));
-vi.mock("@/lib/api/client", () => ({ runLibrarySync: vi.fn(() => new Promise(() => {})) }));
+vi.mock("@/lib/api/client", () => ({
+  runLibrarySync: vi.fn(() => new Promise(() => {})),
+  removePlatformGames: vi.fn((platform: string) => Promise.resolve({ platform, removed: 3 })),
+}));
 
 const search = vi.hoisted(() => ({ params: new URLSearchParams() }));
 const replace = vi.fn();
@@ -102,14 +106,15 @@ describe("AC1 lists each platform with its state and lastSyncedAt", () => {
 });
 
 describe("AC2 connect and disconnect per platform", () => {
-  it("disconnects after confirmation, warning that imported games go too", async () => {
+  it("disconnects after confirmation, warning that the platform's games go too", async () => {
     const { fake } = setup([STEAM]);
     await userEvent.click(await screen.findByRole("button", { name: "Disconnect Steam" }));
     const dialog = screen.getByRole("dialog");
-    expect(dialog.textContent).toContain(
-      "Games imported through this Steam account will be removed",
-    );
+    expect(dialog.textContent).toContain("Your Steam games will be removed from your library");
+    expect(dialog.textContent).toContain("Games you also own on another linked platform stay");
+    // TM11-61 AC1: nothing happens until the user confirms.
     expect(fake.rows).toHaveLength(1);
+    expect(removePlatformGames).not.toHaveBeenCalled();
 
     await pressInDialog("Disconnect");
     await waitFor(() => expect(row("Steam").textContent).toContain("Not connected"));
@@ -132,6 +137,57 @@ describe("AC2 connect and disconnect per platform", () => {
     await pressInDialog("Disconnect");
     expect((await screen.findByRole("alert")).textContent).toContain("Couldn't disconnect");
     expect(fake.rows).toHaveLength(1);
+  });
+
+  it("clears that platform's games from the library on disconnect", async () => {
+    setup([STEAM, XBOX]);
+    await userEvent.click(await screen.findByRole("button", { name: "Disconnect Steam" }));
+    await pressInDialog("Disconnect");
+    await waitFor(() => expect(row("Steam").textContent).toContain("Not connected"));
+    // TM11-61 AC2/AC3: only Steam's games, so Xbox copies stay in the library.
+    expect(removePlatformGames).toHaveBeenCalledTimes(1);
+    expect(removePlatformGames).toHaveBeenCalledWith("steam");
+    expect(row("Xbox").textContent).toContain("Connected");
+  });
+
+  it("keeps the account linked when the library can't be cleared", async () => {
+    const { fake } = setup([STEAM]);
+    vi.mocked(removePlatformGames).mockRejectedValueOnce(
+      new ApiError(
+        "DELETE failed",
+        409,
+        null,
+        "sync_running",
+        "A Steam import is still running. Wait for it to finish, then disconnect.",
+      ),
+    );
+    await userEvent.click(await screen.findByRole("button", { name: "Disconnect Steam" }));
+    await pressInDialog("Disconnect");
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "A Steam import is still running",
+    );
+    expect(fake.rows).toHaveLength(1);
+  });
+
+  it("lets a disconnected platform be connected again straight away", async () => {
+    const EPIC: StoredAccount = {
+      user_id: USER,
+      platform: "EPIC",
+      platform_user_id: "NinjaGamer_7",
+      linked_at: "2026-10-01T12:00:00Z",
+      last_synced_at: null,
+    };
+    const { fake } = setup([EPIC]);
+    await userEvent.click(await screen.findByRole("button", { name: "Disconnect Epic Games" }));
+    await pressInDialog("Disconnect");
+    await waitFor(() => expect(row("Epic Games").textContent).toContain("Not connected"));
+
+    // TM11-61 AC4: same account name, no waiting period, no "already linked" clash.
+    await userEvent.click(screen.getByRole("button", { name: "Connect Epic Games" }));
+    await userEvent.type(screen.getByLabelText("Epic Games account name"), "NinjaGamer_7");
+    await pressInDialog("Connect");
+    await waitFor(() => expect(row("Epic Games").textContent).toContain("Connected"));
+    expect(fake.rows.map((r) => r.platform_user_id)).toEqual(["NinjaGamer_7"]);
   });
 
   it("connects Epic by account name", async () => {

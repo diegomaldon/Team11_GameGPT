@@ -21,6 +21,7 @@ import {
   fixtureGetSyncJob,
   fixturePreviewCsv,
   fixtureRecommend,
+  fixtureRemovePlatformGames,
   fixtureSearchGames,
   fixtureStartSync,
   fixtureSyncLibrary,
@@ -37,8 +38,10 @@ import type {
   LibraryResponse,
   LibrarySyncJob,
   LibrarySyncResponse,
+  LinkedPlatform,
   ManualAddResponse,
   ManualPlatform,
+  PlatformGamesRemoved,
   RecommendResponse,
 } from "./types";
 
@@ -119,6 +122,24 @@ export async function getLibrary(): Promise<LibraryResponse> {
     return fixtureGetLibrary();
   }
   return (await request<LibraryResponse>("/api/library")) as LibraryResponse;
+}
+
+/**
+ * DELETE /api/library/platforms/{platform} — drop one platform's games when it is
+ * disconnected (TM11-61). Copies on other platforms stay. 409 `sync_running` means a
+ * Steam import is still going.
+ */
+export async function removePlatformGames(
+  platform: LinkedPlatform,
+): Promise<PlatformGamesRemoved> {
+  if (USE_FIXTURES) {
+    await sleep(300);
+    return fixtureRemovePlatformGames(platform);
+  }
+  return (await request<PlatformGamesRemoved>(
+    `/api/library/platforms/${encodeURIComponent(platform)}`,
+    { method: "DELETE" },
+  )) as PlatformGamesRemoved;
 }
 
 /** POST /api/library/sync — pull a public Steam library by steamID64. */

@@ -23,7 +23,9 @@ from api.models import (
     LibrarySyncJob,
     LibrarySyncRequest,
     LibrarySyncResponse,
+    PlatformGamesRemoved,
 )
+from api.models.schemas import LinkedPlatform
 from api.services import LibrarySyncService
 from api.services.library_sync import SYNC_FAILED_MESSAGE, sync_jobs
 from api.services.steam_client import (
@@ -77,6 +79,40 @@ async def get_library() -> LibraryResponse:
             detail={"error": "db_unavailable", "message": "Could not read the library."},
         ) from exc
     return LibraryResponse(items=items)
+
+
+REMOVE_FAILED_MESSAGE = "Could not remove this platform's games. Nothing was disconnected."
+SYNC_RUNNING_MESSAGE = "A Steam import is still running. Wait for it to finish, then disconnect."
+
+
+@router.delete("/library/platforms/{platform}", response_model=PlatformGamesRemoved)
+async def remove_platform_games(platform: LinkedPlatform) -> PlatformGamesRemoved:
+    """TM11-61: drop one platform's games when its account is disconnected.
+
+    Settings calls this before deleting the platform_accounts row, so a failure
+    here leaves the account linked and the user can try again. A running Steam
+    import would write the games straight back, so that is refused with 409.
+
+    Like every route today it acts on the dev user, not the signed-in one. This
+    is the first route that deletes library data, so it must move to the
+    verified user before real users get this flow (TM11-131).
+    """
+    settings = get_settings()
+    user_id = UUID(settings.dev_user_id)
+    if platform == "steam" and sync_jobs.running(user_id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"error": "sync_running", "message": SYNC_RUNNING_MESSAGE},
+        )
+    try:
+        removed = await LibrarySyncService().remove_platform(user_id, platform)
+    except Exception as exc:
+        log.exception("platform remove failed")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"error": "remove_failed", "message": REMOVE_FAILED_MESSAGE},
+        ) from exc
+    return PlatformGamesRemoved(platform=platform, removed=removed)
 
 
 @router.post("/library/sync", response_model=LibrarySyncResponse)

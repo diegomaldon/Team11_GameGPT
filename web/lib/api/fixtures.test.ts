@@ -1,13 +1,32 @@
 import { describe, it, expect } from "vitest";
 
 import { ApiError } from "./apiError";
-import { fixtureGetSyncJob, fixtureRecommend, fixtureStartSync } from "./fixtures";
+import {
+  fixtureAddManualGame,
+  fixtureGetLibrary,
+  fixtureGetSyncJob,
+  fixtureRecommend,
+  fixtureRemovePlatformGames,
+  fixtureStartSync,
+} from "./fixtures";
 
 /**
  * TM11-21 — fixture mode is the stub the frontend builds against, so it has to
  * follow docs/API.md where the generated types can't check it: value ranges
  * and error codes.
  */
+
+describe("fixture disconnect (TM11-61)", () => {
+  it("removes one platform's games and keeps the others, like DELETE /api/library/platforms", () => {
+    const gameId = "00000000-0000-4000-9000-000000000001";
+    fixtureAddManualGame("epic", gameId);
+    fixtureAddManualGame("xbox", gameId);
+
+    expect(fixtureRemovePlatformGames("epic")).toEqual({ platform: "epic", removed: 1 });
+    expect(fixtureGetLibrary().items.map((i) => i.platform)).toEqual(["xbox"]);
+    expect(fixtureRemovePlatformGames("epic").removed).toBe(0);
+  });
+});
 
 describe("fixture stubs follow the API contract", () => {
   it("sends review_score as 0..1, like /api/recommend", () => {

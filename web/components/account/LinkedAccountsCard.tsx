@@ -1,7 +1,7 @@
 "use client";
 
 // Linked accounts on Settings: one row per platform with its connection state and when it
-// last synced, plus Connect / Disconnect. REQ003 · TM11-52.
+// last synced, plus Connect / Disconnect. REQ003 · TM11-52, TM11-61.
 //
 // State comes from platform_accounts (lib/account/useLinkedAccounts.ts), not the mock store,
 // so it is right after a refresh and when nothing is linked. Steam and Xbox connect through
@@ -15,8 +15,9 @@ import { describeSteamResult } from "@/lib/auth/steam";
 import { completeSteamLink } from "@/lib/auth/steamClient";
 import { describeXboxImport, describeXboxResult } from "@/lib/auth/xboxMessages";
 import { completeXboxImport, completeXboxLink } from "@/lib/auth/xboxClient";
+import { removePlatformGames } from "@/lib/api/client";
 import {
-  disconnectPlatform,
+  disconnectAndClearLibrary,
   formatLastSynced,
   linkManualPlatform,
   markSynced,
@@ -500,7 +501,10 @@ function ManualConnectModal({
   );
 }
 
-/** Disconnect deletes the row and, by cascade, the games imported through it. Ask first. */
+/**
+ * Disconnect removes every game on the platform, then the platform_accounts row (TM11-61).
+ * Ask first.
+ */
 function DisconnectModal({
   account,
   userId,
@@ -535,7 +539,7 @@ function DisconnectModal({
     setBusy(true);
     setError(null);
     try {
-      await disconnectPlatform(accountsDb, userId, account.platform);
+      await disconnectAndClearLibrary(accountsDb, userId, account.platform, removePlatformGames);
       onDone(account.platform);
     } catch (err) {
       setError((err as Error).message);
@@ -561,8 +565,9 @@ function DisconnectModal({
       }
     >
       <p className="text-sm text-[var(--ink-soft)]">
-        Games imported through this {label} account will be removed from your library. You
-        can connect again at any time.
+        Your {label} games will be removed from your library, including any you added by
+        hand. Games you also own on another linked platform stay. You can connect again at
+        any time.
       </p>
       {error && (
         <p role="alert" className="mt-3 rounded-xl bg-rose-50 px-3 py-2.5 text-sm text-rose-700">

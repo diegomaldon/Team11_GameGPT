@@ -199,6 +199,13 @@ jobs:
         working-directory: .
         run: python -m pytest api/tests/test_xbox_import.py -v
 
+      # TM11-61. "Its owned_games removed" and "a title also owned on a
+      # still-linked platform stays" are acceptance criteria. The database is
+      # faked here; the SQL itself runs in db-seeded.
+      - name: Pytest — disconnect platform
+        working-directory: .
+        run: python -m pytest api/tests/test_library_disconnect.py -v
+
       # TM11-39. Retry, resume after failure and "model and dimensions on every
       # row" are acceptance criteria. The model and DB are faked, so no torch here.
       - name: Pytest — batch embedding pipeline
@@ -321,7 +328,8 @@ jobs:
           python -m pytest \
             api/tests/test_seeded_demo_db.py \
             api/tests/test_db_backed.py \
-            api/tests/test_search_filters_db.py -v
+            api/tests/test_search_filters_db.py \
+            api/tests/test_library_disconnect.py -v
       # TM11-40. The partial HNSW index only serves a query that repeats its cast
       # and model filter, so the SQL VectorStore sends is pinned here. DB faked.
       - name: Pytest — vector store on both schemas

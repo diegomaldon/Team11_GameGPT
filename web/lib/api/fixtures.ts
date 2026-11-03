@@ -16,8 +16,10 @@ import type {
   LibraryResponse,
   LibrarySyncJob,
   LibrarySyncResponse,
+  LinkedPlatform,
   ManualAddResponse,
   ManualPlatform,
+  PlatformGamesRemoved,
   RecommendResponse,
 } from "./types";
 
@@ -135,6 +137,26 @@ export function fixtureGetLibrary(): LibraryResponse {
     });
   }
   return { items: [...FIXTURE_LIBRARY, ...padding, ...fixtureManual] };
+}
+
+/** Disconnect (TM11-61): the imported list is all Steam, so Steam empties it until a re-import. */
+export function fixtureRemovePlatformGames(platform: LinkedPlatform): PlatformGamesRemoved {
+  let removed = 0;
+  if (platform === "steam" && fixtureImported()) {
+    removed = FIXTURE_LIBRARY.length;
+    try {
+      sessionStorage.removeItem(IMPORTED_KEY);
+    } catch {
+      // No storage: there was no imported list to clear either.
+    }
+  }
+  for (let i = fixtureManual.length - 1; i >= 0; i--) {
+    if (fixtureManual[i].platform === platform) {
+      fixtureManual.splice(i, 1);
+      removed += 1;
+    }
+  }
+  return { platform, removed };
 }
 
 // Fixture-mode import job (TM11-49): advances one chunk per poll and includes one

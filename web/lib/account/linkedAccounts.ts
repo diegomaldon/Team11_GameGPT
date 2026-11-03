@@ -1,4 +1,6 @@
 import type { Platform } from "@/lib/mock/data";
+import { ApiError } from "@/lib/api/apiError";
+import type { LinkedPlatform } from "@/lib/api/types";
 
 /**
  * GameGPT · E2 Platform Linking & Library Sync
@@ -124,6 +126,38 @@ export async function disconnectPlatform(
   if (error) {
     throw new AccountsError("save", "Couldn't disconnect. Try again in a moment.");
   }
+}
+
+/** Clears one platform's games from the library (DELETE /api/library/platforms/{platform}). */
+export type RemovePlatformGames = (platform: LinkedPlatform) => Promise<unknown>;
+
+/**
+ * Disconnect and recalculate the library. REQ003 · TM11-61.
+ *
+ * The library page reads owned_games through the API (GET /api/library), and the
+ * platform_accounts cascade doesn't reach those rows (docs/steam-library.md → "Known
+ * gap"), so deleting the row alone left every game on the Library page. This clears that
+ * platform's games first, then deletes the row. Library first: if it fails, the account
+ * stays linked and Disconnect can simply be pressed again. A game also owned on a platform
+ * that is still linked keeps that copy, so it stays in the library with one badge fewer.
+ */
+export async function disconnectAndClearLibrary(
+  db: AccountsDb,
+  userId: string,
+  platform: Platform,
+  removeGames: RemovePlatformGames,
+): Promise<void> {
+  const dbPlatform = requireSupported(platform);
+  try {
+    await removeGames(dbPlatform.toLowerCase() as LinkedPlatform);
+  } catch (err) {
+    throw new AccountsError(
+      "save",
+      (err instanceof ApiError && err.userMessage) ||
+        "Couldn't remove this platform's games. Nothing was disconnected.",
+    );
+  }
+  await disconnectPlatform(db, userId, platform);
 }
 
 /** Account names Epic accepts are 3–16 characters; allow some slack for older ones. */
