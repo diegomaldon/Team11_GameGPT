@@ -11,8 +11,11 @@
 // TM11-51: sort by title or playtime and search by title, both client-side (see
 // lib/library/view.ts for why). The view is saved per tab, so leaving the page
 // and coming back keeps the sort, search and platform filter.
+//
+// TM11-60: Refresh re-syncs every linked platform (lib/library/useLibraryRefresh.ts)
+// and the list is read again in place when it finishes.
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useMock } from "@/lib/mock/store";
 import {
@@ -21,6 +24,7 @@ import {
   type GamePlatform,
 } from "@/lib/mock/data";
 import { getLibrary } from "@/lib/api/client";
+import { useLibraryRefresh } from "@/lib/library/useLibraryRefresh";
 import type { LibraryItem } from "@/lib/api/types";
 import {
   countByPlatform,
@@ -41,6 +45,7 @@ import {
 } from "@/lib/library/view";
 import { AddGameModal } from "@/components/library/AddGameModal";
 import { CsvImportModal } from "@/components/library/CsvImportModal";
+import { RefreshStatus } from "@/components/library/RefreshStatus";
 import { VirtualList } from "@/components/library/VirtualList";
 import { Button, PageHeader, Select, TextInput, cx } from "@/components/ui";
 import {
@@ -102,7 +107,8 @@ export default function LibraryPage() {
     let live = true;
     getLibrary().then(
       (res) => live && setRemote({ status: "ready", items: res.items }),
-      () => live && setRemote({ status: "error" }),
+      // A failed re-read after a refresh keeps the list already on screen.
+      () => live && setRemote((prev) => (prev.status === "ready" ? prev : { status: "error" })),
     );
     return () => {
       live = false;
@@ -110,6 +116,9 @@ export default function LibraryPage() {
   }, [attempt]);
 
   useEffect(() => saveView(view), [view]);
+
+  const readLibraryAgain = useCallback(() => setAttempt((n) => n + 1), []);
+  const refresh = useLibraryRefresh(readLibraryAgain);
 
   function updateView(patch: Partial<LibraryView>) {
     setView((prev) => ({ ...prev, ...patch }));
@@ -159,6 +168,23 @@ export default function LibraryPage() {
         subtitle="Games you own across platforms. Owned games are skipped in recommendations."
         action={
           <div className="flex shrink-0 gap-2">
+            {refresh.canRefresh && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={refresh.refresh}
+                disabled={refresh.refreshing}
+              >
+                {refresh.refreshing ? (
+                  <>
+                    <Spinner className="h-4 w-4" />
+                    Refreshing…
+                  </>
+                ) : (
+                  "Refresh"
+                )}
+              </Button>
+            )}
             <Button size="sm" variant="secondary" onClick={() => setIsCsvOpen(true)}>
               Import CSV
             </Button>
@@ -169,6 +195,8 @@ export default function LibraryPage() {
           </div>
         }
       />
+
+      <RefreshStatus refresh={refresh} />
 
       {toast && (
         <div

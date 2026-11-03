@@ -7,10 +7,34 @@ import type { LibraryItem } from "@/lib/api/types";
 import type { OwnedGame } from "@/lib/mock/data";
 import { getLibrary } from "@/lib/api/client";
 import { useMock } from "@/lib/mock/store";
+import { useLibraryRefresh, type LibraryRefresh } from "@/lib/library/useLibraryRefresh";
 import LibraryPage from "./page";
 
 vi.mock("@/lib/api/client", () => ({ getLibrary: vi.fn() }));
 vi.mock("@/lib/mock/store", () => ({ useMock: vi.fn() }));
+vi.mock("@/lib/library/useLibraryRefresh", () => ({ useLibraryRefresh: vi.fn() }));
+
+const IDLE_REFRESH: LibraryRefresh = {
+  canRefresh: false,
+  refreshing: false,
+  statuses: {},
+  hasFailures: false,
+  plan: { steamId: null, xbox: false, epic: false },
+  epicNote: null,
+  lastSynced: [],
+  refresh: vi.fn(),
+  retry: vi.fn(),
+};
+
+/** What the refresh hook reports, and the callback the page handed it. */
+function refreshState(patch: Partial<LibraryRefresh> = {}) {
+  const calls: { onLibraryChanged: () => void } = { onLibraryChanged: () => {} };
+  vi.mocked(useLibraryRefresh).mockImplementation((onLibraryChanged) => {
+    calls.onLibraryChanged = onLibraryChanged;
+    return { ...IDLE_REFRESH, ...patch };
+  });
+  return calls;
+}
 
 const removeGame = vi.fn();
 
@@ -36,6 +60,7 @@ const rowFor = (title: string) => screen.getByText(title).closest("li")!;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  refreshState();
   // The page saves its view per tab; don't let one test's sort leak into the next.
   window.sessionStorage.clear();
 });
@@ -326,5 +351,102 @@ describe("Library page: AC4 view survives navigating away and back", () => {
     setup({ imported: STEAM_LIBRARY });
     expect(await shownTitles()).toEqual(["Rust", "Hades", "Celeste"]);
     expect(screen.getByRole("button", { name: /^All/ }).getAttribute("aria-pressed")).toBe("true");
+  });
+});
+
+describe("Library page: TM11-60 manual refresh", () => {
+  const RUST: LibraryItem = {
+    title: "Rust", steam_appid: 252490, platform: "steam", playtime_minutes: 60,
+  };
+  const HADES: LibraryItem = {
+    title: "Hades", steam_appid: 1145360, platform: "steam", playtime_minutes: 0,
+  };
+
+  it("offers Refresh with each platform's last sync time", async () => {
+    refreshState({ canRefresh: true, lastSynced: ["Steam · Synced 5 min ago"] });
+    setup({ imported: [RUST] });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Refresh" }));
+
+    expect(IDLE_REFRESH.refresh).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Steam · Synced 5 min ago")).toBeTruthy();
+  });
+
+  it("AC1 disables the button and reads Refreshing while it runs", async () => {
+    refreshState({
+      canRefresh: true,
+      refreshing: true,
+      statuses: { steam: { state: "running", label: "Importing 4 of 10 Steam games…" } },
+    });
+    setup({ imported: [RUST] });
+
+    const button = await screen.findByRole("button", { name: /Refreshing/ });
+    expect((button as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText("Importing 4 of 10 Steam games…")).toBeTruthy();
+  });
+
+  it("has no Refresh button with nothing syncable linked", async () => {
+    setup({ imported: [RUST] });
+    await screen.findByText("Rust");
+
+    expect(screen.queryByRole("button", { name: "Refresh" })).toBeNull();
+  });
+
+  it("AC3 re-renders the library in place when the refresh finishes", async () => {
+    const calls = refreshState({ canRefresh: true });
+    setup({ imported: [RUST] });
+    await screen.findByText("Rust");
+    vi.mocked(getLibrary).mockResolvedValue({ items: [RUST, HADES] });
+
+    calls.onLibraryChanged();
+
+    expect(await screen.findByText("Hades")).toBeTruthy();
+    expect(screen.queryByText("Loading your library…")).toBeNull();
+  });
+
+  it("AC4 shows what failed with a retry, and keeps the games on screen", async () => {
+    const retry = vi.fn();
+    refreshState({
+      canRefresh: true,
+      hasFailures: true,
+      retry,
+      statuses: {
+        steam: { state: "failed", message: "This Steam profile is private." },
+        xbox: { state: "succeeded", message: "Imported 2 games from Xbox." },
+      },
+    });
+    setup({ imported: [RUST] });
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("This Steam profile is private.");
+    expect(screen.getByText("Imported 2 games from Xbox.")).toBeTruthy();
+    expect(screen.getByText("Rust")).toBeTruthy();
+
+    await userEvent.click(within(alert).getByRole("button", { name: "Retry Steam" }));
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  it("AC4 keeps the shown library if reading it again fails", async () => {
+    const calls = refreshState({ canRefresh: true });
+    setup({ imported: [RUST] });
+    await screen.findByText("Rust");
+    vi.mocked(getLibrary).mockRejectedValue(new Error("503"));
+
+    calls.onLibraryChanged();
+
+    await waitFor(() => expect(getLibrary).toHaveBeenCalledTimes(2));
+    expect(screen.getByText("Rust")).toBeTruthy();
+  });
+
+  it("notes that Epic has nothing to sync", async () => {
+    const note = "Epic games are added by hand or by CSV, so there's nothing to sync.";
+    refreshState({
+      canRefresh: true,
+      epicNote: note,
+      statuses: { steam: { state: "succeeded", message: "Steam: imported 10 games." } },
+    });
+    setup({ imported: [RUST] });
+
+    expect(await screen.findByText(note)).toBeTruthy();
   });
 });
