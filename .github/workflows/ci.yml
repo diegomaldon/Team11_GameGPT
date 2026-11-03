@@ -224,6 +224,12 @@ jobs:
         working-directory: .
         run: python -m pytest api/tests/test_semantic_search.py -v
 
+      # TM11-63. The benchmark's 20 prompts and expected titles are acceptance
+      # criteria, and every expected title must still exist in the catalogue.
+      - name: Pytest — retrieval query benchmark
+        working-directory: .
+        run: python -m pytest api/tests/test_query_benchmark.py -v
+
       # TM11-62. The four signals, unknown titles ignored, a log line per query,
       # and one-word to paragraph queries are acceptance criteria. No database.
       - name: Pytest — query parsing

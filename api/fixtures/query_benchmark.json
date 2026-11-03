@@ -1,0 +1,241 @@
+{
+  "version": 1,
+  "story": "TM11-63",
+  "catalogue": "scripts/fixtures/games.json",
+  "queries": [
+    {
+      "id": "genre-01",
+      "category": "genre",
+      "prompt": "turn-based tactics where I command a squad against an alien invasion",
+      "filters": {"platforms": [], "genres": []},
+      "expected_titles": ["XCOM 2", "XCOM: Enemy Unknown"],
+      "reference_titles": [],
+      "note": "Only the two XCOM games are squad tactics against aliens; Wasteland 3 is tactics without the aliens."
+    },
+    {
+      "id": "genre-02",
+      "category": "genre",
+      "prompt": "metroidvania with a big map to explore and tough combat",
+      "filters": {"platforms": [], "genres": []},
+      "expected_titles": [
+        "Hollow Knight",
+        "Ori and the Blind Forest",
+        "Ori and the Will of the Wisps",
+        "Dead Cells",
+        "Cave Story+"
+      ],
+      "reference_titles": [],
+      "note": "Every catalogue game whose genres include Metroidvania."
+    },
+    {
+      "id": "genre-03",
+      "category": "genre",
+      "prompt": "grand strategy where I run a galactic empire",
+      "filters": {"platforms": [], "genres": []},
+      "expected_titles": ["Stellaris"],
+      "reference_titles": [],
+      "note": "Single right answer. Tests that 'galactic' beats generic strategy titles."
+    },
+    {
+      "id": "genre-04",
+      "category": "genre",
+      "prompt": "roguelike deckbuilder where each run I build a new deck",
+      "filters": {"platforms": [], "genres": []},
+      "expected_titles": ["Slay the Spire", "Balatro"],
+      "reference_titles": [],
+      "note": "The two Deckbuilder-genre games."
+    },
+    {
+      "id": "genre-05",
+      "category": "genre",
+      "prompt": "sci-fi survival horror aboard a derelict space station",
+      "filters": {"platforms": [], "genres": []},
+      "expected_titles": ["Dead Space (2023)", "Alien: Isolation", "SOMA", "Prey (2017)"],
+      "reference_titles": [],
+      "note": "Horror games set in space or deep-sea stations; Outlast and Amnesia are horror but not sci-fi."
+    },
+    {
+      "id": "mood-01",
+      "category": "mood",
+      "prompt": "something calm and low stress to unwind with after a long day",
+      "filters": {"platforms": [], "genres": []},
+      "expected_titles": [
+        "Stardew Valley",
+        "A Short Hike",
+        "Unpacking",
+        "Coffee Talk",
+        "Cozy Grove",
+        "Journey",
+        "ABZU",
+        "Spiritfarer"
+      ],
+      "reference_titles": [],
+      "note": "Mood only, no genre words. Cozy and relaxing tags with no fail pressure."
+    },
+    {
+      "id": "mood-02",
+      "category": "mood",
+      "prompt": "an emotional story that will probably make me cry",
+      "filters": {"platforms": [], "genres": []},
+      "expected_titles": ["Spiritfarer", "GRIS", "Night in the Woods", "Firewatch", "Undertale"],
+      "reference_titles": [],
+      "note": "Emotional or story-rich narrative games; tests that 'cry' maps to the emotional tag."
+    },
+    {
+      "id": "mood-03",
+      "category": "mood",
+      "prompt": "genuinely scary, I want to feel tense the whole time",
+      "filters": {"platforms": [], "genres": []},
+      "expected_titles": [
+        "Alien: Isolation",
+        "Outlast",
+        "Amnesia: The Dark Descent",
+        "Phasmophobia",
+        "Lethal Company",
+        "SOMA"
+      ],
+      "reference_titles": [],
+      "note": "Horror tagged tense. Left 4 Dead (horror-lite) should not count."
+    },
+    {
+      "id": "mood-04",
+      "category": "mood",
+      "prompt": "silly chaotic fun for a party with friends on the couch",
+      "filters": {"platforms": [], "genres": []},
+      "expected_titles": [
+        "Overcooked! 2",
+        "Human: Fall Flat",
+        "Fall Guys",
+        "Golf With Your Friends",
+        "Among Us"
+      ],
+      "reference_titles": [],
+      "note": "Party and comedy games played in a group."
+    },
+    {
+      "id": "mood-05",
+      "category": "mood",
+      "prompt": "brutally hard but rewarding when I finally beat it",
+      "filters": {"platforms": [], "genres": []},
+      "expected_titles": [
+        "Dark Souls III",
+        "Sekiro: Shadows Die Twice",
+        "Elden Ring",
+        "Celeste",
+        "Super Meat Boy",
+        "Cuphead",
+        "Hollow Knight"
+      ],
+      "reference_titles": [],
+      "note": "Difficult tag across genres, so the right answers span Souls games and precision platformers."
+    },
+    {
+      "id": "comparison-01",
+      "category": "comparison",
+      "prompt": "like Stardew Valley but with more crafting and building",
+      "filters": {"platforms": [], "genres": []},
+      "expected_titles": ["My Time at Portia", "Dinkum", "Ooblets", "Slime Rancher"],
+      "reference_titles": ["Stardew Valley"],
+      "note": "Cozy life sims with crafting. The reference game itself is not a good answer."
+    },
+    {
+      "id": "comparison-02",
+      "category": "comparison",
+      "prompt": "something like Dark Souls but with samurai and ninjas",
+      "filters": {"platforms": [], "genres": []},
+      "expected_titles": ["Sekiro: Shadows Die Twice", "Nioh"],
+      "reference_titles": ["Dark Souls III"],
+      "note": "Both are hard Japanese-setting action games. Dark Souls III is the reference, not an answer."
+    },
+    {
+      "id": "comparison-03",
+      "category": "comparison",
+      "prompt": "I finished Hades, what other fast action roguelikes should I try",
+      "filters": {"platforms": [], "genres": []},
+      "expected_titles": [
+        "Hades II",
+        "Dead Cells",
+        "Enter the Gungeon",
+        "Risk of Rain 2",
+        "The Binding of Isaac: Rebirth"
+      ],
+      "reference_titles": ["Hades"],
+      "note": "Fast-paced action roguelikes. Slay the Spire and Balatro are roguelikes but not action."
+    },
+    {
+      "id": "comparison-04",
+      "category": "comparison",
+      "prompt": "Factorio but in 3D and a bit less overwhelming",
+      "filters": {"platforms": [], "genres": []},
+      "expected_titles": ["Satisfactory"],
+      "reference_titles": ["Factorio"],
+      "note": "Single right answer: the 3D factory builder."
+    },
+    {
+      "id": "comparison-05",
+      "category": "comparison",
+      "prompt": "short story game like Firewatch where you mostly walk and explore",
+      "filters": {"platforms": [], "genres": []},
+      "expected_titles": ["Gone Home", "Kentucky Route Zero", "The Stanley Parable", "Journey"],
+      "reference_titles": ["Firewatch"],
+      "note": "Walking-sim and narrative adventure games."
+    },
+    {
+      "id": "platform-01",
+      "category": "platform",
+      "prompt": "cozy farming game I can play on Xbox",
+      "filters": {"platforms": ["xbox"], "genres": []},
+      "expected_titles": ["Stardew Valley", "Slime Rancher", "My Time at Portia", "Ooblets"],
+      "reference_titles": [],
+      "note": "Farming sims sold on the Xbox store. Dinkum is a farming sim but has no Xbox release."
+    },
+    {
+      "id": "platform-02",
+      "category": "platform",
+      "prompt": "co-op shooter on Steam where my friends and I fight off hordes",
+      "filters": {"platforms": ["steam"], "genres": []},
+      "expected_titles": [
+        "Deep Rock Galactic",
+        "Left 4 Dead 2",
+        "Helldivers 2",
+        "Killing Floor 2",
+        "Risk of Rain 2"
+      ],
+      "reference_titles": [],
+      "note": "Co-op shooters against waves of enemies, all on Steam."
+    },
+    {
+      "id": "platform-03",
+      "category": "platform",
+      "prompt": "action roguelike on the Epic Games Store",
+      "filters": {"platforms": ["epic"], "genres": []},
+      "expected_titles": ["Hades", "Hades II"],
+      "reference_titles": [],
+      "note": "Both Hades games launched on the Epic store. The local catalogue is Steam-only, so this one only scores on the hosted schema."
+    },
+    {
+      "id": "platform-04",
+      "category": "platform",
+      "prompt": "story-heavy RPG on Xbox where my choices change the ending",
+      "filters": {"platforms": ["xbox"], "genres": []},
+      "expected_titles": [
+        "The Witcher 3: Wild Hunt",
+        "Baldur's Gate 3",
+        "Divinity: Original Sin 2",
+        "Disco Elysium",
+        "Cyberpunk 2077"
+      ],
+      "reference_titles": [],
+      "note": "Choice-driven RPGs with an Xbox release."
+    },
+    {
+      "id": "platform-05",
+      "category": "platform",
+      "prompt": "survive on a remote island and build a base with friends, on Steam",
+      "filters": {"platforms": ["steam"], "genres": ["Survival"]},
+      "expected_titles": ["The Forest", "Sons of the Forest", "Raft", "Valheim"],
+      "reference_titles": [],
+      "note": "Platform plus genre filter together. Co-op survival with base building."
+    }
+  ]
+}
