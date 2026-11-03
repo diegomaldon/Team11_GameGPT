@@ -1,7 +1,8 @@
 """Spot-check the game_embeddings vector index (TM11-40, REQ011).
 
-  recall   20 plain-English queries, each with the catalogue game(s) it is
-           clearly asking for. A query is a hit when one of them is in the
+  recall   the 20 TM11-63 benchmark prompts (api/fixtures/query_benchmark.json),
+           each with the catalogue games a good answer includes and the
+           filters it implies. A prompt is a hit when one of them is in the
            top 10 VectorStore returns.
   latency  each query's search timed over repeated runs (the embedding step
            timed separately), reported as p50 and p95.
@@ -37,37 +38,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from api.db import connection, has_db  # noqa: E402
 from api.db.schema import catalogue_shape  # noqa: E402
 from api.services.embedding import EmbeddingService  # noqa: E402
+from api.services.query_benchmark import load_query_benchmark  # noqa: E402
 from api.services.vector_store import VectorStore, _to_vector_literal, hosted_top_k_sql  # noqa: E402
 
 INDEX_NAME = "game_embeddings_minilm_hnsw"
 ARTIFACT_DIR = Path("artifacts/sprint6")
 
-# (query, games it is clearly asking for). Written as a player would say it,
-# not copied from the catalogue descriptions.
-QUERIES: list[tuple[str, set[str]]] = [
-    ("farm life sim where you grow crops and make friends in town",
-     {"Stardew Valley", "My Time at Portia", "Dinkum"}),
-    ("first-person puzzles with a portal gun", {"Portal 2", "Portal"}),
-    ("metroidvania in a ruined bug kingdom", {"Hollow Knight"}),
-    ("hard platformer about climbing a mountain", {"Celeste"}),
-    ("roguelike where you fight your way out of the underworld", {"Hades", "Hades II"}),
-    ("deckbuilding roguelike card game", {"Slay the Spire"}),
-    ("build automated factories with conveyor belts", {"Factorio", "Satisfactory"}),
-    ("survive under the ocean on an alien planet", {"Subnautica"}),
-    ("four player co-op zombie shooter", {"Left 4 Dead 2", "Left 4 Dead"}),
-    ("check passports at a border checkpoint", {"Papers, Please"}),
-    ("figure out what happened to the crew of a ghost ship", {"Return of the Obra Dinn"}),
-    ("fire lookout in the woods talking to someone over a radio", {"Firewatch"}),
-    ("hide from an alien hunting you on a space station", {"Alien: Isolation"}),
-    ("city builder with zoning and traffic", {"Cities: Skylines"}),
-    ("medieval dynasty strategy with marriages and scheming", {"Crusader Kings III"}),
-    ("story game two players have to play together",
-     {"It Takes Two", "A Way Out", "Unravel Two"}),
-    ("calm game about unpacking boxes in a new home", {"Unpacking"}),
-    ("chaotic co-op cooking in a busy kitchen", {"Overcooked! 2"}),
-    ("dwarves mining caves and fighting bugs with friends", {"Deep Rock Galactic"}),
-    ("tactical competitive shooter where every bullet counts", {"Counter-Strike 2"}),
-]
+# The TM11-63 benchmark: 20 prompts across genre, mood, comparison and
+# platform, each with the catalogue games a good answer includes.
+BENCHMARK = load_query_benchmark()
 
 
 def percentile(values: list[float], pct: float) -> float:
@@ -83,22 +62,24 @@ async def evaluate(k: int, repeats: int) -> dict:
     await embedder.embed_query("warm-up")  # load the model before timing anything
 
     results, search_ms, embed_ms = [], [], []
-    for query, expected in QUERIES:
+    for query in BENCHMARK:
         started = time.perf_counter()
-        vector = await embedder.embed_query(query)
+        vector = await embedder.embed_query(query.prompt)
         embed_ms.append((time.perf_counter() - started) * 1000)
 
-        await store.top_k(vector, k=k)  # warm the connection path for this query
+        await store.top_k(vector, k=k, filters=query.filters)  # warm the connection path
         for _ in range(repeats):
             started = time.perf_counter()
-            candidates = await store.top_k(vector, k=k)
+            candidates = await store.top_k(vector, k=k, filters=query.filters)
             search_ms.append((time.perf_counter() - started) * 1000)
 
         titles = [c.title for c in candidates]
-        rank = next((i for i, t in enumerate(titles, start=1) if t in expected), None)
+        rank = query.hit_rank(titles)
         results.append({
-            "query": query,
-            "expected": sorted(expected),
+            "id": query.id,
+            "category": query.category,
+            "query": query.prompt,
+            "expected": sorted(query.expected_titles),
             "hit": rank is not None,
             "rank": rank,
             "top_3": titles[:3],
@@ -191,7 +172,7 @@ def to_markdown(report: dict) -> str:
         "",
         "| Measure | Result |",
         "|---|---|",
-        f"| Recall@{report['k']} (20 known queries) | **{report['hits']}/{report['queries']}** "
+        f"| Recall@{report['k']} (TM11-63 benchmark) | **{report['hits']}/{report['queries']}** "
         f"({report['recall_at_k']:.0%}) |",
         f"| Mean rank of the expected game, when found | {report['mean_hit_rank']} |",
         f"| Search latency p50 / p95 / max | {report['search_ms']['p50']} / "
@@ -221,12 +202,12 @@ def to_markdown(report: dict) -> str:
         "",
         "## Queries",
         "",
-        "| # | Query | Expected | Hit | Rank | Top 3 returned |",
+        "| Id | Query | Expected | Hit | Rank | Top 3 returned |",
         "|---|---|---|---|---|---|",
     ]
-    for n, r in enumerate(report["results"], start=1):
+    for r in report["results"]:
         lines.append(
-            f"| {n} | {r['query']} | {', '.join(r['expected'])} | "
+            f"| {r['id']} | {r['query']} | {', '.join(r['expected'])} | "
             f"{'yes' if r['hit'] else '**no**'} | {r['rank'] or '-'} | {', '.join(r['top_3'])} |"
         )
     return "\n".join(lines) + "\n"

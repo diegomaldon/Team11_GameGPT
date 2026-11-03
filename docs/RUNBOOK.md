@@ -147,6 +147,10 @@ python scripts/eval_vector_index.py --repeats 20
 It needs the real model (it refuses `EMBEDDING_STUB=1`) and the hosted schema. Exit
 code 1 means the index is missing or a `(game_id, model)` row is duplicated.
 
+Both this script and the latency check below score the TM11-63 benchmark, 20 prompts
+in `api/fixtures/query_benchmark.json`, each sent with its own platform and genre
+filters. See [query-benchmark.md](query-benchmark.md) before changing a prompt.
+
 **Search latency (TM11-42).** To time `POST /api/search` end to end on a warm model,
 on either schema:
 
