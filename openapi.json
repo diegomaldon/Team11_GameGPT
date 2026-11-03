@@ -202,6 +202,54 @@
         }
       }
     },
+    "/api/library/platforms/{platform}": {
+      "delete": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Remove Platform Games",
+        "description": "TM11-61: drop one platform's games when its account is disconnected.\n\nSettings calls this before deleting the platform_accounts row, so a failure\nhere leaves the account linked and the user can try again. A running Steam\nimport would write the games straight back, so that is refused with 409.",
+        "operationId": "remove_platform_games_api_library_platforms__platform__delete",
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "steam",
+                "xbox",
+                "epic"
+              ],
+              "type": "string",
+              "title": "Platform"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformGamesRemoved"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/library/sync": {
       "post": {
         "tags": [
@@ -1317,6 +1365,32 @@
         ],
         "title": "ManualAddResponse",
         "description": "The game that was added."
+      },
+      "PlatformGamesRemoved": {
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "steam",
+              "xbox",
+              "epic"
+            ],
+            "title": "Platform"
+          },
+          "removed": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Removed",
+            "description": "Library rows deleted for that platform."
+          }
+        },
+        "type": "object",
+        "required": [
+          "platform",
+          "removed"
+        ],
+        "title": "PlatformGamesRemoved",
+        "description": "Body returned from DELETE /api/library/platforms/{platform} (TM11-61)."
       },
       "RecommendRequest": {
         "properties": {

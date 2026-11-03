@@ -144,6 +144,27 @@ describe("mergeLibrary (TM11-50 AC: owned titles listed with per-platform badges
   });
 });
 
+describe("mergeLibrary after a disconnect (TM11-61 AC3)", () => {
+  // What GET /api/library returns before and after DELETE /api/library/platforms/steam.
+  const xbox = (title: string): LibraryItem => ({ title, platform: "xbox", playtime_minutes: 0 });
+  const before = [steam("DOOM™", 379720, 900), xbox("Doom"), steam("Rust", 252490, 60)];
+  const after = before.filter((i) => i.platform !== "steam");
+
+  it("keeps a game also owned on a still-linked platform, with one badge fewer", () => {
+    expect(mergeLibrary(before, []).find((r) => r.title === "DOOM™")?.platforms).toEqual([
+      "steam",
+      "xbox",
+    ]);
+    expect(mergeLibrary(after, []).map((r) => [r.title, r.platforms])).toEqual([
+      ["Doom", ["xbox"]],
+    ]);
+  });
+
+  it("drops a game owned only on the disconnected platform", () => {
+    expect(mergeLibrary(after, []).some((r) => r.title === "Rust")).toBe(false);
+  });
+});
+
 describe("countByPlatform", () => {
   it("counts a two-platform game under both platforms", () => {
     const rows = mergeLibrary(

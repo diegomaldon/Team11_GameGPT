@@ -120,6 +120,16 @@ class LibrarySyncService:
         """Return the user's current owned-games library."""
         return await repositories.list_owned_games(user_id)
 
+    async def remove_platform(self, user_id: UUID, platform: str) -> int:
+        """Drop one platform's games from the library on disconnect (TM11-61).
+
+        Games the user also owns on another platform keep that copy, so they
+        stay in the library and in the ownership filter.
+        """
+        removed = await repositories.remove_platform_games(user_id, platform)
+        log.info("platform removed: user=%s platform=%s removed=%d", user_id, platform, removed)
+        return removed
+
     async def _import(
         self,
         user_id: UUID,
@@ -273,6 +283,12 @@ class SyncJobRegistry:
         self._jobs[job.job_id] = (user_id, job)
         self._tasks[job.job_id] = asyncio.create_task(self._run(user_id, steam_id, job))
         return job
+
+    def running(self, user_id: UUID) -> bool:
+        """Whether the user has a sync that hasn't finished yet."""
+        return any(
+            owner == user_id and job.finished_at is None for owner, job in self._jobs.values()
+        )
 
     def get(self, job_id: UUID, user_id: UUID) -> LibrarySyncJob | None:
         entry = self._jobs.get(job_id)

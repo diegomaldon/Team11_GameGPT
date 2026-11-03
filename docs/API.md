@@ -23,7 +23,7 @@ route is served, or a served route has no section.
 
 | Area | Endpoint | Status |
 |------|----------|--------|
-| Library | [`GET /api/library`](#get-apilibrary) | live |
+| Library | [`GET /api/library`](#get-apilibrary), [`DELETE /api/library/platforms/{platform}`](#delete-apilibraryplatformsplatform) | live |
 | Library | [`POST /api/library/sync`](#post-apilibrarysync), [`POST /api/library/sync/jobs`](#post-apilibrarysyncjobs), [`GET /api/library/sync/jobs/{job_id}`](#get-apilibrarysyncjobsjob_id) | live |
 | Library | [`POST /api/library/csv/preview`](#post-apilibrarycsvpreview), [`POST /api/library/csv/commit`](#post-apilibrarycsvcommit), [`POST /api/library/manual`](#post-apilibrarymanual), [`POST /api/library/xbox`](#post-apilibraryxbox) | live |
 | Search | [`GET /api/games/search`](#get-apigamessearch): title autocomplete | live |
@@ -83,6 +83,7 @@ The cause is reported to the error sink and never sent to the client.
 | 404 | `job_not_found` | `/api/library/sync/jobs/{job_id}` | unknown id, or another user's job |
 | 404 | `game_not_found` | `/api/library/manual` | `game_id` isn't in the catalogue |
 | 409 | `already_owned` | `/api/library/manual` | already in the library on this platform |
+| 409 | `sync_running` | `/api/library/platforms/{platform}` | a Steam import is still running; wait, then disconnect |
 | 413 | `request_too_large` | any | body over 4 MB |
 | 422 | `steam_invalid_id` | `/api/library/sync` | not a steamID64 Steam recognises |
 | 422 | `file_too_large`, `too_many_rows`, `empty_file`, `no_rows`, `not_text`, `missing_title_column`, `duplicate_column`, `malformed_csv`, `review_mismatch` | `/api/library/csv/*` | see [CSV errors](#post-apilibrarycsvcommit) |
@@ -96,6 +97,7 @@ The cause is reported to the error sink and never sent to the client.
 | 503 | `search_failed` | `/api/games/search`, `/api/search` | anything else; the cause is only logged |
 | 503 | `manual_import_failed` | `/api/library/manual` | anything else; the cause is only logged |
 | 503 | `import_failed` | `/api/library/xbox` | the write failed; nothing changed |
+| 503 | `remove_failed` | `/api/library/platforms/{platform}` | the delete failed; nothing changed |
 
 A background sync (`/api/library/sync/jobs`) never fails its HTTP request for
 these. It reports them in the job instead, as `state: "failed"` with the same
@@ -305,6 +307,28 @@ Sorted by `playtime_minutes` descending, then `title`. The same game owned on
 two platforms is two items.
 
 - **503** `db_unavailable` if the library can't be read.
+
+---
+
+## `DELETE /api/library/platforms/{platform}`
+
+Remove every game the dev user owns on one platform: imported, CSV and added by
+hand (TM11-61, REQ003). Settings calls it when a platform is disconnected,
+**before** deleting the `platform_accounts` row, so a failure here leaves the
+account linked and the user can retry.
+
+`platform` is `steam`, `xbox` or `epic`; anything else is a `422`. Copies on
+other platforms are kept, so a game owned on two platforms stays in the
+library with one badge. Calling it again removes nothing and still returns `200`.
+
+**200**
+```json
+{ "platform": "steam", "removed": 42 }
+```
+
+- **409** `sync_running` if a Steam import is still running. It would write the
+  games straight back.
+- **503** `remove_failed` if the delete fails. Nothing was removed.
 
 ---
 

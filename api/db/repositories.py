@@ -23,6 +23,7 @@ from tenacity import (
 )
 
 from api.db import connection
+from api.db.schema import catalogue_shape
 from api.models import FeedbackRequest, LibraryItem, Recommendation
 
 if TYPE_CHECKING:  # runtime import would cycle through api.services.__init__
@@ -158,6 +159,32 @@ async def list_owned_games(user_id: UUID) -> list[LibraryItem]:
         )
         for r in rows
     ]
+
+
+@retry(**_RETRY)
+async def remove_platform_games(user_id: UUID, platform: str) -> int:
+    """Delete every owned_games row the user has on one platform (TM11-61).
+
+    Imported, CSV and hand-added rows all go. On the hosted shape they hang off
+    the platform_accounts row and its delete cascades to them; this does the
+    same for the legacy shape, where rows only carry a `platform`. Copies on
+    other platforms are untouched, so a game owned twice stays in the library.
+    Returns how many rows were deleted. Safe to retry: a second run deletes 0.
+    """
+    if await catalogue_shape() == "hosted":
+        sql = (
+            "delete from owned_games og using platform_accounts pa "
+            "where og.platform_account_id = pa.platform_account_id "
+            "and pa.user_id = %s and pa.platform::text = upper(%s)"
+        )
+    else:
+        sql = "delete from owned_games where user_id = %s and platform = %s"
+    async with connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(sql, (str(user_id), platform))
+            removed = cur.rowcount
+        await conn.commit()
+    return max(removed, 0)
 
 
 @retry(**_RETRY)

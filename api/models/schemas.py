@@ -172,6 +172,18 @@ class LibraryResponse(BaseModel):
     items: list[LibraryItem]
 
 
+# The platforms a user can link (public.platform_type), spelled the way
+# owned_games.platform stores them.
+LinkedPlatform = Literal["steam", "xbox", "epic"]
+
+
+class PlatformGamesRemoved(BaseModel):
+    """Body returned from DELETE /api/library/platforms/{platform} (TM11-61)."""
+
+    platform: LinkedPlatform
+    removed: int = Field(..., ge=0, description="Library rows deleted for that platform.")
+
+
 # ───────────────────── /api/library/csv (TM11-55) ─────────────────────
 
 # Same value as library_csv.MAX_CSV_BYTES; test_csv_import.py keeps them equal.
