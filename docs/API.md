@@ -29,6 +29,7 @@ route is served, or a served route has no section.
 | Search | [`GET /api/games/search`](#get-apigamessearch): title autocomplete | live |
 | Search | [`POST /api/search`](#post-apisearch): semantic search (TM11-42) | live |
 | Search | [`POST /api/recommend`](#post-apirecommend): ranked recommendations with reasons | live |
+| History | [`GET /api/history`](#get-apihistory): past queries and their results (TM11-64) | live |
 | Detail | [`GET /api/games/{game_id}`](#get-apigamesgame_id-planned): one game's detail panel | planned (TM11-78, TM11-79) |
 | All | [Errors](#errors): the four error shapes and every error code | live |
 
@@ -91,7 +92,7 @@ The cause is reported to the error sink and never sent to the client.
 | 502 | `recommendation_failed` | `/api/recommend` | the pipeline or LLM failed |
 | 502 | `steam_request_rejected` | `/api/library/sync` | Steam refused the request (for example a bad API key) |
 | 502 | `sync_failed` | `/api/library/sync` | any other sync failure; nothing was committed |
-| 503 | `db_unavailable` | `/api/recommend`, `/api/feedback`, `/api/library` | the database read or write failed |
+| 503 | `db_unavailable` | `/api/feedback`, `/api/history`, `/api/library` | the database read or write failed |
 | 503 | `steam_unavailable` | `/api/library/sync` | Steam isn't responding; retry later |
 | 503 | `csv_import_failed` | `/api/library/csv/*` | anything else; the cause is only logged |
 | 503 | `search_failed` | `/api/games/search`, `/api/search` | anything else; the cause is only logged |
@@ -119,7 +120,8 @@ Liveness check; also the Render health-check path.
 
 ## `POST /api/recommend`
 
-Run the RAG slice: embed → vector top-k → drop owned → rank → persist.
+Run the RAG slice: embed → vector top-k → drop owned → rank, then save the
+query and its results to the user's history in the background (TM11-64).
 
 **Request**
 ```json
@@ -148,20 +150,75 @@ Run the RAG slice: embed → vector top-k → drop owned → rank → persist.
 ```
 | Field | Type | Notes |
 |-------|------|-------|
-| `query_id` | uuid | Persisted `queries.id` — echo it back in feedback |
+| `query_id` | uuid | The id the query is saved under — echo it back in feedback |
 | `recommendations[]` | array | 3 items; `rank` 1..n; `reason` never empty |
 
-- Persists one `queries` row and its `recommendations` rows before returning.
+- The response is sent first. The query and its results are then saved in one
+  transaction as a background task, so a slow or failed write never delays or
+  breaks a recommendation; a failed save is logged with the `query_id`. The id
+  is made by the API, so it is in the response before the row exists.
+- On the hosted schema a result is saved as its `game_id` and explanation only;
+  a result that matched no catalogue game is left out of the history.
 - Latency: ~7s on the first call after boot (model warm-up), then dominated by
   LLM latency; **< 10 s** warm.
-- **502** `recommendation_failed` if the pipeline errors; **503** `db_unavailable`
-  if persistence fails.
+- **502** `recommendation_failed` if the pipeline errors. Saving never fails the
+  request.
 
 **Example**
 ```bash
 curl -s -X POST http://localhost:8000/api/recommend \
   -H "Content-Type: application/json" \
   -d '{"query":"hard roguelike with tight controls"}'
+```
+
+---
+
+## `GET /api/history`
+
+The user's past recommend queries, newest first, each with the results it
+returned (TM11-64, REQ037). Read-only. History is keyed by user, not by
+session, so it is still there after signing out and back in. Until the API
+verifies sign-ins, that user is the dev user, like every other route.
+
+**Query parameters**
+| Param | Type | Notes |
+|-------|------|-------|
+| `limit` | integer | how many past queries, 1–50, default 20 |
+
+**200**
+```json
+{
+  "items": [
+    {
+      "query_id": "5eee89fc-1c2a-4f3b-9a1e-8b0c7d2e5f10",
+      "query": "a chill game I can play while listening to a podcast",
+      "created_at": "2026-11-03T15:00:00Z",
+      "recommendations": [
+        {
+          "rank": 1,
+          "game_id": "ad9134d9-a3ae-4417-a1c2-381ef709f7ff",
+          "title": "My Time at Portia",
+          "reason": "Cozy, low-stress crafting and management loops you can half-watch…",
+          "steam_appid": 666140
+        }
+      ]
+    }
+  ]
+}
+```
+| Field | Type | Notes |
+|-------|------|-------|
+| `items[]` | array | newest first, at most `limit` |
+| `items[].created_at` | datetime | when the query was saved (database clock) |
+| `items[].recommendations[]` | array | best first; `[]` if none could be saved |
+| `recommendations[].title` | string | read from the catalogue by `game_id`, not stored with the result |
+
+- **422**: `limit` outside 1–50.
+- **503** `db_unavailable`: the read failed; the cause is only logged.
+
+**Example**
+```bash
+curl -s "http://localhost:8000/api/history?limit=5"
 ```
 
 ---

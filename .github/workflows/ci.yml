@@ -243,6 +243,12 @@ jobs:
         working-directory: .
         run: python -m pytest api/tests/test_query_parser.py api/tests/test_pipeline.py -v
 
+      # TM11-64. Every query and its results saved, game ids not copied titles,
+      # the save never blocking or failing the response. The database is faked.
+      - name: Pytest — query history
+        working-directory: .
+        run: python -m pytest api/tests/test_query_history.py -v
+
       # TM11-21. openapi.json is what the web types are generated from, so a
       # route or model change that isn't exported to it fails here.
       - name: Pytest — API contract
@@ -329,7 +335,8 @@ jobs:
             api/tests/test_seeded_demo_db.py \
             api/tests/test_db_backed.py \
             api/tests/test_search_filters_db.py \
-            api/tests/test_library_disconnect.py -v
+            api/tests/test_library_disconnect.py \
+            api/tests/test_query_history_db.py -v
       # TM11-40. The partial HNSW index only serves a query that repeats its cast
       # and model filter, so the SQL VectorStore sends is pinned here. DB faked.
       - name: Pytest — vector store on both schemas

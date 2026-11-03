@@ -58,9 +58,44 @@ class Recommendation(BaseModel):
 class RecommendResponse(BaseModel):
     """Body returned from POST /api/recommend."""
 
-    query_id: UUID = Field(..., description="Persisted queries.id; echo it into feedback.")
+    query_id: UUID = Field(
+        ..., description="Id the query is saved under (TM11-64); echo it into feedback."
+    )
     query: str
     recommendations: list[Recommendation]
+
+
+# ─────────────────────────── /api/history (TM11-64) ───────────────────────────
+
+HISTORY_DEFAULT_LIMIT = 20
+HISTORY_MAX_LIMIT = 50
+
+
+class HistoryRecommendation(BaseModel):
+    """One ranked result of a past query. The title is read from the catalogue."""
+
+    rank: int = Field(..., ge=1)
+    game_id: Optional[UUID] = None
+    title: str
+    reason: Optional[str] = None
+    steam_appid: Optional[int] = None
+
+
+class HistoryEntry(BaseModel):
+    """One past POST /api/recommend and what it returned."""
+
+    query_id: UUID
+    query: str
+    created_at: datetime = Field(..., description="When the query was saved.")
+    recommendations: list[HistoryRecommendation] = Field(
+        default_factory=list, description="Best first. Empty if none could be saved."
+    )
+
+
+class HistoryResponse(BaseModel):
+    """Body returned from GET /api/history."""
+
+    items: list[HistoryEntry] = Field(..., description="Newest first.")
 
 
 # ─────────────────────────── /api/feedback ───────────────────────────
