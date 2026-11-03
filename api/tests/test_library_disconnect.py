@@ -9,6 +9,7 @@ database, like test_db_backed.py.
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from uuid import UUID, uuid4
 
 import psycopg
@@ -118,6 +119,91 @@ def test_a_running_steam_import_does_not_block_other_platforms(client, library, 
     monkeypatch.setattr(sync_jobs, "running", lambda user_id: True)
     assert _remove(client, "xbox").status_code == 200
     assert library.titles("xbox") == []
+
+
+# ── the SQL each shape sends ──────────────────────────────────────────────────
+# db-seeded only builds the legacy shape, so the hosted delete never meets a real
+# database in CI. These pin the statement and its parameters for both shapes.
+
+
+class _FakeCursor:
+    def __init__(self, rowcount: int) -> None:
+        self.rowcount = rowcount
+        self.executed: list[tuple[str, tuple]] = []
+
+    async def execute(self, sql, params):
+        self.executed.append((sql, params))
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+
+class _FakeConnection:
+    def __init__(self, cursor: _FakeCursor) -> None:
+        self._cursor = cursor
+        self.committed = False
+
+    def cursor(self):
+        return self._cursor
+
+    async def commit(self):
+        self.committed = True
+
+
+@pytest.fixture
+def fake_db(monkeypatch):
+    def install(shape: str, rowcount: int = 2) -> tuple[_FakeCursor, _FakeConnection]:
+        cursor = _FakeCursor(rowcount)
+        conn = _FakeConnection(cursor)
+
+        @asynccontextmanager
+        async def connection():
+            yield conn
+
+        async def catalogue_shape():
+            return shape
+
+        monkeypatch.setattr(repositories, "connection", connection)
+        monkeypatch.setattr(repositories, "catalogue_shape", catalogue_shape)
+        return cursor, conn
+
+    return install
+
+
+@pytest.mark.asyncio
+async def test_hosted_delete_goes_through_the_users_platform_account(fake_db):
+    cursor, conn = fake_db("hosted")
+    user = uuid4()
+    assert await repositories.remove_platform_games(user, "steam") == 2
+    ((sql, params),) = cursor.executed
+    normalised = " ".join(sql.split())
+    assert "delete from owned_games og using platform_accounts pa" in normalised
+    assert "og.platform_account_id = pa.platform_account_id" in normalised
+    # platform_type is STEAM/XBOX/EPIC; the path value is lower case.
+    assert "pa.user_id = %s and pa.platform::text = upper(%s)" in normalised
+    assert params == (str(user), "steam")
+    assert conn.committed
+
+
+@pytest.mark.asyncio
+async def test_legacy_delete_filters_by_user_and_platform(fake_db):
+    cursor, conn = fake_db("legacy")
+    user = uuid4()
+    assert await repositories.remove_platform_games(user, "xbox") == 2
+    ((sql, params),) = cursor.executed
+    assert sql == "delete from owned_games where user_id = %s and platform = %s"
+    assert params == (str(user), "xbox")
+    assert conn.committed
+
+
+@pytest.mark.asyncio
+async def test_an_unknown_rowcount_reports_zero(fake_db):
+    # psycopg reports -1 when the count isn't available; never send that to the UI.
+    fake_db("legacy", rowcount=-1)
+    assert await repositories.remove_platform_games(uuid4(), "epic") == 0
 
 
 # ── the real SQL, legacy shape ────────────────────────────────────────────────

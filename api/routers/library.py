@@ -92,6 +92,10 @@ async def remove_platform_games(platform: LinkedPlatform) -> PlatformGamesRemove
     Settings calls this before deleting the platform_accounts row, so a failure
     here leaves the account linked and the user can try again. A running Steam
     import would write the games straight back, so that is refused with 409.
+
+    Like every route today it acts on the dev user, not the signed-in one. This
+    is the first route that deletes library data, so it must move to the
+    verified user before real users get this flow (TM11-131).
     """
     settings = get_settings()
     user_id = UUID(settings.dev_user_id)

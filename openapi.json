@@ -208,7 +208,7 @@
           "library"
         ],
         "summary": "Remove Platform Games",
-        "description": "TM11-61: drop one platform's games when its account is disconnected.\n\nSettings calls this before deleting the platform_accounts row, so a failure\nhere leaves the account linked and the user can try again. A running Steam\nimport would write the games straight back, so that is refused with 409.",
+        "description": "TM11-61: drop one platform's games when its account is disconnected.\n\nSettings calls this before deleting the platform_accounts row, so a failure\nhere leaves the account linked and the user can try again. A running Steam\nimport would write the games straight back, so that is refused with 409.\n\nLike every route today it acts on the dev user, not the signed-in one. This\nis the first route that deletes library data, so it must move to the\nverified user before real users get this flow (TM11-131).",
         "operationId": "remove_platform_games_api_library_platforms__platform__delete",
         "parameters": [
           {
