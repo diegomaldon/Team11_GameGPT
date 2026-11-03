@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { AuthLayout } from '@/components/auth/AuthLayout';
 import { RegisterForm } from '@/components/auth/RegisterForm';
 
 export const metadata: Metadata = {
@@ -7,10 +8,11 @@ export const metadata: Metadata = {
 
 // Deliberately outside the (app) route group: that group wraps children in AppShell, which
 // is the signed-in chrome. Registration is the one page you reach without an account.
+// TM11-142: same split layout as sign-in.
 export default function RegisterPage() {
   return (
-    <main className="flex min-h-dvh flex-col justify-center px-5 py-10">
+    <AuthLayout>
       <RegisterForm />
-    </main>
+    </AuthLayout>
   );
 }

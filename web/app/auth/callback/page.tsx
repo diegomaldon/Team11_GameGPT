@@ -70,7 +70,7 @@ function Callback() {
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center px-5 py-10">
-      <div className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-white p-6 text-center shadow-card">
+      <div className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-center shadow-card">
         <h1 className="font-display text-xl font-bold tracking-tight">
           Sign-in didn&apos;t finish
         </h1>

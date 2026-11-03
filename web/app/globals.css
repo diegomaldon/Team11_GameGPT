@@ -2,15 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Clean, modern, light. One accent, generous whitespace, no gradients. ── */
+/* ── Deep Blue Spotlight (TM11-142). Near-black navy ground, navy surfaces, cream accent.
+   Every colour the app uses comes from these tokens or from the dark palettes in
+   tailwind.config.ts, so the theme changes in one place. docs/FRONTEND.md has the table. ── */
 
 :root {
-  --bg: #f8f8f9; /* page: a hair off-white so white cards read as surfaces */
-  --surface: #ffffff;
-  --border: #e8e8ec;
-  --ink: #101014; /* near-black, not pure black */
-  --ink-soft: #52525b;
-  --ink-faint: #8a8a94;
+  color-scheme: dark;
+  --bg: #050a18; /* page ground: near-black navy */
+  --surface: #0a1430; /* cards, inputs, panels */
+  --raised: #0f1c3d; /* hover on a surface */
+  --raised-2: #13234a; /* selected item, chip hover */
+  --border: #1c2c58;
+  --border-strong: #2a3c70;
+  /* Edges of inputs, selects and the off toggle: 3.6:1 on --surface, 4:1 on --bg,
+     so the control's boundary passes WCAG 1.4.11 (non-text contrast). */
+  --border-input: #5a6ea3;
+  --ink: #e8e1d0; /* body text: warm off-white */
+  --ink-soft: #c4cadb;
+  --ink-faint: #a3acc6; /* still 7:1 on --surface */
+  --label: #cfc3a6; /* form labels and small caps eyebrows */
+  --heading: #f1e7d0; /* serif headings */
+  --accent: #f1e7d0; /* cream: primary buttons, active nav, focus ring */
+  --accent-hover: #fff4dd;
+  --on-accent: #050a18; /* text on a cream fill */
 }
 
 @layer base {
@@ -22,21 +36,31 @@
     background-color: var(--bg);
     color: var(--ink);
     font-family: var(--font-sans), system-ui, sans-serif;
-    font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
 
+  /* DM Serif Display ships one weight. Never fake a bold of it. */
+  .font-display {
+    font-synthesis: none;
+    color: var(--heading);
+  }
+
   /* Consistent, visible keyboard focus everywhere. */
   :focus-visible {
-    outline: 2px solid theme("colors.accent.600");
+    outline: 2px solid var(--accent);
     outline-offset: 2px;
     border-radius: 4px;
   }
 
   ::selection {
-    background: theme("colors.accent.100");
-    color: var(--ink);
+    background: var(--border-strong);
+    color: var(--heading);
+  }
+
+  ::placeholder {
+    color: var(--ink-faint);
+    opacity: 1;
   }
 }
 
@@ -54,7 +78,7 @@
     background: linear-gradient(
       90deg,
       transparent,
-      rgb(255 255 255 / 0.65),
+      rgb(241 231 208 / 0.06),
       transparent
     );
     animation: shimmer 1.4s infinite;
@@ -72,7 +96,7 @@
   }
   .shimmer::after {
     animation: none;
-    background: rgb(0 0 0 / 0.03);
+    background: rgb(241 231 208 / 0.03);
     transform: none;
   }
 }

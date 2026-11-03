@@ -88,13 +88,45 @@ export function Compass(props: IconProps) {
     </svg>
   );
 }
+// Books on a shelf (TM11-142), matching the mockup's Library glyph.
 export function Library(props: IconProps) {
   return (
     <svg {...base(props)}>
-      <rect x="3" y="4" width="7" height="7" rx="1.5" />
-      <rect x="14" y="4" width="7" height="7" rx="1.5" />
-      <rect x="3" y="14" width="7" height="7" rx="1.5" />
-      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+      <rect x="3" y="4" width="5" height="16" rx="1" />
+      <rect x="10" y="4" width="5" height="16" rx="1" />
+      <path d="M17.5 5l3.5 14" />
+    </svg>
+  );
+}
+// Settings in the header pill (TM11-142).
+export function Sliders(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12" />
+      <circle cx="16" cy="6" r="2" />
+      <circle cx="10" cy="12" r="2" />
+      <circle cx="18" cy="18" r="2" />
+    </svg>
+  );
+}
+export function ChevronDown(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+export function ChevronLeft(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
+  );
+}
+export function ChevronRight(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M9 18l6-6-6-6" />
     </svg>
   );
 }
@@ -214,6 +246,20 @@ export function PlayStation(props: IconProps) {
       <circle cx="12" cy="17.5" r="2.2" />
       <path d="M4.4 9.6l1.6-1.6 1.6 1.6-1.6 1.6-1.6-1.6z" />
       <path d="M15.2 8.3h3.6v3.6h-3.6z" />
+    </svg>
+  );
+}
+export function Pause(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M9 5v14M15 5v14" />
+    </svg>
+  );
+}
+export function Play(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M8 5.5v13l10-6.5-10-6.5z" />
     </svg>
   );
 }

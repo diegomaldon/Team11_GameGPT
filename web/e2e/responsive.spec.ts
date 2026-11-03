@@ -5,7 +5,7 @@ import path from "node:path";
  * REQ039 — "Full use on mobile without installing anything."
  *
  * Acceptance criteria checked here, automatically, on every page:
- *   • Usable at 375 px, 768 px and 1440 px.
+ *   • Usable at 320 px, 360 px, 375 px, 768 px and 1440 px.
  *   • No horizontal scroll.
  *   • No clipped / off-screen controls.
  *   • Exercised in Chrome (Chromium) and Safari (WebKit) — see playwright.config.ts.
@@ -16,6 +16,8 @@ import path from "node:path";
  */
 
 const VIEWPORTS = [
+  { label: "320-small", width: 320, height: 640 }, // smallest width WCAG reflow targets
+  { label: "360-android", width: 360, height: 780 }, // common Android width
   { label: "375-mobile", width: 375, height: 812 }, // iPhone-class width
   { label: "768-tablet", width: 768, height: 1024 }, // iPad-class width / md breakpoint
   { label: "1440-desktop", width: 1440, height: 900 }, // laptop width
@@ -25,7 +27,7 @@ const VIEWPORTS = [
 // test fails (rather than false-passing on Next's dev error overlay) if the
 // page crashes to render.
 const PUBLIC_PAGES = [
-  { name: "signin", path: "/signin", heading: /Welcome to GameGPT/ },
+  { name: "signin", path: "/signin", heading: /Welcome back/ },
   { name: "register", path: "/register", heading: /Create your account/ },
 ] as const;
 
@@ -37,19 +39,40 @@ const APP_PAGES = [
 ] as const;
 
 /**
- * The demo has no real backend: auth is a mock persisted to localStorage under
- * `gamegpt.mock.v1`. Seeding `{ signedIn: true }` before any page script runs
- * lets us land directly on a protected route (the store merges it over
- * DEFAULT_STATE on hydrate). addInitScript re-runs on every navigation, so it
- * survives the client-side redirects in AppShell.
+ * Protected routes sit behind <RequireAuth>, which asks supabase-js for a session, and
+ * supabase-js reads it from localStorage under `sb-<project ref>-auth-token`. Seeding an
+ * unexpired session there before any page script runs lands us on the page signed in,
+ * with no network call (the token is only refreshed near expiry). The mock store's
+ * `signedIn` flag is seeded too, for the profile data it still supplies.
+ * addInitScript re-runs on every navigation, so both survive client-side redirects.
  */
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://placeholder.supabase.co";
+const AUTH_KEY = `sb-${new URL(SUPABASE_URL).hostname.split(".")[0]}-auth-token`;
+
 async function seedSignedIn(page: Page) {
-  await page.addInitScript(() => {
-    window.localStorage.setItem(
-      "gamegpt.mock.v1",
-      JSON.stringify({ signedIn: true }),
-    );
-  });
+  const session = {
+    access_token: "e2e.fake.token",
+    token_type: "bearer",
+    expires_in: 3600,
+    expires_at: Math.floor(Date.now() / 1000) + 24 * 3600,
+    refresh_token: "e2e-fake-refresh",
+    user: {
+      id: "00000000-0000-0000-0000-0000000000e2",
+      aud: "authenticated",
+      role: "authenticated",
+      email: "e2e@example.com",
+      user_metadata: { display_name: "E2E Tester" },
+      app_metadata: { provider: "email" },
+      created_at: "2026-09-01T00:00:00Z",
+    },
+  };
+  await page.addInitScript(
+    ({ key, value }) => {
+      window.localStorage.setItem(key, value);
+      window.localStorage.setItem("gamegpt.mock.v1", JSON.stringify({ signedIn: true }));
+    },
+    { key: AUTH_KEY, value: JSON.stringify(session) },
+  );
 }
 
 /** The document must not scroll sideways at the given width (1px rounding slack). */
@@ -66,11 +89,20 @@ async function expectNoHorizontalScroll(page: Page, width: number) {
 /**
  * Every visible interactive control must sit fully inside the viewport
  * horizontally. Catches buttons/inputs pushed off the right edge or clipped on
- * the left — the "no clipped controls" criterion.
+ * the left — the "no clipped controls" criterion. Controls inside a container that
+ * scrolls sideways on its own (the Popular games strip) are skipped: they are off-screen
+ * by design and reached by scrolling that container, not the page.
  */
 async function expectControlsNotClipped(page: Page, width: number) {
   const offenders = await page.evaluate((vw) => {
     const bad: string[] = [];
+    const inScroller = (el: Element) => {
+      for (let p = el.parentElement; p; p = p.parentElement) {
+        const ox = getComputedStyle(p).overflowX;
+        if ((ox === "auto" || ox === "scroll") && p.scrollWidth > p.clientWidth) return true;
+      }
+      return false;
+    };
     const controls = document.querySelectorAll(
       'a, button, input, select, textarea, [role="switch"], [role="dialog"]',
     );
@@ -79,6 +111,7 @@ async function expectControlsNotClipped(page: Page, width: number) {
       if (style.display === "none" || style.visibility === "hidden") return;
       const r = el.getBoundingClientRect();
       if (r.width === 0 && r.height === 0) return; // not rendered
+      if (inScroller(el)) return;
       if (r.right > vw + 1 || r.left < -1) {
         const label =
           el.getAttribute("aria-label") ||
