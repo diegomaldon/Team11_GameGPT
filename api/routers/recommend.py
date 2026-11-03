@@ -1,20 +1,21 @@
 """POST /api/recommend.
 
 Wires Agent B's services into a RAGPipeline (embed -> top-k -> drop owned ->
-LLM rank), then persists the query row FIRST and its recommendations SECOND so
-the returned `query_id` is the real, persisted `queries.id` that feedback echoes
-back. Downstream and DB failures surface as structured JSON errors.
+LLM rank) and returns the results. Saving them to the user's history (TM11-64)
+runs as a background task after the response is sent, so a slow or failed
+write never holds up or breaks a recommendation. The query_id is made here, so
+the response can carry the id the history row will be saved under, which
+feedback echoes back. A pipeline failure surfaces as a structured JSON error.
 """
 
 from __future__ import annotations
 
 import logging
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 
 from api.config import get_settings
-from api.db import repositories
 from api.models import RecommendRequest, RecommendResponse
 from api.services import (
     DeduplicationService,
@@ -23,13 +24,14 @@ from api.services import (
     RAGPipeline,
     VectorStore,
 )
+from api.services.query_history import record_query
 
 router = APIRouter(tags=["recommend"])
 log = logging.getLogger("gamegpt.recommend")
 
 
 @router.post("/recommend", response_model=RecommendResponse)
-async def recommend(req: RecommendRequest) -> RecommendResponse:
+async def recommend(req: RecommendRequest, background_tasks: BackgroundTasks) -> RecommendResponse:
     settings = get_settings()
     user_id = UUID(settings.dev_user_id)
 
@@ -52,21 +54,14 @@ async def recommend(req: RecommendRequest) -> RecommendResponse:
             },
         ) from exc
 
-    try:
-        query_id = await repositories.insert_query(user_id, req.query)
-        await repositories.insert_recommendations(query_id, recommendations)
-    except Exception as exc:
-        log.exception("recommend persistence failed")
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={
-                "error": "db_unavailable",
-                "message": "Could not persist the query and recommendations.",
-            },
-        ) from exc
-
-    return RecommendResponse(
+    query_id = uuid4()
+    response = RecommendResponse(
         query_id=query_id,
         query=req.query,
         recommendations=recommendations,
     )
+    background_tasks.add_task(
+        record_query,
+        query_id=query_id, user_id=user_id, query=req.query, recommendations=recommendations,
+    )
+    return response

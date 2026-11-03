@@ -147,6 +147,54 @@
         }
       }
     },
+    "/api/history": {
+      "get": {
+        "tags": [
+          "history"
+        ],
+        "summary": "History",
+        "description": "The dev user's last `limit` queries with their ranked results.",
+        "operationId": "history_api_history_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "description": "How many past queries to return, newest first.",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "How many past queries to return, newest first."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/client-error": {
       "post": {
         "tags": [
@@ -945,6 +993,113 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "HistoryEntry": {
+        "properties": {
+          "query_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Query Id"
+          },
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "When the query was saved."
+          },
+          "recommendations": {
+            "items": {
+              "$ref": "#/components/schemas/HistoryRecommendation"
+            },
+            "type": "array",
+            "title": "Recommendations",
+            "description": "Best first. Empty if none could be saved."
+          }
+        },
+        "type": "object",
+        "required": [
+          "query_id",
+          "query",
+          "created_at"
+        ],
+        "title": "HistoryEntry",
+        "description": "One past POST /api/recommend and what it returned."
+      },
+      "HistoryRecommendation": {
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Rank"
+          },
+          "game_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Game Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "steam_appid": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Steam Appid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rank",
+          "title"
+        ],
+        "title": "HistoryRecommendation",
+        "description": "One ranked result of a past query. The title is read from the catalogue."
+      },
+      "HistoryResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/HistoryEntry"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "Newest first."
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "HistoryResponse",
+        "description": "Body returned from GET /api/history."
+      },
       "LibraryItem": {
         "properties": {
           "game_id": {
@@ -1341,7 +1496,7 @@
             "type": "string",
             "format": "uuid",
             "title": "Query Id",
-            "description": "Persisted queries.id; echo it into feedback."
+            "description": "Id the query is saved under (TM11-64); echo it into feedback."
           },
           "query": {
             "type": "string",

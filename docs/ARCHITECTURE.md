@@ -64,9 +64,9 @@ web/app/(app)/page.tsx  (user submits a query)
                  │    ├─ VectorStore.top_k(embedding, k=20)        → pgvector cosine top-k
                  │    ├─ DeduplicationService.filter_owned(...)    → drop games in owned_games
                  │    └─ LLMService.rank(query, candidates, n=3)   → 3 ranked Recommendations (Gemini)
-                 ├─ repositories.insert_query(user_id, query)      → queries row (returns query_id)
-                 └─ repositories.insert_recommendations(...)       → recommendations rows
-            ← RecommendResponse { query_id, query, recommendations[] }
+                 └─ background: query_history.record_query(...)    → after the response (TM11-64)
+                      └─ repositories.save_query_history(...)      → queries + recommendations rows, one transaction
+            ← RecommendResponse { query_id, query, recommendations[] }   (query_id made by the API)
   └─ three cards render (rank, title, reason, score, Steam link); user clicks 👍/👎
        └─ web/lib/api/client.ts  sendFeedback({query_id, game_id, title, rank, vote})
             └─ POST /api/feedback → repositories.insert_feedback() → 204

@@ -24,7 +24,13 @@ from tenacity import (
 
 from api.db import connection
 from api.db.schema import catalogue_shape
-from api.models import FeedbackRequest, LibraryItem, Recommendation
+from api.models import (
+    FeedbackRequest,
+    HistoryEntry,
+    HistoryRecommendation,
+    LibraryItem,
+    Recommendation,
+)
 
 if TYPE_CHECKING:  # runtime import would cycle through api.services.__init__
     from api.services.embedding_pipeline import GameEmbedding
@@ -47,54 +53,94 @@ def _as_uuid(value: Any) -> UUID | None:
     return value if isinstance(value, UUID) else UUID(str(value))
 
 
-# ─────────────────────────── recommend flow ───────────────────────────
+# ──────────────────────── recommend history (TM11-64) ────────────────────────
+
+# The two shapes name the same things differently (api/db/schema.py). Hosted
+# results hold only the game_id: titles are read from games, never copied.
+_SAVE_QUERY_SQL = {
+    "hosted": "insert into public.queries (query_id, user_id, query_text) values (%s, %s, %s)",
+    "legacy": "insert into queries (id, user_id, text) values (%s, %s, %s)",
+}
+_SAVE_RESULTS_SQL = {
+    "hosted": "insert into public.recommendations (query_id, game_id, rank, explanation) "
+              "values (%s, %s, %s, %s)",
+    "legacy": "insert into recommendations (query_id, game_id, rank, title, reason) "
+              "values (%s, %s, %s, %s, %s)",
+}
+# The user's latest queries first, then their results joined on. A query with
+# no saved results still comes back, with nulls in the result columns.
+_LIST_HISTORY_SQL = {
+    "hosted": "select q.query_id, q.query_text, q.created_at, "
+              "r.rank, r.game_id, g.title, r.explanation, g.steam_appid "
+              "from (select query_id, query_text, created_at from public.queries "
+              "where user_id = %s order by created_at desc limit %s) q "
+              "left join public.recommendations r on r.query_id = q.query_id "
+              "left join public.games g on g.game_id = r.game_id "
+              "order by q.created_at desc, q.query_id, r.rank",
+    # The local slice still copies the title. Prefer the catalogue's, so both
+    # shapes read the game's current title.
+    "legacy": "select q.id, q.text, q.created_at, "
+              "r.rank, r.game_id, coalesce(g.title, r.title), r.reason, g.steam_appid "
+              "from (select id, text, created_at from queries "
+              "where user_id = %s order by created_at desc limit %s) q "
+              "left join recommendations r on r.query_id = q.id "
+              "left join games g on g.id = r.game_id "
+              "order by q.created_at desc, q.id, r.rank",
+}
 
 
-@retry(**_RETRY)
-async def insert_query(user_id: UUID, text: str) -> UUID:
-    """Persist one POST /api/recommend and return the new queries.id."""
-    async with connection() as conn:
-        async with conn.cursor() as cur:
-            await cur.execute(
-                "insert into queries (user_id, text) values (%s, %s) returning id",
-                (str(user_id), text),
-            )
-            row = await cur.fetchone()
-        await conn.commit()
-    query_id = _as_uuid(row[0]) if row else None
-    if query_id is None:  # pragma: no cover - RETURNING always yields a row
-        raise RuntimeError("insert_query did not return an id")
-    return query_id
-
-
-@retry(**_RETRY)
-async def insert_recommendations(
-    query_id: UUID, recommendations: Sequence[Recommendation]
-) -> int:
-    """Persist the ranked recommendations for a query. Idempotent per rank."""
-    if not recommendations:
-        return 0
-    params = [
-        (
-            str(query_id),
-            str(r.game_id) if r.game_id else None,
-            r.rank,
-            r.title,
-            r.reason,
-        )
+def _result_rows(query_id: UUID, recommendations: Sequence[Recommendation], shape: str) -> list:
+    if shape == "hosted":
+        # game_id is NOT NULL there: a title that matched no game has nothing
+        # to point at, so it is left out rather than failing the whole query.
+        return [
+            (str(query_id), str(r.game_id), r.rank, r.reason)
+            for r in recommendations if r.game_id
+        ]
+    return [
+        (str(query_id), str(r.game_id) if r.game_id else None, r.rank, r.title, r.reason)
         for r in recommendations
     ]
+
+
+@retry(**_RETRY)
+async def save_query_history(
+    *, query_id: UUID, user_id: UUID, query: str, recommendations: Sequence[Recommendation],
+) -> None:
+    """Save one recommend call: the query and its ranked results, in one transaction.
+
+    Timestamps come from the database's now() defaults.
+    """
+    shape = await catalogue_shape()
+    results = _result_rows(query_id, recommendations, shape)
     async with connection() as conn:
         async with conn.cursor() as cur:
-            await cur.executemany(
-                "insert into recommendations (query_id, game_id, rank, title, reason) "
-                "values (%s, %s, %s, %s, %s) "
-                "on conflict (query_id, rank) do update set "
-                "game_id = excluded.game_id, title = excluded.title, reason = excluded.reason",
-                params,
-            )
+            await cur.execute(_SAVE_QUERY_SQL[shape], (str(query_id), str(user_id), query))
+            if results:
+                await cur.executemany(_SAVE_RESULTS_SQL[shape], results)
         await conn.commit()
-    return len(params)
+
+
+@retry(**_RETRY)
+async def list_query_history(user_id: UUID, *, limit: int) -> list[HistoryEntry]:
+    """The user's last `limit` queries, newest first, each with its results best first."""
+    shape = await catalogue_shape()
+    async with connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(_LIST_HISTORY_SQL[shape], (str(user_id), limit))
+            rows = await cur.fetchall()
+
+    entries: dict[UUID, HistoryEntry] = {}
+    for query_id, text, created_at, rank, game_id, title, reason, steam_appid in rows:
+        entry = entries.setdefault(
+            _as_uuid(query_id), HistoryEntry(query_id=query_id, query=text, created_at=created_at)
+        )
+        if rank is not None:
+            entry.recommendations.append(HistoryRecommendation(
+                rank=rank, game_id=_as_uuid(game_id), title=title or "",
+                reason=reason, steam_appid=steam_appid,
+            ))
+    return list(entries.values())
 
 
 # ─────────────────────────── feedback flow ───────────────────────────
