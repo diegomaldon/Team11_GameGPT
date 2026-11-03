@@ -204,7 +204,7 @@ export function RegisterForm() {
       <button
         type="submit"
         disabled={busy}
-        className="w-full rounded bg-neutral-900 px-4 py-2 text-white disabled:opacity-60"
+        className="w-full rounded bg-[var(--accent)] px-4 py-2 text-[var(--on-accent)] disabled:opacity-60"
       >
         {busy ? 'Creating your account' : 'Create account'}
       </button>

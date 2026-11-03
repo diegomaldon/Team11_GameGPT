@@ -54,9 +54,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh">
       {/* ── Desktop sidebar ── */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-[var(--border)] bg-white px-3 py-5 md:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-[var(--border)] bg-[var(--surface)] px-3 py-5 md:flex">
         <Link href="/" className="mb-6 flex items-center gap-2.5 px-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--ink)] text-white">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent)] text-[var(--on-accent)]">
             <Controller className="h-5 w-5" />
           </span>
           <span className="font-display text-lg font-bold tracking-tight">
@@ -75,7 +75,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className={cx(
                   "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
                   active
-                    ? "bg-accent-50 text-accent-700"
+                    ? "bg-[var(--raised-2)] text-[var(--heading)]"
                     : "text-[var(--ink-soft)] hover:bg-neutral-100 hover:text-[var(--ink)]",
                 )}
               >
@@ -106,9 +106,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* ── Mobile top bar ── */}
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--border)] bg-white/90 px-5 py-3 backdrop-blur md:hidden">
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-5 py-3 backdrop-blur md:hidden">
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--ink)] text-white">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--accent)] text-[var(--on-accent)]">
             <Controller className="h-[18px] w-[18px]" />
           </span>
           <span className="font-display text-base font-bold tracking-tight">
@@ -129,7 +129,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* ── Mobile bottom nav ── */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-t border-[var(--border)] bg-white/95 backdrop-blur md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-t border-[var(--border)] bg-[var(--surface)] backdrop-blur md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         {NAV.map(({ href, label, Icon }) => {
@@ -141,7 +141,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               aria-current={active ? "page" : undefined}
               className={cx(
                 "flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors",
-                active ? "text-accent-700" : "text-[var(--ink-faint)]",
+                active ? "text-[var(--heading)]" : "text-[var(--ink-faint)]",
               )}
             >
               <Icon className="h-[22px] w-[22px]" />

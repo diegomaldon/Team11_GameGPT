@@ -84,7 +84,7 @@ export default function DiscoverPage() {
           }}
           className="mt-6"
         >
-          <div className="flex flex-col gap-2 rounded-2xl border border-[var(--border)] bg-white p-2 shadow-card focus-within:border-accent-500 sm:flex-row sm:items-center sm:pl-4">
+          <div className="flex flex-col gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2 shadow-card focus-within:border-accent-500 sm:flex-row sm:items-center sm:pl-4">
             <div className="flex flex-1 items-center gap-2.5">
               <Sparkle className="hidden h-5 w-5 shrink-0 text-[var(--ink-faint)] sm:block" />
               <input
@@ -99,7 +99,7 @@ export default function DiscoverPage() {
             <button
               type="submit"
               disabled={loading || !query.trim()}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--ink)] px-5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-5 text-sm font-semibold text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading ? (
                 <>
@@ -121,7 +121,7 @@ export default function DiscoverPage() {
               type="button"
               onClick={() => void run(ex)}
               disabled={loading}
-              className="rounded-full border border-[var(--border)] bg-white px-3 py-1.5 text-[13px] text-[var(--ink-soft)] transition-colors hover:border-accent-200 hover:bg-accent-50 hover:text-accent-700 disabled:opacity-50"
+              className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-[13px] text-[var(--ink-soft)] transition-colors hover:border-accent-200 hover:bg-accent-50 hover:text-accent-700 disabled:opacity-50"
             >
               {ex}
             </button>
@@ -144,7 +144,7 @@ export default function DiscoverPage() {
             {[0, 1, 2].map((i) => (
               <li
                 key={i}
-                className="shimmer flex gap-4 rounded-2xl border border-[var(--border)] bg-white p-5"
+                className="shimmer flex gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5"
               >
                 <div className="h-11 w-11 shrink-0 rounded-xl bg-neutral-100" />
                 <div className="flex-1 space-y-2.5 py-1">
@@ -175,7 +175,7 @@ export default function DiscoverPage() {
                 return (
                   <li
                     key={`${rec.rank}-${rec.title}`}
-                    className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-5 shadow-card transition-shadow hover:shadow-lift"
+                    className="animate-fade-up rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card transition-shadow hover:shadow-lift"
                     style={{ animationDelay: `${i * 60}ms` }}
                   >
                     <div className="flex gap-4">
@@ -183,7 +183,7 @@ export default function DiscoverPage() {
                         className={cx(
                           "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl font-display text-lg font-bold",
                           top
-                            ? "bg-accent-600 text-white"
+                            ? "bg-[var(--accent)] text-[var(--on-accent)]"
                             : "bg-neutral-100 text-[var(--ink-soft)]",
                         )}
                         aria-hidden
@@ -250,7 +250,7 @@ export default function DiscoverPage() {
         )}
 
         {!result && !loading && !error && (
-          <div className="rounded-2xl border border-dashed border-[var(--border)] bg-white/60 px-6 py-12 text-center">
+          <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-12 text-center">
             <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-neutral-100 text-[var(--ink-faint)]">
               <Sparkle className="h-5 w-5" />
             </span>

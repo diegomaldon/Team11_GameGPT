@@ -35,7 +35,7 @@ export default function Error({
       )}
       <button
         onClick={reset}
-        className="mx-auto rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white"
+        className="mx-auto rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--on-accent)]"
       >
         Try again
       </button>

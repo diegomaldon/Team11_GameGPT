@@ -1,7 +1,8 @@
 "use client";
 
-// Small, consistent UI primitives for the clean/modern design system.
-// One accent (indigo), near-black primary, solid fills — no gradients.
+// Small, consistent UI primitives for the Deep Blue Spotlight theme (TM11-142).
+// Navy surfaces, one cream accent, pill-shaped controls, solid fills — no gradients.
+// Colours come from the tokens in app/globals.css.
 
 import { useEffect, useRef } from "react";
 import { Spinner, X } from "./icons";
@@ -27,22 +28,23 @@ export function Button({
   ...rest
 }: ButtonProps) {
   const variants = {
-    primary: "bg-[var(--ink)] text-white hover:bg-black",
+    primary:
+      "bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-hover)]",
     secondary:
-      "border border-[var(--border)] bg-white text-[var(--ink)] hover:border-neutral-300 hover:bg-neutral-50",
-    ghost: "text-[var(--ink-soft)] hover:bg-neutral-100 hover:text-[var(--ink)]",
+      "border border-[var(--border-strong)] bg-transparent text-[var(--ink)] hover:bg-[var(--raised-2)]",
+    ghost: "text-[var(--ink-soft)] hover:bg-[var(--raised)] hover:text-[var(--heading)]",
     danger:
-      "border border-rose-200 bg-white text-rose-600 hover:border-rose-300 hover:bg-rose-50",
+      "border border-rose-300 bg-transparent text-rose-600 hover:bg-rose-50",
   };
   const sizes = {
-    sm: "h-9 px-3.5 text-[13px] gap-1.5",
-    md: "h-11 px-5 text-sm gap-2",
+    sm: "h-10 px-4 text-[13px] gap-1.5",
+    md: "h-12 px-6 text-[15px] gap-2",
   };
   return (
     <button
       disabled={disabled || loading}
       className={cx(
-        "inline-flex items-center justify-center rounded-xl font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+        "inline-flex items-center justify-center rounded-full font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40",
         variants[variant],
         sizes[size],
         className,
@@ -66,7 +68,7 @@ export function Card({
   return (
     <div
       className={cx(
-        "rounded-2xl border border-[var(--border)] bg-white shadow-card",
+        "rounded-3xl border border-[var(--border)] bg-[var(--surface)]",
         className,
       )}
     >
@@ -91,7 +93,7 @@ export function Field({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={htmlFor} className="text-[13px] font-medium text-[var(--ink)]">
+      <label htmlFor={htmlFor} className="text-[13px] font-medium text-[var(--label)]">
         {label}
       </label>
       {children}
@@ -105,7 +107,7 @@ export function Field({
 }
 
 const inputCls =
-  "h-11 w-full rounded-xl border border-[var(--border)] bg-white px-3.5 text-sm outline-none transition-colors focus:border-accent-500 disabled:bg-neutral-50 disabled:text-[var(--ink-faint)]";
+  "h-12 w-full rounded-full border border-[var(--border)] bg-[var(--bg)] px-5 text-[15px] text-[var(--ink)] outline-none transition-colors focus:border-[var(--accent)] disabled:bg-[var(--surface)] disabled:text-[var(--ink-faint)]";
 
 export function TextInput(
   props: React.InputHTMLAttributes<HTMLInputElement>,
@@ -137,14 +139,16 @@ export function Toggle({
       aria-label={label}
       onClick={() => onChange(!checked)}
       className={cx(
-        "relative h-6 w-11 shrink-0 rounded-full transition-colors",
-        checked ? "bg-accent-600" : "bg-neutral-300",
+        "relative h-7 w-12 shrink-0 rounded-full transition-colors",
+        checked
+          ? "bg-[var(--accent)]"
+          : "bg-[var(--bg)] ring-1 ring-inset ring-[var(--border-strong)]",
       )}
     >
       <span
         className={cx(
-          "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform",
-          checked ? "translate-x-[22px]" : "translate-x-0.5",
+          "absolute left-0 top-1 h-5 w-5 rounded-full transition-transform",
+          checked ? "translate-x-6 bg-[var(--on-accent)]" : "translate-x-1 bg-[var(--ink-faint)]",
         )}
       />
     </button>
@@ -160,9 +164,9 @@ export function Badge({
   tone?: "neutral" | "success" | "accent";
 }) {
   const tones = {
-    neutral: "bg-neutral-100 text-[var(--ink-soft)]",
+    neutral: "bg-[var(--raised-2)] text-[var(--ink-soft)]",
     success: "bg-emerald-50 text-emerald-700",
-    accent: "bg-accent-50 text-accent-700",
+    accent: "border border-[var(--border-strong)] text-[var(--label)]",
   };
   return (
     <span
@@ -192,7 +196,7 @@ export function Avatar({
     .toUpperCase();
   return (
     <span
-      className="flex shrink-0 items-center justify-center rounded-full bg-accent-600 font-semibold text-white"
+      className="flex shrink-0 items-center justify-center rounded-full bg-[var(--accent)] font-semibold text-[var(--on-accent)]"
       style={{ width: size, height: size, fontSize: size * 0.4 }}
       aria-hidden
     >
@@ -245,7 +249,7 @@ export function Modal({
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[rgb(2_5_12/0.72)] p-0 sm:items-center sm:p-4"
       onMouseDown={onClose}
     >
       <div
@@ -255,15 +259,15 @@ export function Modal({
         aria-modal="true"
         aria-label={title}
         onMouseDown={(e) => e.stopPropagation()}
-        className="w-full max-w-md animate-fade-up rounded-t-2xl border border-[var(--border)] bg-white shadow-lift outline-none sm:rounded-2xl"
+        className="w-full max-w-md animate-fade-up rounded-t-3xl border border-[var(--border)] bg-[var(--surface)] shadow-lift outline-none sm:rounded-3xl"
       >
         <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
-          <h2 className="font-display text-base font-semibold">{title}</h2>
+          <h2 className="font-display text-2xl">{title}</h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--ink-faint)] hover:bg-neutral-100 hover:text-[var(--ink)]"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--ink-faint)] hover:bg-[var(--raised)] hover:text-[var(--heading)]"
           >
             <X className="h-5 w-5" />
           </button>
@@ -292,12 +296,12 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center rounded-2xl border border-dashed border-[var(--border)] bg-white/60 px-6 py-12 text-center">
-      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-neutral-100 text-[var(--ink-faint)]">
+    <div className="flex flex-col items-center rounded-3xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] px-6 py-12 text-center">
+      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--raised-2)] text-[var(--ink-faint)]">
         {icon}
       </span>
-      <p className="mt-3 text-sm font-semibold">{title}</p>
-      <p className="mt-1 max-w-xs text-xs text-[var(--ink-faint)]">{description}</p>
+      <p className="mt-4 font-display text-xl">{title}</p>
+      <p className="mt-1 max-w-xs text-sm text-[var(--ink-faint)]">{description}</p>
       {action && <div className="mt-4">{action}</div>}
     </div>
   );
@@ -314,11 +318,13 @@ export function PageHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="mb-6 flex items-end justify-between gap-4">
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight">{title}</h1>
+        <h1 className="font-display text-4xl leading-[1.05] sm:text-[56px]">{title}</h1>
         {subtitle && (
-          <p className="mt-1 text-sm text-[var(--ink-soft)]">{subtitle}</p>
+          <p className="mt-3 max-w-xl text-base leading-relaxed text-[var(--ink-faint)]">
+            {subtitle}
+          </p>
         )}
       </div>
       {action}

@@ -98,7 +98,7 @@ function SignInForm() {
     <main className="flex min-h-dvh flex-col items-center justify-center px-5 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--ink)] text-white">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--accent)] text-[var(--on-accent)]">
             <Controller className="h-6 w-6" />
           </span>
           <h1 className="mt-4 font-display text-2xl font-bold tracking-tight">
@@ -109,7 +109,7 @@ function SignInForm() {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-card">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-card">
           {formError && (
             <p
               role="alert"

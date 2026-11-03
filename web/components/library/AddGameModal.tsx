@@ -188,7 +188,7 @@ export function AddGameModal({
                 id={listId}
                 role="listbox"
                 aria-label="Matching games"
-                className="absolute inset-x-0 top-full z-10 mt-1 max-h-60 overflow-auto rounded-xl border border-[var(--border)] bg-white py-1 shadow-lift"
+                className="absolute inset-x-0 top-full z-10 mt-1 max-h-60 overflow-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] py-1 shadow-lift"
               >
                 {search.status === "loading" && (
                   <li className="flex items-center gap-2 px-3.5 py-2 text-[13px] text-[var(--ink-faint)]">

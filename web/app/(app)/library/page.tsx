@@ -226,7 +226,7 @@ export default function LibraryPage() {
       {loading ? (
         <div
           role="status"
-          className="flex items-center justify-center gap-2 rounded-2xl border border-[var(--border)] bg-white/60 px-6 py-14 text-sm text-[var(--ink-faint)]"
+          className="flex items-center justify-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-6 py-14 text-sm text-[var(--ink-faint)]"
         >
           <Spinner className="h-4 w-4" />
           Loading your library…
@@ -305,12 +305,12 @@ export default function LibraryPage() {
                   className={cx(
                     "rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors",
                     on
-                      ? "border-[var(--ink)] bg-[var(--ink)] text-white"
-                      : "border-[var(--border)] bg-white text-[var(--ink-soft)] hover:border-neutral-300",
+                      ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)]"
+                      : "border-[var(--border)] bg-[var(--surface)] text-[var(--ink-soft)] hover:border-neutral-300",
                   )}
                 >
                   {f.label}
-                  <span className={cx("ml-1.5", on ? "text-white/70" : "text-[var(--ink-faint)]")}>
+                  <span className={cx("ml-1.5", on ? "text-[var(--on-accent)] opacity-70" : "text-[var(--ink-faint)]")}>
                     {count.toLocaleString("en-US")}
                   </span>
                 </button>
@@ -369,7 +369,7 @@ function GameRow({ row, onRemove }: { row: UnifiedGame; onRemove: () => void }) 
     ? (formatPlaytime(row.playtimeMinutes) ?? "Not played yet")
     : null;
   return (
-    <div className="flex h-[72px] items-center gap-3 rounded-2xl border border-[var(--border)] bg-white px-4 shadow-card">
+    <div className="flex h-[72px] items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 shadow-card">
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-neutral-100 font-display text-sm font-bold text-[var(--ink-soft)]">
         {row.title.slice(0, 2).toUpperCase()}
       </div>
@@ -401,7 +401,7 @@ function GameRow({ row, onRemove }: { row: UnifiedGame; onRemove: () => void }) 
 
 function EmptyLibrary({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="flex flex-col items-center rounded-2xl border border-dashed border-[var(--border)] bg-white/60 px-6 py-14 text-center">
+    <div className="flex flex-col items-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-14 text-center">
       <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-neutral-100 text-[var(--ink-faint)]">
         <LibraryIcon className="h-5 w-5" />
       </span>
@@ -413,7 +413,7 @@ function EmptyLibrary({ onAdd }: { onAdd: () => void }) {
       <div className="mt-4 flex flex-wrap justify-center gap-2">
         <Link
           href="/settings"
-          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-[var(--ink)] px-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-black"
+          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-[var(--accent)] px-3.5 text-[13px] font-semibold text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)]"
         >
           Link a platform
         </Link>
