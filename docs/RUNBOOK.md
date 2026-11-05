@@ -103,15 +103,21 @@ title), enriched from Steam's public store data. `scripts/catalogue_source.py`
 maps it into the rows `ingest_games.py` expects, keyed on `steam_appid`. No API
 key is needed.
 
-The Steam details are cached in `scripts/fixtures/steam_appdetails.json`, so the
-load itself never calls Steam. Refresh the cache only when the fixture gains a
-game (about 1.6s per app, to stay under Steam's rate limit):
+The Steam details are cached in `.cache/catalogue/steam_appdetails.json`, so
+the load itself never calls Steam. The cache is **gitignored** (about 1.3 MB with
+the 1000-game data), so a fresh clone has to build it first, about 1.6s per app
+to stay under Steam's rate limit. For the seed games only:
 
 ```bash
-python scripts/steam_store.py              # fetch app ids the cache lacks
+python scripts/steam_store.py              # fetch app ids the cache lacks (~5 min from empty)
 python scripts/steam_store.py --refresh    # re-fetch all of them
 cd scripts && python -m unittest test_steam_store   # fails if an app id names another game
 ```
+
+`steam_store.py` also writes the seed games' Steam names to the committed
+`scripts/fixtures/steam_seed_names.json`. That small file is what CI checks the
+fixture's app ids against; commit it when it changes. Without a cache, the load
+stops and says which script to run.
 
 This writes to the shared hosted database. Agree the run with the team first,
 and use the **service_role** connection string (`games` is write-restricted by
@@ -166,8 +172,8 @@ python scripts/verify_catalogue.py
   prompts still need that from another source.
 - **App ids:** ten fixture games pointed at other Steam apps (Dinkum's was
   Timberborn's) and Owlboy's didn't exist; TM11-159 corrected them.
-  `test_steam_store` compares every cached Steam name with its fixture title,
-  so a wrong id fails CI.
+  `test_steam_store` compares every Steam name in `steam_seed_names.json` with
+  its fixture title, so a wrong id fails CI.
 - **Rejected rows:** an entry with no Steam app id, a blank title or a bad score
   is rejected, logged with its reason and written to `rejects.jsonl`; the rest
   still load. Exit code 2 means fewer than `--target` games loaded.
@@ -184,9 +190,11 @@ tags (highest-voted first) plus Steam's categories, and a `review_score` from
 the share of positive Steam reviews (when it has 50+). No key is needed.
 
 ```bash
-# 1. Fill the caches (scripts/fixtures/steamspy_ranking.json, steamspy_tags.json,
-#    steam_appdetails.json). Slow: Steam and SteamSpy are rate-limited, so about
-#    3s per app, ~45 minutes from empty. Safe to stop and rerun; it resumes.
+# 1. Fill the caches in .cache/catalogue/ (steamspy_ranking.json, steamspy_tags.json,
+#    steam_appdetails.json; gitignored). Fetches the seed games' details too, so it
+#    works from an empty cache on a fresh clone. Slow: Steam and SteamSpy are
+#    rate-limited, so about 3s per app, ~45 minutes from empty. Safe to stop and
+#    rerun; it resumes.
 python scripts/steam_catalogue.py --target 1000
 
 # 2-5. Same as the rebuild above, with the larger source and target
@@ -206,8 +214,11 @@ python scripts/verify_catalogue.py --min-games 1000
   `artifacts/ingestion/steam-catalogue-skips.json`: not a game (DLC, software,
   soundtrack), adult-only (Steam content descriptors 3 and 4), no description,
   unknown to Steam, or a title already in the catalogue.
-- **Idempotent:** the load reads only the caches, so re-running it changes
-  nothing. Re-running step 1 later only fetches apps the cache lacks.
+- **Idempotent:** the load reads only the caches, so re-running it from the same
+  cache changes nothing. Re-running step 1 later only fetches apps the cache
+  lacks. A cache rebuilt elsewhere (or a newer SteamSpy ranking) can hold newer
+  Steam data, so a load from it may report some rows as updated; that is the
+  catalogue being refreshed, not duplicated.
 - Steam store names are used as titles (for example "Counter-Strike 2"), so a
   RAWG-era row is only adopted when its title matches exactly.
 
