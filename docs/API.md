@@ -161,6 +161,10 @@ query and its results to the user's history in the background (TM11-64).
   a result that matched no catalogue game is left out of the history.
 - Latency: ~7s on the first call after boot (model warm-up), then dominated by
   LLM latency; **< 10 s** warm.
+- A 200 carries a `Server-Timing` header with each stage's time in ms (TM11-68), for
+  example `parse;dur=0.2, embed;dur=48.1, retrieve;dur=402.7, filter;dur=180.3,
+  rank;dur=2310.5, total;dur=2941.8`. Per-stage budgets are in
+  [OBSERVABILITY.md](OBSERVABILITY.md#recommend-latency-by-stage--tm11-68).
 - **502** `recommendation_failed` if the pipeline errors. Saving never fails the
   request.
 

@@ -162,6 +162,18 @@ python scripts/eval_search_latency.py --repeats 20 --k 10
 It sends requests to the app in-process, so the network hop to a host is not
 counted. Exit code 1 means the warm p95 is 1 second or more.
 
+**Recommend latency by stage (TM11-68).** To time parse, embed, retrieve, filter and
+rank over the same 20 prompts, without saving anything to the query history:
+
+```bash
+python scripts/eval_recommend_latency.py         # writes artifacts/sprint9/tm11-68-recommend-latency.md
+```
+
+Without an LLM key, rank times the offline fallback. For deployed numbers, run the
+weekly check over the Render logs (`python scripts/latency_report.py render-logs.txt`).
+[OBSERVABILITY.md](OBSERVABILITY.md#recommend-latency-by-stage--tm11-68) has the
+budgets and what to do with the result.
+
 ---
 
 ## Enabling real LLM
