@@ -7,9 +7,12 @@ Steam-style tags that the seed fixture lacks. Steam's public store endpoint
 
     https://store.steampowered.com/api/appdetails?appids=<id>&cc=us&l=english
 
-Responses are trimmed and kept in `scripts/fixtures/steam_appdetails.json`, so
-the ingest reads only that file: it runs offline, and two runs read the same
-data, which keeps the load idempotent. Refreshing the cache is a separate step:
+Responses are trimmed and kept in `.cache/catalogue/steam_appdetails.json`
+(gitignored), so the ingest reads only that file: it runs offline, and two runs
+from the same cache read the same data, which keeps the load idempotent. The
+seed games' Steam names are also written to the committed
+`scripts/fixtures/steam_seed_names.json`, which CI uses to catch a wrong app id.
+Filling the cache is a separate step:
 
     python3 scripts/steam_store.py              # fetch app ids missing from the cache
     python3 scripts/steam_store.py --refresh    # re-fetch every app id
@@ -34,7 +37,8 @@ import catalogue_source
 
 log = logging.getLogger("steam_store")
 
-CACHE_PATH = Path(__file__).resolve().parent / "fixtures" / "steam_appdetails.json"
+CACHE_PATH = catalogue_source.STEAM_CACHE_PATH
+SEED_NAMES_PATH = catalogue_source.SEED_NAMES_PATH
 APPDETAILS_URL = "https://store.steampowered.com/api/appdetails?appids={appid}&cc=us&l=english"
 USER_AGENT = "GameGPT-catalogue/1.0 (CIS453 Team 11)"
 PACE_SECONDS = 1.6
@@ -102,8 +106,20 @@ def load_cache(path: Path = CACHE_PATH) -> dict[str, dict]:
 
 
 def save_cache(cache: dict[str, dict], path: Path = CACHE_PATH) -> None:
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
     ordered = {k: cache[k] for k in sorted(cache, key=int)}
     Path(path).write_text(json.dumps(ordered, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def seed_names(cache: dict[str, dict], fixture: list[dict]) -> dict[str, str | None]:
+    """Steam's store name for each seed app id (None when Steam doesn't know it)."""
+    ids = sorted({e["steam_appid"] for e in fixture if e.get("steam_appid")})
+    return {str(a): (cache.get(str(a)) or {}).get("name") for a in ids if str(a) in cache}
+
+
+def write_seed_names(cache: dict[str, dict], path: Path = SEED_NAMES_PATH) -> None:
+    names = seed_names(cache, catalogue_source.load_fixture())
+    Path(path).write_text(json.dumps(names, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def update_cache(appids: list[int], cache: dict[str, dict], refresh: bool = False,
@@ -139,6 +155,7 @@ def main(argv=None) -> int:
     appids = sorted({e["steam_appid"] for e in catalogue_source.load_fixture() if e.get("steam_appid")})
     cache = load_cache()
     counts = update_cache(appids, cache, a.refresh, pace=a.pace, save=save_cache)
+    write_seed_names(cache)
     print(f"steam_store: {len(appids)} app ids; {counts['cached']} already cached, "
           f"{counts['fetched']} fetched ({counts['unknown']} unknown to Steam), {counts['failed']} failed. "
           f"Cache: {CACHE_PATH}")

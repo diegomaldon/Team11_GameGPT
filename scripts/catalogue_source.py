@@ -25,7 +25,8 @@ rather than inserting a row nothing can key on.
 
 The hosted load uses fetch_steam_enriched_catalogue, which adds what the
 RAWG-era rows carry and the fixture lacks, from the cached Steam store details
-(scripts/fixtures/steam_appdetails.json, filled by steam_store.py):
+(.cache/catalogue/steam_appdetails.json, gitignored; filled by steam_store.py
+or steam_catalogue.py):
 
   metacritic score   -> critic_score          (when Steam has one)
   publishers         -> publishers
@@ -52,7 +53,11 @@ from typing import Iterable, Iterator
 log = logging.getLogger("catalogue_source")
 
 FIXTURE_PATH = Path(__file__).resolve().parent / "fixtures" / "games.json"
-STEAM_CACHE_PATH = Path(__file__).resolve().parent / "fixtures" / "steam_appdetails.json"
+# Fetched Steam/SteamSpy data. Gitignored: it is large and steam_catalogue.py
+# rebuilds it. Only the seed games' Steam names are committed, for the CI check.
+CACHE_DIR = Path(__file__).resolve().parents[1] / ".cache" / "catalogue"
+STEAM_CACHE_PATH = CACHE_DIR / "steam_appdetails.json"
+SEED_NAMES_PATH = Path(__file__).resolve().parent / "fixtures" / "steam_seed_names.json"
 SOURCE = "steam"
 STEAM_STORE_URL = "https://store.steampowered.com/app/{appid}"
 
@@ -131,7 +136,12 @@ def enrich(row: dict, details: dict | None) -> dict:
 def fetch_steam_enriched_catalogue(limit: int | None = None, path: Path = FIXTURE_PATH,
                                    cache_path: Path = STEAM_CACHE_PATH) -> Iterator[dict]:
     """--source-func entry point for the hosted load: the seed catalogue plus Steam store details."""
-    cache = json.loads(Path(cache_path).read_text(encoding="utf-8"))
+    try:
+        cache = json.loads(Path(cache_path).read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            f"no Steam cache at {cache_path}; run `python scripts/steam_catalogue.py` "
+            "(or steam_store.py for the seed games only) first") from None
     for row in rows_from(load_fixture(path), limit):
         details = cache.get(str(row["source_id"])) if row["source_id"] is not None else None
         if row["source_id"] is not None and details is None:

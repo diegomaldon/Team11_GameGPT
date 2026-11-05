@@ -13,8 +13,10 @@ import catalogue_source as cs
 import steam_store as ss
 from ingest_games import InMemoryStore, run_job
 
-CACHE = ss.load_cache()
+CACHE = ss.load_cache()          # the gitignored full cache; empty in CI
 FIXTURE = cs.load_fixture()
+SEED_NAMES = json.loads(ss.SEED_NAMES_PATH.read_text(encoding="utf-8"))   # committed
+HAS_CACHE = ss.CACHE_PATH.exists()
 
 # Steam's store name differs from the fixture title only by edition or styling.
 # Each was checked by hand; anything else means the fixture's appid is wrong
@@ -58,18 +60,29 @@ def _clean(name: str) -> str:
     return name.replace("™", "").replace("®", "").casefold()
 
 
-class CacheMatchesFixture(unittest.TestCase):
-    def test_cache_covers_every_fixture_appid(self):
-        # the cache also holds the ranked Steam games (steam_catalogue.py)
-        self.assertLessEqual({str(g["steam_appid"]) for g in FIXTURE}, set(CACHE))
+class SeedNamesMatchFixture(unittest.TestCase):
+    """Runs in CI from the committed steam_seed_names.json, no cache needed."""
+
+    def test_names_cover_every_fixture_appid(self):
+        self.assertEqual(set(SEED_NAMES), {str(g["steam_appid"]) for g in FIXTURE})
 
     def test_every_appid_is_the_game_the_fixture_names(self):
         for g in FIXTURE:
-            entry = CACHE[str(g["steam_appid"])]
-            self.assertTrue(entry["success"], g["title"])
-            if _clean(entry["name"]) != _clean(g["title"]):
-                self.assertEqual(KNOWN_RENAMES.get(g["title"]), entry["name"],
-                                 f"steam:{g['steam_appid']} is {entry['name']!r}, not {g['title']!r}")
+            name = SEED_NAMES[str(g["steam_appid"])]
+            self.assertIsNotNone(name, f"steam:{g['steam_appid']} ({g['title']}) is unknown to Steam")
+            if _clean(name) != _clean(g["title"]):
+                self.assertEqual(KNOWN_RENAMES.get(g["title"]), name,
+                                 f"steam:{g['steam_appid']} is {name!r}, not {g['title']!r}")
+
+    def test_seed_names_from_cache(self):
+        cache = {"220": {"success": True, "name": "Half-Life 2"}, "1": {"success": False}, "9": {"name": "x"}}
+        fixture = [{"steam_appid": 220}, {"steam_appid": 1}, {"steam_appid": 5}]
+        self.assertEqual(ss.seed_names(cache, fixture), {"1": None, "220": "Half-Life 2"})
+
+    @unittest.skipUnless(HAS_CACHE, "no local Steam cache (.cache/catalogue); run steam_catalogue.py")
+    def test_committed_names_match_the_local_cache(self):
+        self.assertEqual(ss.seed_names(CACHE, FIXTURE), SEED_NAMES,
+                         "steam_seed_names.json is stale; rerun steam_store.py")
 
 
 class Trim(unittest.TestCase):
@@ -145,6 +158,10 @@ class Enrich(unittest.TestCase):
         self.assertEqual(cs.enrich(row, {"success": False}), row)
         self.assertEqual(cs.enrich(row, None), row)
 
+    def test_missing_cache_file_says_how_to_fill_it(self):
+        with self.assertRaisesRegex(FileNotFoundError, "steam_catalogue.py"):
+            list(cs.fetch_steam_enriched_catalogue(cache_path=Path(tempfile.mkdtemp()) / "none.json"))
+
     def test_missing_cache_entry_is_logged(self):
         d = Path(tempfile.mkdtemp()) / "cache.json"
         d.write_text("{}")
@@ -154,6 +171,7 @@ class Enrich(unittest.TestCase):
         self.assertIn("no cached Steam details", logs.output[0])
 
 
+@unittest.skipUnless(HAS_CACHE, "no local Steam cache (.cache/catalogue); run steam_catalogue.py")
 class EnrichedLoad(unittest.TestCase):
     def run_it(self, store):
         d = Path(tempfile.mkdtemp())

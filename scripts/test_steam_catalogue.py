@@ -83,6 +83,15 @@ class Skips(unittest.TestCase):
         self.assertIn("already in the catalogue", skips[0]["reason"])
 
 
+class MissingCache(unittest.TestCase):
+    def test_load_says_how_to_fill_the_cache(self):
+        from pathlib import Path
+        from unittest import mock
+        with mock.patch.object(sc, "RANKING_PATH", Path("/nonexistent/ranking.json")):
+            with self.assertRaisesRegex(FileNotFoundError, "steam_catalogue.py"):
+                sc.fetch_top_steam_catalogue(limit=10)
+
+
 class Fetching(unittest.TestCase):
     def test_ranking_page_parsed(self):
         page = {"730": {"appid": 730, "name": "CS", "positive": 5, "negative": 1}, "x": {"name": "no id"}}
@@ -94,8 +103,10 @@ class Fetching(unittest.TestCase):
         self.assertEqual(sc.fetch_tags(1, get=lambda url: {"tags": []}), {})
 
 
+@unittest.skipUnless(sc.RANKING_PATH.exists() and sc.TAGS_PATH.exists(),
+                     "no local Steam cache (.cache/catalogue); run steam_catalogue.py")
 class CachedCatalogue(unittest.TestCase):
-    """Against the committed caches: the actual 1000-game load."""
+    """Against the local (gitignored) caches: the actual 1000-game load."""
 
     @classmethod
     def setUpClass(cls):

@@ -9,8 +9,10 @@ most-owned Steam apps, taken in rank order:
   Steam     api/appdetails            type, description, genres, release date, developers,
                                       publishers, Metacritic, header image, categories
 
-Everything fetched is cached under scripts/fixtures/, so the load reads files
-only: it runs offline and two runs read the same data (idempotent).
+Everything fetched is cached in .cache/catalogue/ (gitignored, ~1.3 MB), so the
+load reads files only: it runs offline and two runs from the same cache read the
+same data (idempotent). On a fresh clone, step 1 rebuilds the cache from empty,
+seed games included.
 
   # 1. fill the caches until 1000 games are accepted (slow: Steam allows ~200 calls / 5 min)
   python3 scripts/steam_catalogue.py --target 1000
@@ -44,9 +46,8 @@ import steam_store
 
 log = logging.getLogger("steam_catalogue")
 
-FIXTURES = Path(__file__).resolve().parent / "fixtures"
-RANKING_PATH = FIXTURES / "steamspy_ranking.json"
-TAGS_PATH = FIXTURES / "steamspy_tags.json"
+RANKING_PATH = cs.CACHE_DIR / "steamspy_ranking.json"
+TAGS_PATH = cs.CACHE_DIR / "steamspy_tags.json"
 SKIPS_PATH = Path(__file__).resolve().parents[1] / "artifacts" / "ingestion" / "steam-catalogue-skips.json"
 STEAMSPY_ALL = "https://steamspy.com/api.php?request=all&page={page}"
 STEAMSPY_APP = "https://steamspy.com/api.php?request=appdetails&appid={appid}"
@@ -197,6 +198,9 @@ def _load(path: Path, default):
 def fetch_top_steam_catalogue(limit: int | None = None) -> Iterator[dict]:
     """--source-func entry point: the enriched seed catalogue, then ranked Steam games."""
     target = limit or DEFAULT_TARGET
+    if not RANKING_PATH.exists():
+        raise FileNotFoundError(f"no SteamSpy ranking at {RANKING_PATH}; "
+                                "run `python scripts/steam_catalogue.py --target N` first")
     seed = list(cs.fetch_steam_enriched_catalogue())
     rows, skips = select(_load(RANKING_PATH, []), steam_store.load_cache(),
                          _load(TAGS_PATH, {}), seed, target)
@@ -236,6 +240,10 @@ def build_caches(target: int, max_pages: int = 5, sleep: Callable = time.sleep) 
     ranking: list[dict] = _load(RANKING_PATH, [])
     details = steam_store.load_cache()
     tags: dict[str, dict] = _load(TAGS_PATH, {})
+    # the seed games' own Steam details first, so a fresh clone can build from empty
+    seed_appids = sorted({e["steam_appid"] for e in cs.load_fixture() if e.get("steam_appid")})
+    steam_store.update_cache(seed_appids, details, sleep=sleep, save=steam_store.save_cache)
+    steam_store.write_seed_names(details)
     seed = list(cs.fetch_steam_enriched_catalogue())
     pages = max(1, -(-len(ranking) // 1000))
     if not ranking:
@@ -297,6 +305,7 @@ def build_caches(target: int, max_pages: int = 5, sleep: Callable = time.sleep) 
 
 
 def _save(path: Path, data) -> None:
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
     if isinstance(data, dict):
         data = {k: data[k] for k in sorted(data, key=int)}
     Path(path).write_text(json.dumps(data, indent=None if isinstance(data, list) else 1,
