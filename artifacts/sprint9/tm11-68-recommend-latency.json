@@ -1,0 +1,51 @@
+{
+  "schema": "hosted",
+  "repeats_per_query": 5,
+  "rank_is_offline_fallback": true,
+  "runs": 100,
+  "failures": {},
+  "stages": [
+    {
+      "stage": "parse",
+      "budget_ms": 250,
+      "p50_ms": 0.2,
+      "p95_ms": 0.2,
+      "runs": 100
+    },
+    {
+      "stage": "embed",
+      "budget_ms": 250,
+      "p50_ms": 10.0,
+      "p95_ms": 11.9,
+      "runs": 100
+    },
+    {
+      "stage": "retrieve",
+      "budget_ms": 750,
+      "p50_ms": 13.1,
+      "p95_ms": 15.8,
+      "runs": 100
+    },
+    {
+      "stage": "filter",
+      "budget_ms": 500,
+      "p50_ms": 10.4,
+      "p95_ms": 12.9,
+      "runs": 100
+    },
+    {
+      "stage": "rank",
+      "budget_ms": 7500,
+      "p50_ms": 0.0,
+      "p95_ms": 0.0,
+      "runs": 100
+    },
+    {
+      "stage": "total",
+      "budget_ms": 10000,
+      "p50_ms": 33.6,
+      "p95_ms": 39.8,
+      "runs": 100
+    }
+  ]
+}
