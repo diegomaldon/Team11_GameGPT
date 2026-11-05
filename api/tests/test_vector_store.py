@@ -79,6 +79,22 @@ def use_shape(monkeypatch, shape: str, cursor: FakeCursor) -> None:
 # ── the hosted query ────────────────────────────────────────────────────────
 
 
+def test_hosted_sql_reads_platforms_as_a_text_array():
+    # TM11-65 review: psycopg can't decode the platform_type[] enum array, so
+    # without the cast it returns '{STEAM,XBOX}' as one string.
+    assert "g.available_platforms::text[]" in rendered(hosted_top_k_sql(MODEL, 384))
+
+
+@pytest.mark.parametrize("raw, expected", [
+    (["STEAM", "XBOX"], ["steam", "xbox"]),
+    ("{STEAM,XBOX}", ["steam", "xbox"]),  # the uncast text form, never letter by letter
+    ("{}", []),
+    (None, []),
+])
+def test_hosted_platforms_become_store_names(raw, expected):
+    assert vector_store._platform_list(raw) == expected
+
+
 def test_hosted_sql_matches_the_partial_index_definition():
     text = hosted_top_k_sql(MODEL, 384).as_string(None)
 

@@ -35,10 +35,11 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 from typing import Iterable, Sequence
+from uuid import UUID
 
 from api.models import GameCandidate
 from api.services.query_parser import ParsedQuery
-from api.services.vector_store import SearchFilters
+from api.services.vector_store import SearchFilters, VectorStore
 
 # Tuned with scripts/eval_hybrid_retrieval.py; see the artifact named above.
 DEFAULT_SEMANTIC_WEIGHT = 0.7
@@ -103,7 +104,7 @@ def merge_and_score(
     weights: RetrievalWeights = RetrievalWeights(),
 ) -> list[ScoredCandidate]:
     """One list from every search's results, best first. Pure and deterministic."""
-    by_id: dict = {}
+    by_id: dict[UUID, GameCandidate] = {}
     for leg in legs:
         for c in leg:
             seen = by_id.get(c.game_id)
@@ -145,7 +146,7 @@ def metadata_filters(parsed: ParsedQuery) -> SearchFilters | None:
 class HybridRetriever:
     def __init__(
         self,
-        vector_store,
+        vector_store: VectorStore,
         *,
         weights: RetrievalWeights = RetrievalWeights(),
         pool_size: int = DEFAULT_POOL_SIZE,

@@ -92,6 +92,18 @@ async def test_platform_and_genre_filters_combine():
     assert ids(found) == ids(expected)
 
 
+async def test_candidates_carry_their_platforms_as_store_names():
+    # TM11-65: on the hosted shape available_platforms is an enum array that
+    # psycopg would hand back as one string; HybridRetriever scores and
+    # excludes on these names. On the local slice it's Steam when there's an appid.
+    ranking = await full_ranking()
+    platforms = await platforms_by_game()
+
+    for game in ranking:
+        assert set(game.platforms) <= {"steam", "xbox", "epic"}, game.platforms
+        assert sorted(game.platforms) == sorted(platforms.get(game.game_id, []))
+
+
 async def test_a_filter_nothing_matches_returns_no_games():
     await full_ranking()
     found = await VectorStore().top_k(QUERY, k=K, filters=SearchFilters(genres=("no such genre",)))
