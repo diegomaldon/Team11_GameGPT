@@ -80,6 +80,8 @@ Set `NEXT_PUBLIC_API_URL` if the API isn't on `http://localhost:8000`.
 | Script | What it does | Idempotency |
 |--------|--------------|-------------|
 | `scripts/seed_games.py` | Inserts ~150 games from `scripts/fixtures/games.json` (or RAWG if `RAWG_API_KEY` set) | Upserts on `steam_appid`; re-run = updates, no dupes |
+| `scripts/ingest_games.py` + `catalogue_source.py` | Loads the hosted `public.games` from the seed fixture, no RAWG ([TM11-159](#rebuilding-the-hosted-catalogue-without-rawg-tm11-159)) | Upserts on `steam_appid`; identical rows skipped |
+| `scripts/verify_catalogue.py` | Read-only check of the hosted catalogue: size, duplicates, embeddings, benchmark titles | Read-only |
 | `scripts/embed_games.py` | Embeds each game's document ([template](embedding-documents.md)) → `embedding` column | Only embeds `NULL` rows; `--all` re-embeds everything |
 | `scripts/embed_catalogue.py` | Embeds the Supabase catalogue into `game_embeddings` in batches (TM11-39) | Only games with no vector from the model; `--all` re-embeds everything |
 | `scripts/seed_demo.py` | Local schema, the fixture catalogue, and the demo account: linked Steam account, 7-game library, 3 queries with recommendations, 5 votes (TM11-88) | Fixed keys and upserts; `--reset` wipes the account first, `--check` only verifies |
@@ -91,6 +93,66 @@ python scripts/embed_games.py --all
 ```
 Existing vectors made by a different model are incompatible — `--all` regenerates
 them. If you also changed the dimension, run migration `0002` (or recreate the DB).
+
+### Rebuilding the hosted catalogue without RAWG (TM11-159)
+
+RAWG is down, so the hosted `public.games` is loaded from the committed seed
+catalogue, `scripts/fixtures/games.json` (167 games, every TM11-63 benchmark
+title). `scripts/catalogue_source.py` maps it into the rows `ingest_games.py`
+expects, keyed on `steam_appid`. No API key is needed.
+
+This writes to the shared hosted database. Agree the run with the team first,
+and use the **service_role** connection string (`games` is write-restricted by
+RLS). Keep `DATABASE_URL` in `.env` only; never paste it into a command line.
+
+```bash
+pip install "psycopg[binary]"                        # once; ingest + verify need it
+set -a; source .env; set +a                          # DATABASE_URL = hosted, service_role
+
+# 0. Before: note the current state, so the run can be compared against it
+python scripts/verify_catalogue.py                   # expect FAIL now (about 16 games)
+
+# 1. Rehearse without touching the database: expect 167 valid, 0 rejected
+python scripts/ingest_games.py --source-func catalogue_source:fetch_seed_catalogue \
+    --source steam-seed --target 167 --dry-run --run-id steam-seed-dry-run
+
+# 2. Load the hosted catalogue
+python scripts/ingest_games.py --source-func catalogue_source:fetch_seed_catalogue \
+    --source steam-seed --target 167 --run-id steam-seed-01
+
+# 3. Run it again: expect inserted=0 updated=0 unchanged=167 (idempotent)
+python scripts/ingest_games.py --source-func catalogue_source:fetch_seed_catalogue \
+    --source steam-seed --target 167 --run-id steam-seed-02
+
+# 4. Embed the new games so search and recommend can return them
+python scripts/embed_catalogue.py
+
+# 5. Check: size, duplicates, embeddings, benchmark titles. Exit 0 = all pass
+python scripts/verify_catalogue.py
+```
+
+- **Reports:** `artifacts/ingestion/<run id>/ingestion_run.md` (counts, duration,
+  `rejects.jsonl` with a reason per rejected row), the embedding report under
+  `artifacts/embeddings/`, and `artifacts/sprint9/tm11-159-catalogue-check.md`.
+- **Idempotent:** the upsert is `ON CONFLICT (steam_appid)` and skips a row whose
+  values are identical, so a re-run touches nothing and doesn't churn
+  `updated_at` or invalidate embeddings.
+- **Rows already there:** the RAWG-era games have a `rawg_id` and no
+  `steam_appid`, so they would not hit that conflict. Before each upsert the
+  job gives a same-titled row with no `steam_appid` (trimmed, case-insensitive)
+  this game's app id, so the seed game updates that row in place and keeps
+  its `game_id`, embedding and library links. The run report counts these as
+  **Adopted by title**. A RAWG game with no seed counterpart is left as it is.
+- **What's loaded:** title, description, genres, tags, release date, developer,
+  review score (0–1 scaled to 0–100), `steam_appid`, `available_platforms =
+  {STEAM}` and the Steam store link. The fixture has no Xbox or Epic data, so
+  none is claimed; the benchmark's Xbox and Epic prompts still need that
+  availability from another source.
+- **Rejected rows:** an entry with no Steam app id, a blank title or a bad score
+  is rejected, logged with its reason and written to `rejects.jsonl`; the rest
+  still load. Exit code 2 means fewer than `--target` games loaded.
+- **Undo:** the load only inserts or updates `games`; it never deletes. To back
+  out a bad run, restore from the Supabase daily backup (Database → Backups).
 
 ### Embedding the Supabase catalogue (TM11-39)
 
@@ -270,3 +332,5 @@ auto-deploy from `main` once connected.
    then `supabase/seed.sql` (SQL editor or `psql`).
 3. Run `scripts/seed_games.py` and `scripts/embed_games.py` against the project's
    `DATABASE_URL`.
+   For the hosted `public.games` schema, follow
+   [Rebuilding the hosted catalogue without RAWG](#rebuilding-the-hosted-catalogue-without-rawg-tm11-159) instead.
