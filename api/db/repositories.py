@@ -184,16 +184,29 @@ async def count_owned_games(user_id: UUID) -> int:
 @retry(**_RETRY)
 async def list_owned_games(user_id: UUID) -> list[LibraryItem]:
     """Read the user's cross-platform library as LibraryItems."""
+    # Most-played first: the library view leads with what the user actually
+    # plays, not whatever sorts alphabetically.
+    if await catalogue_shape() == "hosted":
+        # Hosted owned_games holds only ids: the title and appid come from
+        # games, the platform (STEAM/XBOX/EPIC) from the linked account.
+        sql = (
+            "select og.game_id, g.title, g.steam_appid, lower(pa.platform::text), "
+            "og.playtime_minutes "
+            "from owned_games og "
+            "join games g on g.game_id = og.game_id "
+            "join platform_accounts pa on pa.platform_account_id = og.platform_account_id "
+            "where og.user_id = %s "
+            "order by og.playtime_minutes desc, g.title nulls last"
+        )
+    else:
+        sql = (
+            "select game_id, title, steam_appid, platform, playtime_minutes "
+            "from owned_games where user_id = %s "
+            "order by playtime_minutes desc, title nulls last"
+        )
     async with connection() as conn:
         async with conn.cursor() as cur:
-            await cur.execute(
-                "select game_id, title, steam_appid, platform, playtime_minutes "
-                "from owned_games where user_id = %s "
-                # Most-played first: the library view leads with what the user
-                # actually plays, not whatever sorts alphabetically.
-                "order by playtime_minutes desc, title nulls last",
-                (str(user_id),),
-            )
+            await cur.execute(sql, (str(user_id),))
             rows = await cur.fetchall()
     return [
         LibraryItem(
