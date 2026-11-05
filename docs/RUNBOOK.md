@@ -81,6 +81,7 @@ Set `NEXT_PUBLIC_API_URL` if the API isn't on `http://localhost:8000`.
 |--------|--------------|-------------|
 | `scripts/seed_games.py` | Inserts ~150 games from `scripts/fixtures/games.json` (or RAWG if `RAWG_API_KEY` set) | Upserts on `steam_appid`; re-run = updates, no dupes |
 | `scripts/ingest_games.py` + `catalogue_source.py` | Loads the hosted `public.games` from the seed fixture, no RAWG ([TM11-159](#rebuilding-the-hosted-catalogue-without-rawg-tm11-159)) | Upserts on `steam_appid`; identical rows skipped |
+| `scripts/steam_catalogue.py` | Grows the hosted catalogue to 1000 games from Steam's most-owned ranking ([TM11-159](#growing-the-hosted-catalogue-to-1000-games-tm11-159)) | Cached; the load is idempotent |
 | `scripts/verify_catalogue.py` | Read-only check of the hosted catalogue: size, duplicates, embeddings, benchmark titles | Read-only |
 | `scripts/embed_games.py` | Embeds each game's document ([template](embedding-documents.md)) → `embedding` column | Only embeds `NULL` rows; `--all` re-embeds everything |
 | `scripts/embed_catalogue.py` | Embeds the Supabase catalogue into `game_embeddings` in batches (TM11-39) | Only games with no vector from the model; `--all` re-embeds everything |
@@ -172,6 +173,43 @@ python scripts/verify_catalogue.py
   still load. Exit code 2 means fewer than `--target` games loaded.
 - **Undo:** the load only inserts or updates `games`; it never deletes. To back
   out a bad run, restore from the Supabase daily backup (Database → Backups).
+
+### Growing the hosted catalogue to 1000 games (TM11-159)
+
+`scripts/steam_catalogue.py` adds Steam's most-owned games, in SteamSpy's rank
+order, after the 167 seed games until the catalogue holds 1000. Each new game
+gets its description, genres, release date, developers, publishers, Metacritic
+score and header image from Steam's store data, its tags from SteamSpy's user
+tags (highest-voted first) plus Steam's categories, and a `review_score` from
+the share of positive Steam reviews (when it has 50+). No key is needed.
+
+```bash
+# 1. Fill the caches (scripts/fixtures/steamspy_ranking.json, steamspy_tags.json,
+#    steam_appdetails.json). Slow: Steam and SteamSpy are rate-limited, so about
+#    3s per app, ~45 minutes from empty. Safe to stop and rerun; it resumes.
+python scripts/steam_catalogue.py --target 1000
+
+# 2-5. Same as the rebuild above, with the larger source and target
+python scripts/ingest_games.py --source-func steam_catalogue:fetch_top_steam_catalogue \
+    --source steam-top --limit 1000 --target 1000 --dry-run --run-id steam-top-dry-run
+python scripts/ingest_games.py --source-func steam_catalogue:fetch_top_steam_catalogue \
+    --source steam-top --limit 1000 --target 1000 --run-id steam-top-01
+python scripts/ingest_games.py --source-func steam_catalogue:fetch_top_steam_catalogue \
+    --source steam-top --limit 1000 --target 1000 --run-id steam-top-02   # expect unchanged=1000
+python scripts/embed_catalogue.py
+python scripts/verify_catalogue.py --min-games 1000
+```
+
+- **Seed games come first and keep their curated text;** a ranked app already in
+  the seed fixture is not loaded twice.
+- **Skipped apps** are logged and listed with a reason in
+  `artifacts/ingestion/steam-catalogue-skips.json`: not a game (DLC, software,
+  soundtrack), adult-only (Steam content descriptors 3 and 4), no description,
+  unknown to Steam, or a title already in the catalogue.
+- **Idempotent:** the load reads only the caches, so re-running it changes
+  nothing. Re-running step 1 later only fetches apps the cache lacks.
+- Steam store names are used as titles (for example "Counter-Strike 2"), so a
+  RAWG-era row is only adopted when its title matches exactly.
 
 ### Embedding the Supabase catalogue (TM11-39)
 

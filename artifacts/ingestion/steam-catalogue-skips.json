@@ -1,0 +1,77 @@
+[
+ {
+  "appid": 80,
+  "name": "Counter-Strike: Condition Zero",
+  "reason": "title 'Counter-Strike: Condition Zero' already in the catalogue"
+ },
+ {
+  "appid": 365670,
+  "name": "Blender",
+  "reason": "software, not a game"
+ },
+ {
+  "appid": 10190,
+  "name": "Call of Duty: Modern Warfare 2 (2009)",
+  "reason": "title 'Call of Duty®: Modern Warfare® 2 (2009)' already in the catalogue"
+ },
+ {
+  "appid": 42680,
+  "name": "Call of Duty: Modern Warfare 3 (2011)",
+  "reason": "title 'Call of Duty®: Modern Warfare® 3 (2011)' already in the catalogue"
+ },
+ {
+  "appid": 202990,
+  "name": "Call of Duty: Black Ops II",
+  "reason": "title 'Call of Duty®: Black Ops II' already in the catalogue"
+ },
+ {
+  "appid": 34330,
+  "name": "Total War: SHOGUN 2",
+  "reason": "no description"
+ },
+ {
+  "appid": 629520,
+  "name": "Soundpad",
+  "reason": "software, not a game"
+ },
+ {
+  "appid": 436150,
+  "name": "Governor of Poker 3",
+  "reason": "unknown to Steam"
+ },
+ {
+  "appid": 42700,
+  "name": "Call of Duty: Black Ops",
+  "reason": "title 'Call of Duty®: Black Ops' already in the catalogue"
+ },
+ {
+  "appid": 644560,
+  "name": "Mirror",
+  "reason": "adult-only content"
+ },
+ {
+  "appid": 993090,
+  "name": "Lossless Scaling",
+  "reason": "software, not a game"
+ },
+ {
+  "appid": 3132990,
+  "name": "Black Myth: Wukong Benchmark Tool",
+  "reason": "software, not a game"
+ },
+ {
+  "appid": 47790,
+  "name": "Medal of Honor",
+  "reason": "title 'Medal of Honor™' already in the catalogue"
+ },
+ {
+  "appid": 1840,
+  "name": "Source Filmmaker",
+  "reason": "software, not a game"
+ },
+ {
+  "appid": 209170,
+  "name": "Call of Duty: Ghosts",
+  "reason": "title 'Call of Duty®: Ghosts' already in the catalogue"
+ }
+]
