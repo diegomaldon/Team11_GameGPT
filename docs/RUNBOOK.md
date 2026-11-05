@@ -98,8 +98,19 @@ them. If you also changed the dimension, run migration `0002` (or recreate the D
 
 RAWG is down, so the hosted `public.games` is loaded from the committed seed
 catalogue, `scripts/fixtures/games.json` (167 games, every TM11-63 benchmark
-title). `scripts/catalogue_source.py` maps it into the rows `ingest_games.py`
-expects, keyed on `steam_appid`. No API key is needed.
+title), enriched from Steam's public store data. `scripts/catalogue_source.py`
+maps it into the rows `ingest_games.py` expects, keyed on `steam_appid`. No API
+key is needed.
+
+The Steam details are cached in `scripts/fixtures/steam_appdetails.json`, so the
+load itself never calls Steam. Refresh the cache only when the fixture gains a
+game (about 1.6s per app, to stay under Steam's rate limit):
+
+```bash
+python scripts/steam_store.py              # fetch app ids the cache lacks
+python scripts/steam_store.py --refresh    # re-fetch all of them
+cd scripts && python -m unittest test_steam_store   # fails if an app id names another game
+```
 
 This writes to the shared hosted database. Agree the run with the team first,
 and use the **service_role** connection string (`games` is write-restricted by
@@ -113,15 +124,15 @@ set -a; source .env; set +a                          # DATABASE_URL = hosted, se
 python scripts/verify_catalogue.py                   # expect FAIL now (about 16 games)
 
 # 1. Rehearse without touching the database: expect 167 valid, 0 rejected
-python scripts/ingest_games.py --source-func catalogue_source:fetch_seed_catalogue \
+python scripts/ingest_games.py --source-func catalogue_source:fetch_steam_enriched_catalogue \
     --source steam-seed --target 167 --dry-run --run-id steam-seed-dry-run
 
 # 2. Load the hosted catalogue
-python scripts/ingest_games.py --source-func catalogue_source:fetch_seed_catalogue \
+python scripts/ingest_games.py --source-func catalogue_source:fetch_steam_enriched_catalogue \
     --source steam-seed --target 167 --run-id steam-seed-01
 
 # 3. Run it again: expect inserted=0 updated=0 unchanged=167 (idempotent)
-python scripts/ingest_games.py --source-func catalogue_source:fetch_seed_catalogue \
+python scripts/ingest_games.py --source-func catalogue_source:fetch_steam_enriched_catalogue \
     --source steam-seed --target 167 --run-id steam-seed-02
 
 # 4. Embed the new games so search and recommend can return them
@@ -141,13 +152,21 @@ python scripts/verify_catalogue.py
   `steam_appid`, so they would not hit that conflict. Before each upsert the
   job gives a same-titled row with no `steam_appid` (trimmed, case-insensitive)
   this game's app id, so the seed game updates that row in place and keeps
-  its `game_id`, embedding and library links. The run report counts these as
-  **Adopted by title**. A RAWG game with no seed counterpart is left as it is.
-- **What's loaded:** title, description, genres, tags, release date, developer,
-  review score (0–1 scaled to 0–100), `steam_appid`, `available_platforms =
-  {STEAM}` and the Steam store link. The fixture has no Xbox or Epic data, so
-  none is claimed; the benchmark's Xbox and Epic prompts still need that
-  availability from another source.
+  its `game_id`, `rawg_id` and library links. Its data columns are replaced by
+  the seed + Steam values (so its `XBOX` platform and RAWG tags go), and its
+  vector is re-embedded. The run report counts these as **Adopted by title**.
+  A RAWG game with no seed counterpart is left as it is.
+- **What's loaded:** from the fixture, title, description, genres, tags, release
+  date and review score (0–1 scaled to 0–100); from Steam, `critic_score`
+  (Metacritic, when Steam has one), publishers, developers, `header_image_url`
+  and its categories appended to tags; plus `steam_appid`,
+  `available_platforms = {STEAM}` and the Steam store link. Steam doesn't report
+  Xbox or Epic availability, so none is claimed; the benchmark's Xbox and Epic
+  prompts still need that from another source.
+- **App ids:** ten fixture games pointed at other Steam apps (Dinkum's was
+  Timberborn's) and Owlboy's didn't exist; TM11-159 corrected them.
+  `test_steam_store` compares every cached Steam name with its fixture title,
+  so a wrong id fails CI.
 - **Rejected rows:** an entry with no Steam app id, a blank title or a bad score
   is rejected, logged with its reason and written to `rejects.jsonl`; the rest
   still load. Exit code 2 means fewer than `--target` games loaded.
