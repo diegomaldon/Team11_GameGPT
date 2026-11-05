@@ -47,6 +47,13 @@ def test_percentiles_are_nearest_rank():
     assert percentile([7.0], 95) == 7.0
 
 
+def test_nearest_rank_rounds_up_never_to_a_faster_rank():
+    # 95% of 30 is rank 28.5, so p95 is the 29th value. Rounding down to 28 would let a
+    # stage just over budget pass.
+    assert percentile(list(range(1, 31)), 95) == 29
+    assert percentile(list(range(1, 6)), 50) == 3
+
+
 def test_only_recommend_timing_lines_are_read():
     lines = [
         timing_line(),

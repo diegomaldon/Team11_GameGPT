@@ -10,6 +10,7 @@ make the stages after it look fast.
 from __future__ import annotations
 
 import json
+import math
 from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -51,9 +52,12 @@ class LatencyReport:
 
 
 def percentile(values: list[float], pct: float) -> float:
-    """Nearest-rank percentile, so p95 of 100 runs is the 95th slowest."""
+    """Nearest-rank percentile, so p95 of 100 runs is the 95th slowest.
+
+    The rank rounds up: p95 of 30 runs is the 29th, not the 28th.
+    """
     ordered = sorted(values)
-    rank = max(1, round(pct / 100 * len(ordered)))
+    rank = max(1, math.ceil(pct * len(ordered) / 100))
     return ordered[rank - 1]
 
 
