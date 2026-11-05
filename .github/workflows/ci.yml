@@ -256,6 +256,12 @@ jobs:
         working-directory: .
         run: python -m pytest api/tests/test_query_history.py -v
 
+      # TM11-68. Each recommend stage timed and logged, on failure too, the
+      # Server-Timing header, and the weekly p50/p95 report. The clock is faked.
+      - name: Pytest — recommend latency
+        working-directory: .
+        run: python -m pytest -v api/tests/test_stage_timings.py api/tests/test_latency_report.py
+
       # TM11-21. openapi.json is what the web types are generated from, so a
       # route or model change that isn't exported to it fails here.
       - name: Pytest — API contract

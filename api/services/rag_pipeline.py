@@ -8,19 +8,26 @@ The parse step (TM11-62) reads genre, mood, platform and reference-title
 signals out of the query and logs them. Retrieval (TM11-65) merges a plain
 semantic search with one filtered to those signals and scores the union, so
 the candidates the LLM sees match what was asked for, not just how it reads.
+
+Each stage is timed (TM11-68, REQ040) and logged as one `recommend.timings` line,
+including when a stage fails, so the line shows how far the request got.
 """
 
 from __future__ import annotations
 
+import logging
 from uuid import UUID
 
 from api.models import Recommendation
+from api.observability.stage_timings import TIMING_LOG_MESSAGE, StageTimings
 from api.services.deduplication import DeduplicationService
 from api.services.embedding import EmbeddingService
 from api.services.hybrid_retrieval import HybridRetriever
 from api.services.llm import LLMService
 from api.services.query_parser import QueryParser
 from api.services.vector_store import VectorStore
+
+log = logging.getLogger("gamegpt.latency")
 
 
 class RAGPipeline:
@@ -45,10 +52,25 @@ class RAGPipeline:
         self.parser = parser or QueryParser()
         self.retriever = retriever or HybridRetriever(vector_store)
 
-    async def recommend(self, user_id: UUID, query: str) -> list[Recommendation]:
-        """Run the full parse→retrieval→dedup→rank chain and return `n` results."""
-        parsed = await self.parser.parse(query)
-        embedding = await self.embedding.embed_query(query)
-        candidates = await self.retriever.retrieve(embedding, parsed, k=self.k)
-        candidates = await self.deduplication.filter_owned(user_id, candidates)
-        return await self.llm.rank(query, candidates, n=self.n)
+    async def recommend(
+        self, user_id: UUID, query: str, *, timings: StageTimings | None = None
+    ) -> list[Recommendation]:
+        """Run the full parse→retrieval→dedup→rank chain and return `n` results.
+
+        Pass `timings` to read the stage times afterwards (the router sends them back
+        as Server-Timing). They are logged either way.
+        """
+        timings = timings or StageTimings()
+        try:
+            with timings.stage("parse"):
+                parsed = await self.parser.parse(query)
+            with timings.stage("embed"):
+                embedding = await self.embedding.embed_query(query)
+            with timings.stage("retrieve"):
+                candidates = await self.retriever.retrieve(embedding, parsed, k=self.k)
+            with timings.stage("filter"):
+                candidates = await self.deduplication.filter_owned(user_id, candidates)
+            with timings.stage("rank"):
+                return await self.llm.rank(query, candidates, n=self.n)
+        finally:
+            log.info(TIMING_LOG_MESSAGE, extra=timings.log_fields())

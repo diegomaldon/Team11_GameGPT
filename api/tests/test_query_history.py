@@ -307,7 +307,7 @@ class FakePipeline:
     def __init__(self, *args, **kwargs) -> None:
         pass
 
-    async def recommend(self, user_id, query):
+    async def recommend(self, user_id, query, *, timings=None):
         return RESULTS
 
 
