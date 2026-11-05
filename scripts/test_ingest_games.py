@@ -1,6 +1,7 @@
 import json, tempfile, unittest
 from pathlib import Path
-from ingest_games import InMemoryStore, run_job, build_upsert_sql, normalise, PostgresStore, DATA_COLUMNS
+from ingest_games import (InMemoryStore, run_job, build_upsert_sql, build_adopt_sql, normalise,
+                          PostgresStore, DATA_COLUMNS)
 
 def make(n, start=1):
     return [{"source": "rawg", "source_id": i, "title": f"G{i}", "description": "d",
@@ -71,11 +72,14 @@ class T(unittest.TestCase):
 
 
 class FakeConn:
-    def __init__(self, result): self.calls, self.result = [], result
+    # adopt_result answers the TM11-159 adopt-by-title UPDATE; result answers the upsert
+    def __init__(self, result, adopt_result=None):
+        self.calls, self.result, self.adopt_result = [], result, adopt_result
     def transaction(self):
         import contextlib; return contextlib.nullcontext()
     def execute(self, sql, vals):
-        self.calls.append((sql, vals)); r = self.result
+        self.calls.append((sql, vals))
+        r = self.adopt_result if sql.startswith("UPDATE") else self.result
         class C:
             def fetchone(_): return r
         return C()
@@ -95,18 +99,53 @@ class SqlTests(unittest.TestCase):
                        "developers": None, "publishers": None, "available_platforms": None})
         self.assertEqual((n["genres"], n["purchase_links"], n["available_platforms"]), ([], {}, []))
 
-    def _store(self, result):
+    def _store(self, result, adopt_result=None):
         st = PostgresStore.__new__(PostgresStore)
         class Jsonb:
             def __init__(self, v): self.v = v
-        st._Jsonb, st.conn = Jsonb, FakeConn(result); return st
+        st._Jsonb, st.conn, st.adopted = Jsonb, FakeConn(result, adopt_result), []
+        return st
 
     def test_upsert_states_and_param_count(self):
         for result, want in (((True,), "inserted"), ((False,), "updated"), (None, "unchanged")):
             st = self._store(result)
             self.assertEqual(st.upsert(make(1)[0]), want)
-            sql, vals = st.conn.calls[0]
-            self.assertEqual(len(vals), sql.count("%s"))
+            for sql, vals in st.conn.calls:
+                self.assertEqual(len(vals), sql.count("%s"))
+
+    # TM11-159 AC2: a RAWG-era row with the same title is claimed, not duplicated
+    def test_adopt_sql_only_claims_an_unkeyed_same_title_row(self):
+        sql = build_adopt_sql("steam_appid")
+        self.assertTrue(sql.startswith("UPDATE public.games SET steam_appid = %s"))
+        self.assertIn("steam_appid IS NULL", sql)
+        self.assertIn("lower(btrim(title)) = lower(btrim(%s))", sql)
+        self.assertIn("LIMIT 1", sql)
+        self.assertIn("NOT EXISTS (SELECT 1 FROM public.games WHERE steam_appid = %s)", sql)
+        self.assertNotIn("embedding", sql)
+
+    def test_adopt_runs_before_upsert_and_is_counted(self):
+        row = {**make(1)[0], "source": "steam", "source_id": 220, "title": "Half-Life 2"}
+        st = self._store((False,), adopt_result=("uuid-1",))
+        self.assertEqual(st.upsert(row), "updated")
+        (adopt_sql, adopt_vals), (upsert_sql, _) = st.conn.calls
+        self.assertIn("SET steam_appid", adopt_sql)
+        self.assertEqual(adopt_vals, [220, "Half-Life 2", 220])
+        self.assertIn("ON CONFLICT (steam_appid)", upsert_sql)
+        self.assertEqual(st.adopted, ["steam:220"])
+
+    def test_no_adoption_when_nothing_matches(self):
+        st = self._store((True,), adopt_result=None)
+        self.assertEqual(st.upsert(make(1)[0]), "inserted")
+        self.assertEqual(st.adopted, [])
+
+    def test_adopted_count_in_run_summary(self):
+        class AdoptingStore(InMemoryStore):
+            adopted = ["steam:1", "steam:2"]
+        d = tempfile.mkdtemp()
+        s = run_job(make(3), AdoptingStore(), "t", "steam-seed", limit=10, target=1,
+                    artifact_root=Path(d))
+        self.assertEqual(s.adopted, 2)
+        self.assertIn("Adopted by title", (Path(d) / "t" / "ingestion_run.md").read_text())
 
 if __name__ == "__main__":
     unittest.main()
