@@ -62,6 +62,14 @@ def trim(appid: int, payload: dict) -> dict:
         "metacritic": score if isinstance(score, int) and 0 <= score <= 100 else None,
         "header_image": d.get("header_image") or None,
         "categories": categories,
+        # TM11-159 extension to 1000 games: what a game outside the seed fixture
+        # needs to become a row on its own (steam_catalogue.py).
+        "type": d.get("type"),
+        "short_description": d.get("short_description") or None,
+        "genres": [g.get("description") for g in d.get("genres") or [] if g.get("description")],
+        "release_date": (d.get("release_date") or {}).get("date") or None,
+        "content_descriptors": [i for i in (d.get("content_descriptors") or {}).get("ids") or []
+                                if isinstance(i, int)],
     }
 
 

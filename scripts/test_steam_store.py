@@ -60,7 +60,8 @@ def _clean(name: str) -> str:
 
 class CacheMatchesFixture(unittest.TestCase):
     def test_cache_covers_every_fixture_appid(self):
-        self.assertEqual(set(CACHE), {str(g["steam_appid"]) for g in FIXTURE})
+        # the cache also holds the ranked Steam games (steam_catalogue.py)
+        self.assertLessEqual({str(g["steam_appid"]) for g in FIXTURE}, set(CACHE))
 
     def test_every_appid_is_the_game_the_fixture_names(self):
         for g in FIXTURE:
@@ -77,7 +78,9 @@ class Trim(unittest.TestCase):
         self.assertEqual(t, {"success": True, "name": "Portal 2", "developers": ["Valve"],
                              "publishers": ["Valve"], "metacritic": 95,
                              "header_image": "https://cdn/620/header.jpg",
-                             "categories": ["Single-player", "Co-op"]})
+                             "categories": ["Single-player", "Co-op"], "type": None,
+                             "short_description": None, "genres": [], "release_date": None,
+                             "content_descriptors": []})
 
     def test_unknown_app(self):
         self.assertEqual(ss.trim(1, {"1": {"success": False}}), {"success": False})
