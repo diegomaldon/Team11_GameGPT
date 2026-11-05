@@ -1,0 +1,19 @@
+{
+  "run_id": "20261105T151853Z",
+  "model": "sentence-transformers/all-MiniLM-L6-v2",
+  "template_version": "v1",
+  "games_to_embed": 174,
+  "new_count": 158,
+  "changed_count": 16,
+  "unchanged_skipped": 0,
+  "embedded_count": 174,
+  "failed_game_ids": [],
+  "batch_count": 6,
+  "token_count": 16832,
+  "truncated_count": 5,
+  "catalogue_count": 174,
+  "embedded_total": 174,
+  "duration_seconds": 10.64,
+  "estimated_cost_usd": 0.0,
+  "is_complete": true
+}

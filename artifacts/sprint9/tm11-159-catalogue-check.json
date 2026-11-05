@@ -1,0 +1,21 @@
+{
+  "model": "sentence-transformers/all-MiniLM-L6-v2",
+  "min_games": 167,
+  "games": 174,
+  "embedded": 174,
+  "missing_description": 0,
+  "missing_genres": 1,
+  "missing_steam_appid": 7,
+  "duplicate_appids": [],
+  "duplicate_titles": [],
+  "unembedded_titles": [],
+  "missing_benchmark_titles": [],
+  "benchmark_titles": 69,
+  "checks": {
+    "size": true,
+    "duplicates": true,
+    "embedded": true,
+    "benchmark": true
+  },
+  "ok": true
+}
