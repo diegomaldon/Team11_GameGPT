@@ -108,7 +108,7 @@ async def test_hosted_top_k_reads_game_embeddings(monkeypatch):
     game_id = uuid4()
     cursor = FakeCursor([
         (game_id, "Portal 2", "Puzzles with portals.", ["Puzzle"], ["co-op"],
-         ["Valve", "Valve Seattle"], 98, 620, 0.25),
+         ["Valve", "Valve Seattle"], 98, 620, 0.25, ["STEAM", "XBOX"]),
     ])
     monkeypatch.setattr(vector_store, "connection", fake_connection(cursor))
 
@@ -126,6 +126,7 @@ async def test_hosted_top_k_reads_game_embeddings(monkeypatch):
     assert candidate.developer == "Valve, Valve Seattle"
     assert candidate.review_score == pytest.approx(0.98)
     assert candidate.similarity == pytest.approx(0.75)
+    assert candidate.platforms == ["steam", "xbox"]
 
 
 @pytest.mark.asyncio
@@ -172,6 +173,7 @@ async def test_legacy_top_k_reads_games_embedding(monkeypatch):
     assert candidate.genres == [] and candidate.tags == []
     assert candidate.review_score == 0.95
     assert candidate.similarity == 0.0  # distance > 1 is clamped
+    assert candidate.platforms == ["steam"]  # has an appid
 
 
 # ── metadata filters (TM11-43) ──────────────────────────────────────────────

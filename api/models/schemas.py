@@ -39,6 +39,10 @@ class GameCandidate(BaseModel):
     developer: Optional[str] = None
     review_score: Optional[float] = None
     steam_appid: Optional[int] = None
+    platforms: list[str] = Field(
+        default_factory=list,
+        description="Stores the game is on: steam, xbox, epic (TM11-65 scores against it).",
+    )
     similarity: Optional[float] = Field(
         default=None, description="Cosine similarity to the query embedding, 0-1."
     )

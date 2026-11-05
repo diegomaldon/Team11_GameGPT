@@ -243,6 +243,13 @@ jobs:
         working-directory: .
         run: python -m pytest api/tests/test_query_parser.py api/tests/test_pipeline.py -v
 
+      # TM11-65. Merged semantic and metadata candidates with documented
+      # weighting, the tuned pool size and determinism are acceptance criteria.
+      # The vector store is faked; the tuning run is scripts/eval_hybrid_retrieval.py.
+      - name: Pytest — hybrid retrieval
+        working-directory: .
+        run: python -m pytest api/tests/test_hybrid_retrieval.py -v
+
       # TM11-64. Every query and its results saved, game ids not copied titles,
       # the save never blocking or failing the response. The database is faked.
       - name: Pytest — query history

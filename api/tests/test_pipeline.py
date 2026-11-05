@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 import pytest
 
 from api.models import GameCandidate, Recommendation
+from api.services.hybrid_retrieval import DEFAULT_POOL_SIZE
 from api.services.query_parser import QueryParser
 from api.services.rag_pipeline import RAGPipeline
 
@@ -32,7 +33,7 @@ class FakeVectorStore:
         self._candidates = candidates
         self.k_seen: int | None = None
 
-    async def top_k(self, embedding, k: int = 20):
+    async def top_k(self, embedding, k: int = 20, filters=None):
         self.k_seen = k
         return self._candidates[:k]
 
@@ -85,7 +86,9 @@ async def test_pipeline_returns_three_ranked_results(candidates):
     assert [r.rank for r in recs] == [1, 2, 3]
     assert all(r.reason.strip() for r in recs)
     assert embedding.calls == ["a chill game for a podcast night"]
-    assert vector_store.k_seen == 20
+    # TM11-65: each search pulls a pool, and k=20 candidates go on to dedup and the LLM.
+    assert vector_store.k_seen == DEFAULT_POOL_SIZE
+    assert len(llm.seen_candidates) <= 20
 
 
 async def test_pipeline_excludes_owned_games(candidates):

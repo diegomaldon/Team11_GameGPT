@@ -103,7 +103,7 @@ def hosted_top_k_sql(
         where.append(_genre_match(sql.SQL("g.genres")))
     return sql.SQL(
         "select g.game_id, g.title, g.description, g.genres, g.tags, g.developers, "
-        "g.review_score, g.steam_appid, {distance} as distance "
+        "g.review_score, g.steam_appid, {distance} as distance, g.available_platforms "
         "from public.game_embeddings e "
         "join public.games g on g.game_id = e.game_id "
         "where {where} "
@@ -195,6 +195,9 @@ def _legacy_candidate(row) -> GameCandidate:
     (game_id, title, description, genres, tags, developer,
      review_score, steam_appid, distance) = row
     return GameCandidate(
+        # No platform column on this slice: a game is on Steam when it has an
+        # appid, the same rule legacy_top_k_sql filters with.
+        platforms=["steam"] if steam_appid is not None else [],
         game_id=game_id,
         title=title,
         description=description,
@@ -209,8 +212,9 @@ def _legacy_candidate(row) -> GameCandidate:
 
 def _hosted_candidate(row) -> GameCandidate:
     (game_id, title, description, genres, tags, developers,
-     review_score, steam_appid, distance) = row
+     review_score, steam_appid, distance, platforms) = row
     return GameCandidate(
+        platforms=[str(p).lower() for p in platforms or []],  # platform_type is upper case
         game_id=game_id,
         title=title,
         description=description,
