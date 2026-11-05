@@ -260,6 +260,17 @@ jobs:
         working-directory: .
         run: python -m pytest api/tests/test_seed_demo.py -v
 
+      # TM11-159. Loading the 167-game seed catalogue without RAWG, idempotent
+      # re-runs, rejects logged with a reason and every benchmark title present
+      # are acceptance criteria. Stdlib only; the database is faked. The ingest
+      # scripts import each other as top-level modules, so run from scripts/.
+      - name: Unittest — catalogue ingest and rebuild
+        working-directory: scripts
+        run: |
+          python -m unittest -v \
+            test_catalogue_source test_ingest_games \
+            test_ingestion_report test_purchase_links
+
       # TM11-59. REQ007 is absolute: an owned game is never recommended. Known
       # gaps are strict xfails for TM11-57, so a fix there fails CI until the
       # marker comes off and the case becomes a real guard.
