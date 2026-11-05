@@ -268,7 +268,7 @@ jobs:
         working-directory: scripts
         run: |
           python -m unittest -v \
-            test_catalogue_source test_steam_store test_ingest_games \
+            test_catalogue_source test_steam_store test_steam_catalogue test_ingest_games \
             test_ingestion_report test_purchase_links
 
       # TM11-59. REQ007 is absolute: an owned game is never recommended. Known
