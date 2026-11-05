@@ -1,12 +1,18 @@
-"""RAGPipeline orchestration tests with fully faked collaborators."""
+"""RAGPipeline orchestration tests with fully faked collaborators.
+
+The timing tests at the end are TM11-68 (REQ040).
+"""
 
 from __future__ import annotations
 
+import logging
 from uuid import UUID, uuid4
 
 import pytest
 
 from api.models import GameCandidate, Recommendation
+from api.observability.stage_timings import StageTimings
+from api.services.hybrid_retrieval import DEFAULT_POOL_SIZE
 from api.services.query_parser import QueryParser
 from api.services.rag_pipeline import RAGPipeline
 
@@ -32,7 +38,7 @@ class FakeVectorStore:
         self._candidates = candidates
         self.k_seen: int | None = None
 
-    async def top_k(self, embedding, k: int = 20):
+    async def top_k(self, embedding, k: int = 20, filters=None):
         self.k_seen = k
         return self._candidates[:k]
 
@@ -85,7 +91,9 @@ async def test_pipeline_returns_three_ranked_results(candidates):
     assert [r.rank for r in recs] == [1, 2, 3]
     assert all(r.reason.strip() for r in recs)
     assert embedding.calls == ["a chill game for a podcast night"]
-    assert vector_store.k_seen == 20
+    # TM11-65: each search pulls a pool, and k=20 candidates go on to dedup and the LLM.
+    assert vector_store.k_seen == DEFAULT_POOL_SIZE
+    assert len(llm.seen_candidates) <= 20
 
 
 async def test_pipeline_excludes_owned_games(candidates):
@@ -119,3 +127,84 @@ async def test_pipeline_uses_keyless_services_end_to_end(candidates):
 
     assert len(recs) == 3
     assert all(r.reason.strip() for r in recs)
+
+
+# TM11-68 (REQ040): each stage is timed and logged, on success and on failure.
+
+class FakeClock:
+    def __init__(self) -> None:
+        self.now_seconds = 0.0
+
+    def __call__(self) -> float:
+        return self.now_seconds
+
+    def advance(self, ms: float) -> None:
+        self.now_seconds += ms / 1000
+
+
+def taking(clock: FakeClock, ms: float, step):
+    """Wrap a fake's method so the call takes `ms` on the fake clock."""
+
+    async def timed(*args, **kwargs):
+        clock.advance(ms)
+        return await step(*args, **kwargs)
+
+    return timed
+
+
+def slow_pipeline(candidates, clock: FakeClock) -> RAGPipeline:
+    parser = QueryParser(load_titles=_no_catalogue)
+    embedding, vector_store = FakeEmbedding(), FakeVectorStore(candidates)
+    dedup, llm = FakeDeduplication(owned_titles=set()), FakeLLM()
+    parser.parse = taking(clock, 2, parser.parse)
+    embedding.embed_query = taking(clock, 30, embedding.embed_query)
+    vector_store.top_k = taking(clock, 50, vector_store.top_k)
+    dedup.filter_owned = taking(clock, 10, dedup.filter_owned)
+    llm.rank = taking(clock, 2000, llm.rank)
+    return RAGPipeline(embedding, vector_store, dedup, llm, parser=parser)
+
+
+def timing_record(caplog):
+    [record] = [r for r in caplog.records if r.getMessage() == "recommend.timings"]
+    return record
+
+
+async def test_pipeline_times_and_logs_every_stage(candidates, caplog):
+    clock = FakeClock()
+    timings = StageTimings(clock=clock)
+
+    with caplog.at_level(logging.INFO, logger="gamegpt.latency"):
+        await slow_pipeline(candidates, clock).recommend(DEV_USER, "cozy", timings=timings)
+
+    record = timing_record(caplog)
+    assert (record.parse_ms, record.embed_ms, record.retrieve_ms) == (2.0, 30.0, 50.0)
+    assert (record.filter_ms, record.rank_ms) == (10.0, 2000.0)
+    assert record.total_ms == 2092.0
+    assert record.failed_stage is None
+
+
+async def test_pipeline_logs_how_far_it_got_when_a_stage_fails(candidates, caplog):
+    clock = FakeClock()
+    pipeline = slow_pipeline(candidates, clock)
+
+    async def llm_down(query, candidates, n=3):
+        clock.advance(8000)
+        raise TimeoutError("LLM took too long")
+
+    pipeline.llm.rank = llm_down
+
+    with caplog.at_level(logging.INFO, logger="gamegpt.latency"):
+        with pytest.raises(TimeoutError):
+            await pipeline.recommend(DEV_USER, "cozy", timings=StageTimings(clock=clock))
+
+    record = timing_record(caplog)
+    assert record.failed_stage == "rank"
+    assert record.rank_ms == 8000.0
+    assert record.filter_ms == 10.0
+
+
+async def test_pipeline_times_itself_when_not_handed_a_timer(candidates, caplog):
+    with caplog.at_level(logging.INFO, logger="gamegpt.latency"):
+        await slow_pipeline(candidates, FakeClock()).recommend(DEV_USER, "cozy")
+
+    assert timing_record(caplog).total_ms is not None

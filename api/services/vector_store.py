@@ -103,7 +103,10 @@ def hosted_top_k_sql(
         where.append(_genre_match(sql.SQL("g.genres")))
     return sql.SQL(
         "select g.game_id, g.title, g.description, g.genres, g.tags, g.developers, "
-        "g.review_score, g.steam_appid, {distance} as distance "
+        "g.review_score, g.steam_appid, {distance} as distance, "
+        # psycopg can't decode the platform_type[] enum array and would return its
+        # text form, '{STEAM,XBOX}'. As text[] it arrives as a list (TM11-65).
+        "g.available_platforms::text[] "
         "from public.game_embeddings e "
         "join public.games g on g.game_id = e.game_id "
         "where {where} "
@@ -195,6 +198,9 @@ def _legacy_candidate(row) -> GameCandidate:
     (game_id, title, description, genres, tags, developer,
      review_score, steam_appid, distance) = row
     return GameCandidate(
+        # No platform column on this slice: a game is on Steam when it has an
+        # appid, the same rule legacy_top_k_sql filters with.
+        platforms=["steam"] if steam_appid is not None else [],
         game_id=game_id,
         title=title,
         description=description,
@@ -207,10 +213,25 @@ def _legacy_candidate(row) -> GameCandidate:
     )
 
 
+def _platform_list(value) -> list[str]:
+    """available_platforms as lower-case store names, e.g. ['steam', 'xbox'].
+
+    The SQL casts it to text[]; the text form '{STEAM,XBOX}' is still parsed
+    rather than iterated character by character, so a query that loses the
+    cast can't silently turn platforms into letters.
+    """
+    if not value:
+        return []
+    if isinstance(value, str):
+        value = [p for p in value.strip("{}").split(",") if p]
+    return [str(p).strip().lower() for p in value]  # platform_type is upper case
+
+
 def _hosted_candidate(row) -> GameCandidate:
     (game_id, title, description, genres, tags, developers,
-     review_score, steam_appid, distance) = row
+     review_score, steam_appid, distance, platforms) = row
     return GameCandidate(
+        platforms=_platform_list(platforms),
         game_id=game_id,
         title=title,
         description=description,

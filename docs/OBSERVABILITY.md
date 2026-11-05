@@ -180,6 +180,84 @@ the fix.
 
 ---
 
+## Recommend latency by stage — TM11-68
+
+REQ040 gives `POST /api/recommend` 10 seconds. `RAGPipeline.recommend` times each of
+its five stages and logs one line per request, including when a stage fails:
+
+```json
+{"logger":"gamegpt.latency","msg":"recommend.timings","request_id":"0b6f2c...",
+ "parse_ms":0.2,"embed_ms":48.1,"retrieve_ms":402.7,"filter_ms":180.3,
+ "rank_ms":2310.5,"total_ms":2941.8,"failed_stage":null}
+```
+
+Every stage key is always there. A stage that never ran is `null`, and
+`failed_stage` names the one that raised. A successful response also sends the
+same times as a `Server-Timing` header, so the browser's network tab (Timing) shows
+them without opening the logs.
+
+| Stage | What it times | p95 budget |
+|---|---|---|
+| parse | Reading genre, mood, platform and titles out of the query (TM11-62) | 250 ms |
+| embed | Embedding the query with the local model | 250 ms |
+| retrieve | Top-k vector search, opening its connection included | 750 ms |
+| filter | Dropping games the user owns (its own DB connection) | 500 ms |
+| rank | The LLM picking and explaining the top 3 | 7,500 ms |
+| total | All five stages | 10,000 ms |
+
+Embed plus retrieve is the 1 second search budget from TM11-42. Rank gets most of
+the time because it is a call to Gemini or Claude, while everything else runs on our
+own server and database. The stage budgets add up to 9,250 ms, and the 750 ms left
+over covers the HTTP layer around the pipeline. The constants are in
+`api/observability/stage_timings.py`, and a test keeps them inside 10 seconds.
+
+### Current numbers
+
+From `scripts/eval_recommend_latency.py`: local Docker Postgres with the hosted
+schema, the real embedding model, and 20 benchmark prompts run 5 times each
+(`artifacts/sprint9/tm11-68-recommend-latency.md`).
+
+| Stage | p50 | p95 |
+|---|---|---|
+| parse | 0.2 ms | 0.2 ms |
+| embed | 10.0 ms | 11.9 ms |
+| retrieve | 13.1 ms | 15.8 ms |
+| filter | 10.4 ms | 12.9 ms |
+| rank | pending | pending |
+| total | 33.6 ms | 39.8 ms |
+
+These are from a laptop, which has a faster CPU than Render and no network hop to
+the database, so expect embed, retrieve and filter to be slower on the deployed API.
+There is no LLM key locally, so rank timed the offline fallback and its numbers mean
+nothing. Rank's p50 and p95, and deployed numbers for every stage, come from the
+first weekly check after this deploys.
+
+The Gemini call's timeout is 30 seconds (`services/llm.py`), so one slow LLM answer
+can still take a request past REQ040's 10 seconds. The timings show when that
+happens. Bringing the timeout under the rank budget is a separate change.
+
+### Weekly check
+
+Once a week, at the sprint stand-up, download the API's logs from the Render
+dashboard (Logs, then download, for the last 7 days) and run:
+
+```bash
+python scripts/latency_report.py render-logs.txt    # or: pbpaste | python scripts/latency_report.py -
+```
+
+This prints each stage's p50 and p95 against its budget, and how many requests
+failed at each stage. Exit code 1 means a stage's p95 is over budget. Put the table
+in that week's SCRUM notes, and open a ticket for any stage marked **no**.
+
+For a quick look at the slowest requests without the script:
+
+```bash
+jq -c 'select(.msg == "recommend.timings") | {total_ms, rank_ms, failed_stage, request_id}' \
+  render-logs.txt | sort -t: -k2 -n | tail -5
+```
+
+---
+
 ## Verifying it
 
 ```bash

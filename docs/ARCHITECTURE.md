@@ -38,6 +38,7 @@ Supporting layers:
 | HTTP routers             | `api/routers/{recommend,search,feedback,library,health}.py` |
 | Retrieval on its own     | `api/services/semantic_search.py` (TM11-42) |
 | Query parsing            | `api/services/query_parser.py` (TM11-62) |
+| Hybrid retrieval         | `api/services/hybrid_retrieval.py` (TM11-65) |
 | Persistence              | `api/db/repositories.py`               |
 | DB connection + pgvector | `api/db/pool.py`                       |
 | Config / env / .env      | `api/config.py`                        |
@@ -61,7 +62,10 @@ web/app/(app)/page.tsx  (user submits a query)
                  ├─ RAGPipeline.recommend(user_id, query)         api/services/rag_pipeline.py
                  │    ├─ QueryParser.parse(query)                  → genre/mood/platform/title signals, logged (TM11-62)
                  │    ├─ EmbeddingService.embed_query(query)       → 384-dim vector (local HF)
-                 │    ├─ VectorStore.top_k(embedding, k=20)        → pgvector cosine top-k
+                 │    ├─ HybridRetriever.retrieve(embedding, parsed, k=20)  (TM11-65)
+                 │    │    ├─ VectorStore.top_k(embedding, k=50)   → semantic pool    ┐ concurrent
+                 │    │    ├─ VectorStore.top_k(…, filters)        → genre/platform pool┘
+                 │    │    └─ merge_and_score                      → drop ruled out, weight, top 20
                  │    ├─ DeduplicationService.filter_owned(...)    → drop games in owned_games
                  │    └─ LLMService.rank(query, candidates, n=3)   → 3 ranked Recommendations (Gemini)
                  └─ background: query_history.record_query(...)    → after the response (TM11-64)
@@ -202,8 +206,32 @@ Incremental runs (TM11-41): each run re-embeds only new games and games whose
   ```bash
   render logs | jq 'select(.msg == "query.parsed") | .query_parse'
   ```
-- Retrieval does not use the signals yet; the pipeline parses and logs, then
-  embeds the raw query as before. Hybrid retrieval is TM11-65.
+- Retrieval uses the signals through `HybridRetriever` (TM11-65, below).
+
+### Hybrid retrieval (`HybridRetriever`, TM11-65)
+- Two searches, run concurrently: the plain semantic top 50, and the top 50
+  filtered to the parsed genres and platforms (`SearchFilters`, TM11-43). The
+  second puts strict matches in the pool even when they read less like the
+  sentence. Moods only score: they're tags, a looser vocabulary than genres.
+  A query with no genre or platform runs only the first search.
+- The union (by `game_id`) is scored `0.7 × similarity + 0.3 × match`, where
+  `match` is the share of the query's signal kinds the game meets: any parsed
+  genre, the share of parsed moods in its tags, any parsed platform. A query
+  with no signals scores on similarity alone, so it ranks exactly as before.
+- Removed before scoring: a game with an excluded genre or mood, one only on
+  excluded platforms ("not on Xbox" keeps a game also on Steam), and every
+  reference title. The game the player named is the comparison, not an answer.
+- Deterministic: ties break on similarity, then title, then `game_id`, never on
+  the order rows came back in. The top `k = 20` go on to dedup and the LLM.
+- Candidates now carry `platforms`: `available_platforms` on hosted, Steam when
+  there's an appid on the local slice (the rule its platform filter already used).
+- **Tuned and recorded** with `scripts/eval_hybrid_retrieval.py` on the TM11-63
+  benchmark: `artifacts/sprint9/tm11-65-hybrid-retrieval.md`. On the local
+  catalogue (167 games, MiniLM), hit@3 went 13/20 → 17/20 and MRR 0.653 → 0.754.
+  Every pool of 20 or more and every weight from 0.2 to 0.5 gave the same result there;
+  0.3 sits inside that plateau and 50 leaves headroom for the larger hosted
+  catalogue. The second search adds about 15 ms at p50. Rerun the script after a
+  catalogue or model change and update the defaults in the module if they move.
 
 ### Ownership (`DeduplicationService`, TM11-58)
 - `check_ownership(user_id, game)` → `Ownership(game_id, platforms)`: whether the

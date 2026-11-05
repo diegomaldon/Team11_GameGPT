@@ -79,6 +79,22 @@ def use_shape(monkeypatch, shape: str, cursor: FakeCursor) -> None:
 # ── the hosted query ────────────────────────────────────────────────────────
 
 
+def test_hosted_sql_reads_platforms_as_a_text_array():
+    # TM11-65 review: psycopg can't decode the platform_type[] enum array, so
+    # without the cast it returns '{STEAM,XBOX}' as one string.
+    assert "g.available_platforms::text[]" in rendered(hosted_top_k_sql(MODEL, 384))
+
+
+@pytest.mark.parametrize("raw, expected", [
+    (["STEAM", "XBOX"], ["steam", "xbox"]),
+    ("{STEAM,XBOX}", ["steam", "xbox"]),  # the uncast text form, never letter by letter
+    ("{}", []),
+    (None, []),
+])
+def test_hosted_platforms_become_store_names(raw, expected):
+    assert vector_store._platform_list(raw) == expected
+
+
 def test_hosted_sql_matches_the_partial_index_definition():
     text = hosted_top_k_sql(MODEL, 384).as_string(None)
 
@@ -108,7 +124,7 @@ async def test_hosted_top_k_reads_game_embeddings(monkeypatch):
     game_id = uuid4()
     cursor = FakeCursor([
         (game_id, "Portal 2", "Puzzles with portals.", ["Puzzle"], ["co-op"],
-         ["Valve", "Valve Seattle"], 98, 620, 0.25),
+         ["Valve", "Valve Seattle"], 98, 620, 0.25, ["STEAM", "XBOX"]),
     ])
     monkeypatch.setattr(vector_store, "connection", fake_connection(cursor))
 
@@ -126,6 +142,7 @@ async def test_hosted_top_k_reads_game_embeddings(monkeypatch):
     assert candidate.developer == "Valve, Valve Seattle"
     assert candidate.review_score == pytest.approx(0.98)
     assert candidate.similarity == pytest.approx(0.75)
+    assert candidate.platforms == ["steam", "xbox"]
 
 
 @pytest.mark.asyncio
@@ -172,6 +189,7 @@ async def test_legacy_top_k_reads_games_embedding(monkeypatch):
     assert candidate.genres == [] and candidate.tags == []
     assert candidate.review_score == 0.95
     assert candidate.similarity == 0.0  # distance > 1 is clamped
+    assert candidate.platforms == ["steam"]  # has an appid
 
 
 # ── metadata filters (TM11-43) ──────────────────────────────────────────────
