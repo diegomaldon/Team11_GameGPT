@@ -62,3 +62,43 @@ the hosted database; it ranks from the same `game_embeddings` rows.
   `{STEAM}` only and benchmark prompts platform-01/03/04 still can't be scored.
 - The HNSW index and `owned_games.external_id` migrations are not applied on the
   hosted database.
+
+---
+
+# Growing the hosted catalogue to 1000 games
+
+Run on 2026-11-05 (11:29–11:33 EST) against the same hosted database, following
+docs/RUNBOOK.md ("Growing the hosted catalogue to 1000 games"). The 174 games and
+their embeddings were copied locally first.
+
+Source: the 167 seed games, then SteamSpy's most-owned Steam games in rank order
+(833 accepted, 15 skipped with reasons in
+[steam-catalogue-skips.json](../ingestion/steam-catalogue-skips.json)), from the
+committed caches in `scripts/fixtures/`.
+
+| Step | Command | Result |
+|---|---|---|
+| Dry run | `ingest_games.py --source-func steam_catalogue:fetch_top_steam_catalogue --source steam-top --limit 1000 --target 1000 --dry-run` | 1000 valid, 0 rejected |
+| Load | same, `--run-id steam-top-01` | **inserted 831, updated 2, unchanged 167, rejected 0**, 75s, exit 0 |
+| Re-run | same, `--run-id steam-top-02` | **inserted 0, updated 0, unchanged 1000, rejected 0**, exit 0 |
+| Embed | `embed_catalogue.py` | 833 embedded (831 new, 2 changed), 172 unchanged skipped, 0 failed; **1005 of 1005** have a MiniLM vector |
+| Verify | `verify_catalogue.py --min-games 1000` | **PASS**: 1005 games, 0 shared steam_appid or title, 1005/1005 embedded, 69/69 benchmark titles |
+
+The 2 updates are RAWG-era games adopted by title: Borderlands 2 (steam 49520)
+and BioShock Infinite (steam 8870). The 5 rows outside the 1000 are the RAWG-era
+BioShock, Counter-Strike: Global Offensive, Life is Strange and Tomb Raider (no
+exact Steam-title match) and the REQ005 test row.
+
+`POST /api/search` on the hosted database, model warm, returns the new games:
+
+| Query | Top results |
+|---|---|
+| open world survival crafting with friends | The Planet Crafter, Craftopia, … |
+| tactical team-based shooter | Squad, … |
+| relaxing farming and fishing | Farm Together, WEBFISHING, Stardew Valley, Fishing Planet, Russian Fishing 4 |
+
+Found while checking: the first two searches after app start returned 503
+(`EmbeddingModelError: could not load sentence-transformers/all-MiniLM-L6-v2`)
+while the model was still warming; the next 8 of 8 returned 200. That is the
+existing API's cold-start behaviour, not the catalogue, and is left for its own
+ticket.
