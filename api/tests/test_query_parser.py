@@ -14,6 +14,7 @@ import pytest
 
 from api.services.query_parser import (
     PARSER_VERSION,
+    ParsedQuery,
     QueryParser,
     TitleIndex,
     parse_query,
@@ -372,12 +373,13 @@ async def test_the_pipeline_parses_every_query():
 
         async def parse(self, query):
             self.queries.append(query)
+            return ParsedQuery()
 
     class Stub:
         async def embed_query(self, text):
             return [0.0]
 
-        async def top_k(self, embedding, k=20):
+        async def top_k(self, embedding, k=20, filters=None):
             return []
 
         async def filter_owned(self, user_id, candidates):
