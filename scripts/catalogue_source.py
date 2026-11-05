@@ -19,20 +19,40 @@ Mapping, fixture -> hosted `games`:
                         purchase_links {"STEAM": store.steampowered.com/app/<id>}
 
 Only Steam is claimed: every entry has a Steam app id, and the fixture has no
-Xbox or Epic data, so none is invented. publishers and header_image_url stay
-empty for the same reason. An entry with no steam_appid is passed through
-without a source_id so the ingest job rejects it with a logged reason rather
-than inserting a row nothing can key on.
+Xbox or Epic data, so none is invented. An entry with no steam_appid is passed
+through without a source_id so the ingest job rejects it with a logged reason
+rather than inserting a row nothing can key on.
+
+The hosted load uses fetch_steam_enriched_catalogue, which adds what the
+RAWG-era rows carry and the fixture lacks, from the cached Steam store details
+(scripts/fixtures/steam_appdetails.json, filled by steam_store.py):
+
+  metacritic score   -> critic_score          (when Steam has one)
+  publishers         -> publishers
+  developers         -> developers             (Steam's list; the fixture's if empty)
+  header_image       -> header_image_url
+  categories         -> appended to tags       ("Single-player", "Co-op", ...)
+
+The fixture's description, genres, tags and review score are kept: the TM11-63
+benchmark and the embedding text were built on them. An app with no cache entry,
+or one Steam doesn't know, loads unenriched and is logged.
+
+  python3 scripts/ingest_games.py --source-func catalogue_source:fetch_steam_enriched_catalogue \\
+      --source steam-seed --target 167
 
 Stdlib only.
 """
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Iterable, Iterator
 
+log = logging.getLogger("catalogue_source")
+
 FIXTURE_PATH = Path(__file__).resolve().parent / "fixtures" / "games.json"
+STEAM_CACHE_PATH = Path(__file__).resolve().parent / "fixtures" / "steam_appdetails.json"
 SOURCE = "steam"
 STEAM_STORE_URL = "https://store.steampowered.com/app/{appid}"
 
@@ -86,3 +106,38 @@ def rows_from(entries: Iterable[dict], limit: int | None = None) -> Iterator[dic
 def fetch_seed_catalogue(limit: int | None = None, path: Path = FIXTURE_PATH) -> Iterator[dict]:
     """--source-func entry point: ingest_games.py calls it as fetch_seed_catalogue(limit=N)."""
     return rows_from(load_fixture(path), limit)
+
+
+def enrich(row: dict, details: dict | None) -> dict:
+    """Merge one cached Steam store entry (steam_store.trim shape) into an ingest row."""
+    if not details or not details.get("success"):
+        return row
+    tags = list(row.get("tags") or [])
+    seen = {t.casefold() for t in tags}
+    for c in details.get("categories") or []:
+        if c.casefold() not in seen:
+            tags.append(c)
+            seen.add(c.casefold())
+    return {
+        **row,
+        "tags": tags,
+        "critic_score": details.get("metacritic"),
+        "publishers": details.get("publishers") or row.get("publishers") or [],
+        "developers": details.get("developers") or row.get("developers") or [],
+        "header_image_url": details.get("header_image") or row.get("header_image_url"),
+    }
+
+
+def fetch_steam_enriched_catalogue(limit: int | None = None, path: Path = FIXTURE_PATH,
+                                   cache_path: Path = STEAM_CACHE_PATH) -> Iterator[dict]:
+    """--source-func entry point for the hosted load: the seed catalogue plus Steam store details."""
+    cache = json.loads(Path(cache_path).read_text(encoding="utf-8"))
+    for row in rows_from(load_fixture(path), limit):
+        details = cache.get(str(row["source_id"])) if row["source_id"] is not None else None
+        if row["source_id"] is not None and details is None:
+            log.warning("no cached Steam details for steam:%s (%s); loading unenriched",
+                        row["source_id"], row["title"])
+        elif details is not None and not details.get("success"):
+            log.warning("Steam has no store page for steam:%s (%s); loading unenriched",
+                        row["source_id"], row["title"])
+        yield enrich(row, details)

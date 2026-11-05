@@ -1,0 +1,4574 @@
+{
+ "70": {
+  "success": true,
+  "name": "Half-Life",
+  "developers": [
+   "Valve"
+  ],
+  "publishers": [
+   "Valve"
+  ],
+  "metacritic": 96,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/70/header.jpg?t=1745368462",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Full controller support",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Keyboard Only Option",
+   "Playable without Timed Input",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Save Anytime",
+   "Stereo Sound",
+   "Steam Cloud",
+   "Valve Anti-Cheat enabled",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "220": {
+  "success": true,
+  "name": "Half-Life 2",
+  "developers": [
+   "Valve"
+  ],
+  "publishers": [
+   "Valve"
+  ],
+  "metacritic": 96,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/220/header.jpg?t=1745368545",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Captions available",
+   "Steam Workshop",
+   "Camera Comfort",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Playable without Timed Input",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Save Anytime",
+   "Steam Input API Support",
+   "Stereo Sound",
+   "Subtitle Options",
+   "Surround Sound",
+   "Steam Cloud",
+   "Includes Source SDK",
+   "Commentary available",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play Together",
+   "Family Sharing",
+   "Steam Timeline"
+  ]
+ },
+ "400": {
+  "success": true,
+  "name": "Portal",
+  "developers": [
+   "Valve"
+  ],
+  "publishers": [
+   "Valve"
+  ],
+  "metacritic": 90,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/400/header.jpg?t=1745368554",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Captions available",
+   "Camera Comfort",
+   "Custom Volume Controls",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Save Anytime",
+   "Steam Input API Support",
+   "Stereo Sound",
+   "Subtitle Options",
+   "Surround Sound",
+   "Includes level editor",
+   "Includes Source SDK",
+   "Commentary available",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "440": {
+  "success": true,
+  "name": "Team Fortress 2",
+  "developers": [
+   "Valve"
+  ],
+  "publishers": [
+   "Valve"
+  ],
+  "metacritic": 92,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/440/header.jpg?t=1757348372",
+  "categories": [
+   "Multi-player",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Captions available",
+   "Steam Workshop",
+   "In-App Purchases",
+   "Camera Comfort",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Stereo Sound",
+   "Surround Sound",
+   "Partial Controller Support",
+   "Valve Anti-Cheat enabled",
+   "Stats",
+   "Includes level editor",
+   "Commentary available",
+   "Remote Play on Phone",
+   "Remote Play on Tablet"
+  ]
+ },
+ "500": {
+  "success": true,
+  "name": "Left 4 Dead",
+  "developers": [
+   "Valve"
+  ],
+  "publishers": [
+   "Valve"
+  ],
+  "metacritic": 89,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/500/header.jpg?t=1745368560",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Steam Achievements",
+   "Full controller support",
+   "Captions available",
+   "Camera Comfort",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Stereo Sound",
+   "Surround Sound",
+   "Steam Cloud",
+   "Valve Anti-Cheat enabled",
+   "Stats",
+   "Steam Leaderboards",
+   "Includes Source SDK",
+   "Commentary available",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "550": {
+  "success": true,
+  "name": "Left 4 Dead 2",
+  "developers": [
+   "Valve"
+  ],
+  "publishers": [
+   "Valve"
+  ],
+  "metacritic": 89,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/550/header.jpg?t=1772742214",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Captions available",
+   "Steam Workshop",
+   "Camera Comfort",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Playable without Timed Input",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Steam Input API Support",
+   "Stereo Sound",
+   "Surround Sound",
+   "Steam Cloud",
+   "Valve Anti-Cheat enabled",
+   "Stats",
+   "Includes Source SDK",
+   "Commentary available",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Remote Play Together",
+   "Family Sharing",
+   "Steam Timeline"
+  ]
+ },
+ "570": {
+  "success": true,
+  "name": "Dota 2",
+  "developers": [
+   "Valve"
+  ],
+  "publishers": [
+   "Valve"
+  ],
+  "metacritic": 90,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/570/header.jpg?t=1791407503",
+  "categories": [
+   "Multi-player",
+   "Co-op",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "SteamVR Collectibles",
+   "In-App Purchases",
+   "Camera Comfort",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Valve Anti-Cheat enabled",
+   "Steam Timeline"
+  ]
+ },
+ "620": {
+  "success": true,
+  "name": "Portal 2",
+  "developers": [
+   "Valve"
+  ],
+  "publishers": [
+   "Valve"
+  ],
+  "metacritic": 95,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/620/faffc0f560786e2f05104a8d2fac837c6969bf13/header.jpg?t=1790187113",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "Shared/Split Screen Co-op",
+   "Shared/Split Screen",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Captions available",
+   "Steam Workshop",
+   "Camera Comfort",
+   "Custom Volume Controls",
+   "Playable without Timed Input",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Save Anytime",
+   "Steam Input API Support",
+   "Stereo Sound",
+   "Surround Sound",
+   "Steam Cloud",
+   "Stats",
+   "Includes level editor",
+   "Commentary available",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "730": {
+  "success": true,
+  "name": "Counter-Strike 2",
+  "developers": [
+   "Valve"
+  ],
+  "publishers": [
+   "Valve"
+  ],
+  "metacritic": null,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/730/162664aa5da85f418105350c5d67ca565f6c3713/header.jpg?t=1793054556",
+  "categories": [
+   "Multi-player",
+   "Cross-Platform Multiplayer",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "In-App Purchases",
+   "Adjustable Text Size",
+   "Camera Comfort",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Playable without Timed Input",
+   "Stereo Sound",
+   "Surround Sound",
+   "Valve Anti-Cheat enabled",
+   "Stats",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Steam Timeline"
+  ]
+ },
+ "3830": {
+  "success": true,
+  "name": "Psychonauts",
+  "developers": [
+   "Double Fine Productions"
+  ],
+  "publishers": [
+   "Double Fine Productions"
+  ],
+  "metacritic": 87,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3830/header.jpg?t=1793063134",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Partial Controller Support",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "4000": {
+  "success": true,
+  "name": "Garry's Mod",
+  "developers": [
+   "Facepunch Studios"
+  ],
+  "publishers": [
+   "Valve"
+  ],
+  "metacritic": null,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4000/header.jpg?t=1776868682",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "LAN PvP",
+   "Co-op",
+   "Online Co-op",
+   "LAN Co-op",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Captions available",
+   "Steam Workshop",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Playable without Timed Input",
+   "Save Anytime",
+   "Stereo Sound",
+   "Steam Cloud",
+   "Valve Anti-Cheat enabled",
+   "Includes level editor",
+   "Includes Source SDK",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "4570": {
+  "success": true,
+  "name": "Warhammer 40,000: Dawn of War - Anniversary Edition (Classic)",
+  "developers": [
+   "Relic Entertainment"
+  ],
+  "publishers": [
+   "Relic Entertainment"
+  ],
+  "metacritic": 86,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4570/29c9530f1478894a50967fa7b83b0abb2b7f5b15/header.jpg?t=1777501508",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Family Sharing"
+  ]
+ },
+ "8930": {
+  "success": true,
+  "name": "Sid Meier's Civilization® V",
+  "developers": [
+   "Firaxis Games",
+   "Aspyr (Mac)",
+   "Aspyr (Linux)"
+  ],
+  "publishers": [
+   "2K",
+   "Aspyr (Mac)",
+   "Aspyr (Linux)"
+  ],
+  "metacritic": 90,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/8930/header.jpg?t=1724341158",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "22380": {
+  "success": true,
+  "name": "Fallout: New Vegas",
+  "developers": [
+   "Obsidian Entertainment"
+  ],
+  "publishers": [
+   "Bethesda Softworks"
+  ],
+  "metacritic": 84,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/22380/header.jpg?t=1765992876",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Partial Controller Support",
+   "Steam Leaderboards",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "26800": {
+  "success": true,
+  "name": "Braid",
+  "developers": [
+   "Number None"
+  ],
+  "publishers": [
+   "Number None"
+  ],
+  "metacritic": 90,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/26800/header.jpg?t=1734027955",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Cloud",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "40800": {
+  "success": true,
+  "name": "Super Meat Boy",
+  "developers": [
+   "Team Meat"
+  ],
+  "publishers": [],
+  "metacritic": 87,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/40800/header.jpg?t=1700669950",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Gamepad Recommended",
+   "Steam Leaderboards",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "48000": {
+  "success": true,
+  "name": "LIMBO",
+  "developers": [
+   "Playdead"
+  ],
+  "publishers": [
+   "Playdead"
+  ],
+  "metacritic": 88,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/48000/header.jpg?t=1761819450",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Color Alternatives",
+   "Keyboard Only Option",
+   "Playable without Timed Input",
+   "Stereo Sound",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "57300": {
+  "success": true,
+  "name": "Amnesia: The Dark Descent",
+  "developers": [
+   "Frictional Games"
+  ],
+  "publishers": [
+   "Frictional Games"
+  ],
+  "metacritic": 85,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/57300/header.jpg?t=1751032707",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Captions available",
+   "Includes level editor",
+   "Commentary available",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "70400": {
+  "success": true,
+  "name": "Recettear: An Item Shop's Tale",
+  "developers": [
+   "EasyGameStation"
+  ],
+  "publishers": [
+   "Carpe Fulgur LLC"
+  ],
+  "metacritic": 82,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/70400/header.jpg?t=1447353479",
+  "categories": [
+   "Single-player",
+   "Partial Controller Support",
+   "Family Sharing"
+  ]
+ },
+ "72850": {
+  "success": true,
+  "name": "The Elder Scrolls V: Skyrim",
+  "developers": [
+   "Bethesda Game Studios"
+  ],
+  "publishers": [
+   "Bethesda Softworks"
+  ],
+  "metacritic": 94,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/72850/header.jpg?t=1788199504",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "Partial Controller Support",
+   "Steam Cloud",
+   "Family Sharing"
+  ]
+ },
+ "105600": {
+  "success": true,
+  "name": "Terraria",
+  "developers": [
+   "Re-Logic"
+  ],
+  "publishers": [
+   "Re-Logic"
+  ],
+  "metacritic": 83,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/105600/header.jpg?t=1792530636",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "115800": {
+  "success": true,
+  "name": "Owlboy",
+  "developers": [
+   "D-Pad Studio"
+  ],
+  "publishers": [
+   "D-Pad Studio"
+  ],
+  "metacritic": 88,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/115800/7c7fab5906b1ff7101e0932f0e6f0ad83c58e961/header_alt_assets_0.jpg?t=1793528438",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Steam Leaderboards",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "200510": {
+  "success": true,
+  "name": "XCOM: Enemy Unknown",
+  "developers": [
+   "Firaxis Games",
+   "Feral Interactive (Linux)"
+  ],
+  "publishers": [
+   "2K",
+   "Feral Interactive (Linux)"
+  ],
+  "metacritic": 89,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/200510/header.jpg?t=1777585174",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "200900": {
+  "success": true,
+  "name": "Cave Story+",
+  "developers": [
+   "Nicalis, Inc.",
+   "Studio Pixel"
+  ],
+  "publishers": [
+   "Nicalis, Inc."
+  ],
+  "metacritic": 83,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/200900/23d8972e068689b1d688f20972fa343813e0431f/header.jpg?t=1790010222",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Shared/Split Screen Co-op",
+   "Shared/Split Screen",
+   "Steam Achievements",
+   "Full controller support",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Steam Cloud",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "214490": {
+  "success": true,
+  "name": "Alien: Isolation",
+  "developers": [
+   "Creative Assembly",
+   "Feral Interactive (Mac)",
+   "Feral Interactive (Linux)"
+  ],
+  "publishers": [
+   "SEGA",
+   "Feral Interactive (Mac)",
+   "Feral Interactive (Linux)"
+  ],
+  "metacritic": 81,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/214490/header.jpg?t=1793034411",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Camera Comfort",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Stereo Sound",
+   "Surround Sound",
+   "Steam Cloud",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "218620": {
+  "success": true,
+  "name": "PAYDAY 2",
+  "developers": [
+   "OVERKILL - a Starbreeze Studio.",
+   "Sidetrack Games"
+  ],
+  "publishers": [
+   "Starbreeze Entertainment"
+  ],
+  "metacritic": 79,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/218620/c44949287e8ffa2518f01b5033b8431dd0f984e4/header.jpg?t=1789555107",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "Full controller support",
+   "Tracked Controller Support",
+   "VR Supported",
+   "Steam Trading Cards",
+   "In-App Purchases",
+   "Camera Comfort",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Playable without Timed Input",
+   "DualShock Controller Support",
+   "Stereo Sound",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "220200": {
+  "success": true,
+  "name": "Kerbal Space Program",
+  "developers": [
+   "Squad"
+  ],
+  "publishers": [
+   "Private Division"
+  ],
+  "metacritic": 88,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/220200/header.jpg?t=1738037585",
+  "categories": [
+   "Single-player",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "Partial Controller Support",
+   "Steam Cloud",
+   "Family Sharing"
+  ]
+ },
+ "221910": {
+  "success": true,
+  "name": "The Stanley Parable",
+  "developers": [
+   "Galactic Cafe"
+  ],
+  "publishers": [
+   "Galactic Cafe",
+   "Klei Publishing"
+  ],
+  "metacritic": 88,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/221910/header.jpg?t=1791491770",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Captions available",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "224760": {
+  "success": true,
+  "name": "FEZ",
+  "developers": [
+   "Polytron Corporation"
+  ],
+  "publishers": [
+   "Trapdoor"
+  ],
+  "metacritic": 91,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/224760/header.jpg?t=1572375251",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Cloud",
+   "Steam Leaderboards",
+   "Family Sharing"
+  ]
+ },
+ "230410": {
+  "success": true,
+  "name": "Warframe",
+  "developers": [
+   "Digital Extremes"
+  ],
+  "publishers": [
+   "Digital Extremes"
+  ],
+  "metacritic": 69,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/230410/1a3e7c2a05ce4e5cad5ac4c7e858cf5b0934704e/header.jpg?t=1792613117",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "In-App Purchases",
+   "Camera Comfort",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Playable without Timed Input",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Steam Input API Support",
+   "Stereo Sound",
+   "Surround Sound",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "HDR available"
+  ]
+ },
+ "231200": {
+  "success": true,
+  "name": "Kentucky Route Zero: PC Edition",
+  "developers": [
+   "Cardboard Computer"
+  ],
+  "publishers": [
+   "Cardboard Computer"
+  ],
+  "metacritic": 81,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/231200/header.jpg?t=1692292539",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Captions available",
+   "Steam Cloud",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "231430": {
+  "success": true,
+  "name": "Company of Heroes 2",
+  "developers": [
+   "Relic Entertainment",
+   "Feral Interactive (Mac)",
+   "Feral Interactive (Linux)"
+  ],
+  "publishers": [
+   "Relic Entertainment",
+   "Feral Interactive (Mac)",
+   "Feral Interactive (Linux)"
+  ],
+  "metacritic": 80,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/231430/header.jpg?t=1750947634",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "Steam Cloud",
+   "Stats",
+   "Family Sharing"
+  ]
+ },
+ "232090": {
+  "success": true,
+  "name": "Killing Floor 2",
+  "developers": [
+   "Tripwire Interactive"
+  ],
+  "publishers": [
+   "Tripwire Interactive"
+  ],
+  "metacritic": 75,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/232090/header.jpg?t=1774538987",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "In-App Purchases",
+   "Valve Anti-Cheat enabled",
+   "Includes level editor",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "232430": {
+  "success": true,
+  "name": "Gone Home",
+  "developers": [
+   "Fullbright"
+  ],
+  "publishers": [
+   "Fullbright",
+   "Serenity Forge"
+  ],
+  "metacritic": 86,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/232430/header.jpg?t=1756162182",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Captions available",
+   "Steam Cloud",
+   "Commentary available",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "238010": {
+  "success": true,
+  "name": "Deus Ex: Human Revolution - Director's Cut",
+  "developers": [
+   "Eidos Montreal"
+  ],
+  "publishers": [
+   "Eidos Interactive Corp."
+  ],
+  "metacritic": 91,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/238010/header.jpg?t=1779722099",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Captions available",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Steam Cloud",
+   "Commentary available",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "238320": {
+  "success": true,
+  "name": "Outlast",
+  "developers": [
+   "Red Barrels"
+  ],
+  "publishers": [
+   "Red Barrels"
+  ],
+  "metacritic": 80,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/238320/header.jpg?t=1666817106",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Captions available",
+   "Steam Cloud",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "238960": {
+  "success": true,
+  "name": "Path of Exile",
+  "developers": [
+   "Grinding Gear Games"
+  ],
+  "publishers": [
+   "Grinding Gear Games"
+  ],
+  "metacritic": 86,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/238960/177c953b362c5a6221f9c15d340a0b1e2b8bfab8/header.jpg?t=1784681738",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "MMO",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "In-App Purchases",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Remote Play on Tablet"
+  ]
+ },
+ "239030": {
+  "success": true,
+  "name": "Papers, Please",
+  "developers": [
+   "Lucas Pope"
+  ],
+  "publishers": [
+   "3909"
+  ],
+  "metacritic": 85,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/239030/header.jpg?t=1678266428",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Stats",
+   "Steam Leaderboards",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "242760": {
+  "success": true,
+  "name": "The Forest",
+  "developers": [
+   "Endnight Games Ltd"
+  ],
+  "publishers": [
+   "Endnight Games Ltd"
+  ],
+  "metacritic": 83,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/242760/header.jpg?t=1699381053",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "LAN Co-op",
+   "Tracked Controller Support",
+   "VR Supported",
+   "Partial Controller Support",
+   "Steam Cloud",
+   "Family Sharing"
+  ]
+ },
+ "248820": {
+  "success": true,
+  "name": "Risk of Rain (2013)",
+  "developers": [
+   "Hopoo Games"
+  ],
+  "publishers": [
+   "Gearbox Publishing",
+   "2K"
+  ],
+  "metacritic": 77,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/248820/header.jpg?t=1782157778",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Shared/Split Screen",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Adjustable Text Size",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Keyboard Only Option",
+   "Playable without Timed Input",
+   "Stereo Sound",
+   "Partial Controller Support",
+   "Remote Play on Tablet",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "250760": {
+  "success": true,
+  "name": "Shovel Knight: Treasure Trove",
+  "developers": [
+   "Yacht Club Games"
+  ],
+  "publishers": [
+   "Yacht Club Games"
+  ],
+  "metacritic": 85,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/250760/header.jpg?t=1780266579",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Shared/Split Screen PvP",
+   "Co-op",
+   "Shared/Split Screen Co-op",
+   "Shared/Split Screen",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "DualShock Controller Support",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "250900": {
+  "success": true,
+  "name": "The Binding of Isaac: Rebirth",
+  "developers": [
+   "Nicalis, Inc.",
+   "Edmund McMillen"
+  ],
+  "publishers": [
+   "Nicalis, Inc."
+  ],
+  "metacritic": null,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/250900/header.jpg?t=1731977365",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Shared/Split Screen",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Remote Play on TV",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "252490": {
+  "success": true,
+  "name": "Rust",
+  "developers": [
+   "Facepunch Studios"
+  ],
+  "publishers": [
+   "Facepunch Studios"
+  ],
+  "metacritic": 69,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/252490/header.jpg?t=1781536981",
+  "categories": [
+   "Multi-player",
+   "MMO",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "In-App Purchases",
+   "Adjustable Text Size",
+   "Camera Comfort",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Stereo Sound",
+   "Subtitle Options",
+   "Surround Sound",
+   "Valve Anti-Cheat enabled",
+   "Stats",
+   "Remote Play on Tablet"
+  ]
+ },
+ "252950": {
+  "success": true,
+  "name": "Rocket League®",
+  "developers": [
+   "Psyonix LLC"
+  ],
+  "publishers": [
+   "Psyonix LLC"
+  ],
+  "metacritic": 86,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/252950/3abd9ab079c8896a4762dbe34a853d89b7f704df/header_alt_assets_17.jpg?t=1791210513",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Shared/Split Screen PvP",
+   "Co-op",
+   "Online Co-op",
+   "Shared/Split Screen Co-op",
+   "Shared/Split Screen",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "Gamepad Recommended",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Steam Input API Support",
+   "Partial Controller Support",
+   "Steam Cloud",
+   "Stats",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "255710": {
+  "success": true,
+  "name": "Cities: Skylines",
+  "developers": [
+   "Colossal Order"
+  ],
+  "publishers": [
+   "Paradox Interactive"
+  ],
+  "metacritic": 85,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/255710/header.jpg?t=1791468493",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "Steam Cloud",
+   "Includes level editor",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "257850": {
+  "success": true,
+  "name": "Hyper Light Drifter",
+  "developers": [
+   "Heart Machine"
+  ],
+  "publishers": [
+   "Heart Machine"
+  ],
+  "metacritic": 84,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/257850/header.jpg?t=1762899660",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Shared/Split Screen PvP",
+   "Co-op",
+   "Shared/Split Screen Co-op",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "261550": {
+  "success": true,
+  "name": "Mount & Blade II: Bannerlord",
+  "developers": [
+   "TaleWorlds Entertainment"
+  ],
+  "publishers": [
+   "TaleWorlds Entertainment"
+  ],
+  "metacritic": 77,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/261550/header.jpg?t=1764252300",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "Partial Controller Support",
+   "Steam Cloud",
+   "Includes level editor",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "261570": {
+  "success": true,
+  "name": "Ori and the Blind Forest",
+  "developers": [
+   "Moon Studios GmbH"
+  ],
+  "publishers": [
+   "Xbox Game Studios"
+  ],
+  "metacritic": 88,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/261570/header.jpg?t=1667504148",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Stats",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "264710": {
+  "success": true,
+  "name": "Subnautica",
+  "developers": [
+   "Unknown Worlds Entertainment"
+  ],
+  "publishers": [
+   "Unknown Worlds Entertainment"
+  ],
+  "metacritic": 87,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/264710/header.jpg?t=1777456112",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "VR Supported",
+   "Steam Trading Cards",
+   "VR Support",
+   "DualShock Controller Support",
+   "Steam Cloud",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "268500": {
+  "success": true,
+  "name": "XCOM® 2",
+  "developers": [
+   "Firaxis Games",
+   "Feral Interactive (Mac)",
+   "Feral Interactive (Linux)"
+  ],
+  "publishers": [
+   "2K",
+   "Feral Interactive (Mac)",
+   "Feral Interactive (Linux)"
+  ],
+  "metacritic": 88,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/268500/header.jpg?t=1772813016",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "Steam Cloud",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "268910": {
+  "success": true,
+  "name": "Cuphead",
+  "developers": [
+   "Studio MDHR Entertainment Inc."
+  ],
+  "publishers": [
+   "Studio MDHR Entertainment Inc."
+  ],
+  "metacritic": 88,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/268910/header.jpg?t=1709068852",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Shared/Split Screen Co-op",
+   "Shared/Split Screen",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "271590": {
+  "success": true,
+  "name": "Grand Theft Auto V Legacy",
+  "developers": [
+   "Rockstar North"
+  ],
+  "publishers": [
+   "Rockstar Games"
+  ],
+  "metacritic": 96,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/271590/header.jpg?t=1765387725",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "Full controller support",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV"
+  ]
+ },
+ "275850": {
+  "success": true,
+  "name": "No Man's Sky",
+  "developers": [
+   "Hello Games"
+  ],
+  "publishers": [
+   "Hello Games"
+  ],
+  "metacritic": 61,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/275850/9f1ca9e3b7d1dccb7b5af404a6739ddc1118ef32/header_alt_assets_26.jpg?t=1793196605",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Full controller support",
+   "Tracked Controller Support",
+   "VR Supported",
+   "Steam Trading Cards",
+   "Adjustable Text Size",
+   "Camera Comfort",
+   "Chat Speech-to-text",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Playable without Timed Input",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Save Anytime",
+   "Steam Input API Support",
+   "Stereo Sound",
+   "Subtitle Options",
+   "Surround Sound",
+   "Steam Cloud",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "HDR available",
+   "Family Sharing"
+  ]
+ },
+ "281990": {
+  "success": true,
+  "name": "Stellaris",
+  "developers": [
+   "Paradox Development Studio"
+  ],
+  "publishers": [
+   "Paradox Interactive"
+  ],
+  "metacritic": 78,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/281990/header.jpg?t=1792590966",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "Steam Cloud",
+   "Family Sharing"
+  ]
+ },
+ "282070": {
+  "success": true,
+  "name": "This War of Mine",
+  "developers": [
+   "11 bit studios"
+  ],
+  "publishers": [
+   "11 bit studios"
+  ],
+  "metacritic": 83,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/282070/26fb8c9bb7b9e3a17469d8026ee3fa510ee7f8f5/header.jpg?t=1793632890",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "Partial Controller Support",
+   "Steam Cloud",
+   "Family Sharing"
+  ]
+ },
+ "282140": {
+  "success": true,
+  "name": "SOMA",
+  "developers": [
+   "Frictional Games"
+  ],
+  "publishers": [
+   "Frictional Games"
+  ],
+  "metacritic": 84,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/282140/header.jpg?t=1786607913",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "Steam Cloud",
+   "Remote Play on TV",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "289070": {
+  "success": true,
+  "name": "Sid Meier’s Civilization® VI",
+  "developers": [
+   "Firaxis Games",
+   "Aspyr (Mac)",
+   "Aspyr (Linux)"
+  ],
+  "publishers": [
+   "2K",
+   "Aspyr (Mac)",
+   "Aspyr (Linux)"
+  ],
+  "metacritic": 88,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/289070/header.jpg?t=1792718069",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "LAN PvP",
+   "Shared/Split Screen PvP",
+   "Shared/Split Screen",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "In-App Purchases",
+   "Steam Turn Notifications",
+   "Remote Play on Tablet",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "291650": {
+  "success": true,
+  "name": "Pillars of Eternity",
+  "developers": [
+   "Obsidian Entertainment"
+  ],
+  "publishers": [
+   "Xbox Game Studios"
+  ],
+  "metacritic": 89,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/291650/header.jpg?t=1783357801",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Commentary available",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "292030": {
+  "success": true,
+  "name": "The Witcher 3: Wild Hunt — Remastered",
+  "developers": [
+   "CD PROJEKT RED"
+  ],
+  "publishers": [
+   "CD PROJEKT RED"
+  ],
+  "metacritic": 93,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/292030/e8afc4252e3fee8ed2525ab2fd7675cca39aa38d/header_alt_assets_1.jpg?t=1790845156",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "Adjustable Text Size",
+   "Camera Comfort",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Playable without Timed Input",
+   "DualSense Controller Support",
+   "Save Anytime",
+   "Stereo Sound",
+   "Surround Sound",
+   "Partial Controller Support",
+   "Steam Cloud",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "HDR available",
+   "Family Sharing"
+  ]
+ },
+ "294100": {
+  "success": true,
+  "name": "RimWorld",
+  "developers": [
+   "Ludeon Studios"
+  ],
+  "publishers": [
+   "Ludeon Studios"
+  ],
+  "metacritic": 87,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/294100/76e0613b8197327299d5dbabb0a7fd7828a689a2/header.jpg?t=1782756789",
+  "categories": [
+   "Single-player",
+   "Steam Workshop",
+   "Adjustable Text Size",
+   "Camera Comfort",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Mouse Only Option",
+   "Playable without Timed Input",
+   "Save Anytime",
+   "Partial Controller Support",
+   "Steam Cloud",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "304430": {
+  "success": true,
+  "name": "INSIDE",
+  "developers": [
+   "Playdead"
+  ],
+  "publishers": [
+   "Playdead"
+  ],
+  "metacritic": 87,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/304430/header.jpg?t=1761819581",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Color Alternatives",
+   "Keyboard Only Option",
+   "Playable without Timed Input",
+   "Stereo Sound",
+   "Steam Cloud",
+   "Family Sharing"
+  ]
+ },
+ "305620": {
+  "success": true,
+  "name": "The Long Dark",
+  "developers": [
+   "Hinterland Studio Inc."
+  ],
+  "publishers": [
+   "Hinterland Studio Inc."
+  ],
+  "metacritic": null,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/305620/6c82ea1073946b0e83974a0ae6bd9d29d93911f9/header.jpg?t=1792088805",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Adjustable Text Size",
+   "Camera Comfort",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Playable without Timed Input",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Steam Input API Support",
+   "Stereo Sound",
+   "Subtitle Options",
+   "Steam Cloud",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "311690": {
+  "success": true,
+  "name": "Enter the Gungeon",
+  "developers": [
+   "Dodge Roll"
+  ],
+  "publishers": [
+   "Devolver Digital"
+  ],
+  "metacritic": 84,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/311690/471d245bd8a37011c16852694342e5ad2d8a4667/header.jpg?t=1779733990",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Shared/Split Screen",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "316790": {
+  "success": true,
+  "name": "Grim Fandango Remastered",
+  "developers": [
+   "Double Fine Productions",
+   "Shiny Shoe"
+  ],
+  "publishers": [
+   "Double Fine Productions"
+  ],
+  "metacritic": 84,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/316790/header.jpg?t=1793138379",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Commentary available",
+   "Remote Play on TV",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "322330": {
+  "success": true,
+  "name": "Don't Starve Together",
+  "developers": [
+   "Klei Entertainment"
+  ],
+  "publishers": [
+   "Klei Entertainment"
+  ],
+  "metacritic": 83,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/322330/050ea9c51a4e96f707309d33b7cdd38e0a6cbfff/header_alt_assets_51.jpg?t=1793044716",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "LAN PvP",
+   "Co-op",
+   "Online Co-op",
+   "LAN Co-op",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "In-App Purchases",
+   "Adjustable Text Size",
+   "Camera Comfort",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Keyboard Only Option",
+   "Mouse Only Option",
+   "Playable without Timed Input",
+   "Save Anytime",
+   "Stereo Sound",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "323190": {
+  "success": true,
+  "name": "Frostpunk",
+  "developers": [
+   "11 bit studios"
+  ],
+  "publishers": [
+   "11 bit studios"
+  ],
+  "metacritic": 84,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/323190/abcd2bf3c275092d637d7dd98e0061dbdd2fd2da/header.jpg?t=1793633192",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "367520": {
+  "success": true,
+  "name": "Hollow Knight",
+  "developers": [
+   "Team Cherry"
+  ],
+  "publishers": [
+   "Team Cherry"
+  ],
+  "metacritic": 87,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/367520/3c3489495136b26b34f8a9543c7f5645b99d388c/header.jpg?t=1776125684",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "373420": {
+  "success": true,
+  "name": "Divinity: Original Sin - Enhanced Edition",
+  "developers": [
+   "Larian Studios"
+  ],
+  "publishers": [
+   "Larian Studios"
+  ],
+  "metacritic": 94,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/373420/header.jpg?t=1765505119",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Shared/Split Screen",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Captions available",
+   "Steam Cloud",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "374320": {
+  "success": true,
+  "name": "DARK SOULS™ III",
+  "developers": [
+   "FromSoftware, Inc."
+  ],
+  "publishers": [
+   "FromSoftware, Inc.",
+   "Bandai Namco Entertainment"
+  ],
+  "metacritic": 89,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/374320/header.jpg?t=1748630784",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Camera Comfort",
+   "Custom Volume Controls",
+   "Playable without Timed Input",
+   "Save Anytime",
+   "Stereo Sound",
+   "Surround Sound",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "377160": {
+  "success": true,
+  "name": "Fallout 4",
+  "developers": [
+   "Bethesda Game Studios"
+  ],
+  "publishers": [
+   "Bethesda Softworks"
+  ],
+  "metacritic": 84,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/377160/header.jpg?t=1786648137",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Playable without Timed Input",
+   "Save Anytime",
+   "Stereo Sound",
+   "Surround Sound",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "379430": {
+  "success": true,
+  "name": "Kingdom Come: Deliverance",
+  "developers": [
+   "Warhorse Studios"
+  ],
+  "publishers": [
+   "Warhorse Studios",
+   "Deep Silver"
+  ],
+  "metacritic": 76,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/379430/43b72106345687f4a2bf94d5f98335e52c1cd598/header.jpg?t=1770998376",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "379720": {
+  "success": true,
+  "name": "DOOM",
+  "developers": [
+   "id Software"
+  ],
+  "publishers": [
+   "Bethesda Softworks"
+  ],
+  "metacritic": 85,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/379720/header.jpg?t=1750784856",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Color Alternatives",
+   "Stereo Sound",
+   "Surround Sound",
+   "Partial Controller Support",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "381210": {
+  "success": true,
+  "name": "Dead by Daylight",
+  "developers": [
+   "Behaviour Interactive Inc."
+  ],
+  "publishers": [
+   "Behaviour Interactive Inc."
+  ],
+  "metacritic": null,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/381210/header.jpg?t=1793724618",
+  "categories": [
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Steam Input API Support",
+   "Stereo Sound",
+   "Subtitle Options",
+   "Surround Sound",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "383870": {
+  "success": true,
+  "name": "Firewatch",
+  "developers": [
+   "Campo Santo"
+  ],
+  "publishers": [
+   "Panic",
+   "Campo Santo"
+  ],
+  "metacritic": 81,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/383870/41a7d0ff4c2dab4ed69c53c9a29c931e6f62948d/header.jpg?t=1755789801",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "384190": {
+  "success": true,
+  "name": "ABZU",
+  "developers": [
+   "Giant Squid"
+  ],
+  "publishers": [
+   "505 Games"
+  ],
+  "metacritic": 83,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/384190/header.jpg?t=1786125758",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Gamepad Recommended",
+   "Family Sharing"
+  ]
+ },
+ "391540": {
+  "success": true,
+  "name": "Undertale",
+  "developers": [
+   "tobyfox"
+  ],
+  "publishers": [
+   "tobyfox"
+  ],
+  "metacritic": 92,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/391540/header.jpg?t=1757349115",
+  "categories": [
+   "Single-player",
+   "Steam Trading Cards",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "394360": {
+  "success": true,
+  "name": "Hearts of Iron IV",
+  "developers": [
+   "Paradox Development Studio"
+  ],
+  "publishers": [
+   "Paradox Interactive"
+  ],
+  "metacritic": 83,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/394360/67bbd0057627fc2244793bcdd09260c2539499cf/header.jpg?t=1791468228",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "Steam Cloud",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "403640": {
+  "success": true,
+  "name": "Dishonored 2",
+  "developers": [
+   "Arkane Studios"
+  ],
+  "publishers": [
+   "Bethesda Softworks"
+  ],
+  "metacritic": 86,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/403640/header.jpg?t=1750785918",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Color Alternatives",
+   "Adjustable Difficulty",
+   "Playable without Timed Input",
+   "Stereo Sound",
+   "Surround Sound",
+   "Partial Controller Support",
+   "Steam Cloud",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "412020": {
+  "success": true,
+  "name": "Metro Exodus",
+  "developers": [
+   "4A Games"
+  ],
+  "publishers": [
+   "Deep Silver"
+  ],
+  "metacritic": 85,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/412020/header.jpg?t=1750772804",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "413150": {
+  "success": true,
+  "name": "Stardew Valley",
+  "developers": [
+   "ConcernedApe"
+  ],
+  "publishers": [
+   "ConcernedApe"
+  ],
+  "metacritic": 89,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/413150/header.jpg?t=1786554168",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "LAN Co-op",
+   "Shared/Split Screen Co-op",
+   "Shared/Split Screen",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "418530": {
+  "success": true,
+  "name": "Spelunky 2",
+  "developers": [
+   "Mossmouth",
+   "BlitWorks"
+  ],
+  "publishers": [
+   "Mossmouth"
+  ],
+  "metacritic": 91,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/418530/header.jpg?t=1663719294",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Shared/Split Screen PvP",
+   "Co-op",
+   "Online Co-op",
+   "Shared/Split Screen Co-op",
+   "Shared/Split Screen",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "424840": {
+  "success": true,
+  "name": "Little Nightmares",
+  "developers": [
+   "Tarsier Studios"
+  ],
+  "publishers": [
+   "BANDAI NAMCO Entertainment"
+  ],
+  "metacritic": 81,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/424840/facf9a7a675c6d7f210d96d6b111caffe0386cd5/header.jpg?t=1773135169",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "DualShock Controller Support",
+   "Steam Cloud",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "427290": {
+  "success": true,
+  "name": "Vampyr",
+  "developers": [
+   "DONTNOD Entertainment"
+  ],
+  "publishers": [
+   "Focus Entertainment"
+  ],
+  "metacritic": 72,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/427290/header.jpg?t=1773669973",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "427520": {
+  "success": true,
+  "name": "Factorio",
+  "developers": [
+   "Wube Software LTD."
+  ],
+  "publishers": [
+   "Wube Software LTD."
+  ],
+  "metacritic": 90,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/427520/ab9a2df0a77caebde20dc45adc021de8cdcf7cc5/header.jpg?t=1792752343",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "LAN Co-op",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Adjustable Text Size",
+   "Camera Comfort",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Playable without Timed Input",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Save Anytime",
+   "Subtitle Options",
+   "Partial Controller Support",
+   "Steam Cloud",
+   "Includes level editor",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "431240": {
+  "success": true,
+  "name": "Golf With Your Friends",
+  "developers": [
+   "Blacklight Interactive",
+   "Team17"
+  ],
+  "publishers": [
+   "Team17"
+  ],
+  "metacritic": null,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/431240/header.jpg?t=1789740480",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Shared/Split Screen PvP",
+   "Shared/Split Screen",
+   "Steam Achievements",
+   "Steam Workshop",
+   "Partial Controller Support",
+   "Stats",
+   "Includes level editor",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "433340": {
+  "success": true,
+  "name": "Slime Rancher",
+  "developers": [
+   "Monomi Park"
+  ],
+  "publishers": [
+   "Monomi Park"
+  ],
+  "metacritic": 81,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/433340/header.jpg?t=1758651509",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "435150": {
+  "success": true,
+  "name": "Divinity: Original Sin 2 - Definitive Edition",
+  "developers": [
+   "Larian Studios"
+  ],
+  "publishers": [
+   "Larian Studios"
+  ],
+  "metacritic": 93,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/435150/3f6ee788cb01bd65097c52399d536eb424b4876f/header.jpg?t=1765811123",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Shared/Split Screen PvP",
+   "Co-op",
+   "Online Co-op",
+   "Shared/Split Screen Co-op",
+   "Shared/Split Screen",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Captions available",
+   "Steam Workshop",
+   "Steam Cloud",
+   "Includes level editor",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "460950": {
+  "success": true,
+  "name": "Katana ZERO",
+  "developers": [
+   "Askiisoft"
+  ],
+  "publishers": [
+   "Devolver Digital"
+  ],
+  "metacritic": 83,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/460950/header.jpg?t=1761066027",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "477160": {
+  "success": true,
+  "name": "Human Fall Flat",
+  "developers": [
+   "No Brakes Games"
+  ],
+  "publishers": [
+   "Curve Games"
+  ],
+  "metacritic": 70,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/477160/9258286b309480a3ce438c07cb51fadf3ea2f1d1/header_alt_assets_27.jpg?t=1793018738",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Shared/Split Screen Co-op",
+   "Shared/Split Screen",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Keyboard Only Option",
+   "Playable without Timed Input",
+   "Stereo Sound",
+   "Surround Sound",
+   "Steam Cloud",
+   "Stats",
+   "Remote Play on TV",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "480490": {
+  "success": true,
+  "name": "Prey",
+  "developers": [
+   "Arkane Studios"
+  ],
+  "publishers": [
+   "Bethesda Softworks"
+  ],
+  "metacritic": null,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/480490/9ed715575a2205350e937e5e6d25b3e8a494605e/header.jpg?t=1784141088",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Color Alternatives",
+   "Save Anytime",
+   "Stereo Sound",
+   "Surround Sound",
+   "Steam Cloud",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "481510": {
+  "success": true,
+  "name": "Night in the Woods",
+  "developers": [
+   "Infinite Fall"
+  ],
+  "publishers": [
+   "Finji"
+  ],
+  "metacritic": 88,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/481510/header.jpg?t=1783360222",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "DualShock Controller Support",
+   "Steam Cloud",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "485510": {
+  "success": true,
+  "name": "Nioh: Complete Edition",
+  "developers": [
+   "KOEI TECMO GAMES CO., LTD."
+  ],
+  "publishers": [
+   "KOEI TECMO GAMES CO., LTD."
+  ],
+  "metacritic": 84,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/485510/header.jpg?t=1775540073",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Gamepad Recommended",
+   "Partial Controller Support",
+   "Steam Cloud",
+   "Stats",
+   "Steam Leaderboards",
+   "Family Sharing"
+  ]
+ },
+ "493340": {
+  "success": true,
+  "name": "Planet Coaster",
+  "developers": [
+   "Frontier Developments",
+   "Aspyr (Mac)"
+  ],
+  "publishers": [
+   "Frontier Developments",
+   "Aspyr (Mac)"
+  ],
+  "metacritic": 84,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/493340/header.jpg?t=1782480201",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "Steam Cloud",
+   "Family Sharing"
+  ]
+ },
+ "504230": {
+  "success": true,
+  "name": "Celeste",
+  "developers": [
+   "Maddy Makes Games Inc.",
+   "Extremely OK Games, Ltd."
+  ],
+  "publishers": [
+   "Maddy Makes Games Inc."
+  ],
+  "metacritic": 88,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/504230/header.jpg?t=1714089525",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "526870": {
+  "success": true,
+  "name": "Satisfactory",
+  "developers": [
+   "Coffee Stain Studios"
+  ],
+  "publishers": [
+   "Coffee Stain Publishing"
+  ],
+  "metacritic": 91,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/526870/header.jpg?t=1791192059",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Adjustable Text Size",
+   "Camera Comfort",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Playable without Timed Input",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Save Anytime",
+   "Stereo Sound",
+   "Surround Sound",
+   "Partial Controller Support",
+   "Steam Cloud",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "535930": {
+  "success": true,
+  "name": "Two Point Hospital",
+  "developers": [
+   "Two Point Studios"
+  ],
+  "publishers": [
+   "SEGA"
+  ],
+  "metacritic": 83,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/535930/header.jpg?t=1763648286",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "Steam Cloud",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "546560": {
+  "success": true,
+  "name": "Half-Life: Alyx",
+  "developers": [
+   "Valve"
+  ],
+  "publishers": [
+   "Valve"
+  ],
+  "metacritic": 93,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/546560/header.jpg?t=1790202165",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Tracked Controller Support",
+   "VR Only",
+   "Captions available",
+   "VR Support",
+   "Steam Workshop",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Save Anytime",
+   "Stereo Sound",
+   "Subtitle Options",
+   "Surround Sound",
+   "Includes level editor",
+   "Family Sharing"
+  ]
+ },
+ "548430": {
+  "success": true,
+  "name": "Deep Rock Galactic",
+  "developers": [
+   "Ghost Ship Games"
+  ],
+  "publishers": [
+   "Coffee Stain Publishing"
+  ],
+  "metacritic": 85,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/548430/37b58a6c4816ee60b0ca97cb6724d6e904c58c41/header.jpg?t=1792497307",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Captions available",
+   "Camera Comfort",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Playable without Timed Input",
+   "Stereo Sound",
+   "Subtitle Options",
+   "Steam Cloud",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "552500": {
+  "success": true,
+  "name": "Warhammer: Vermintide 2",
+  "developers": [
+   "Fatshark"
+  ],
+  "publishers": [
+   "Fatshark"
+  ],
+  "metacritic": 82,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/552500/header.jpg?t=1764008361",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Family Sharing"
+  ]
+ },
+ "553850": {
+  "success": true,
+  "name": "HELLDIVERS™ 2",
+  "developers": [
+   "Arrowhead Game Studios"
+  ],
+  "publishers": [
+   "PlayStation Publishing LLC"
+  ],
+  "metacritic": null,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/553850/850e2f9e5bb15c5706bb9a1edc832f4f782e8be5/header.jpg?t=1793395133",
+  "categories": [
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "In-App Purchases",
+   "Adjustable Text Size",
+   "Camera Comfort",
+   "Chat Speech-to-text",
+   "Chat Text-to-speech",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Narrated Game Menus",
+   "Playable without Timed Input",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Stereo Sound",
+   "Subtitle Options",
+   "Surround Sound",
+   "Partial Controller Support",
+   "Family Sharing"
+  ]
+ },
+ "578080": {
+  "success": true,
+  "name": "PUBG: BATTLEGROUNDS",
+  "developers": [
+   "PUBG Corporation"
+  ],
+  "publishers": [
+   "KRAFTON, Inc."
+  ],
+  "metacritic": null,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/578080/841ea38bc58cabb70aef65365cf50bc2d79329d9/header.jpg?t=1792718193",
+  "categories": [
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Custom Volume Controls",
+   "Stereo Sound",
+   "Surround Sound",
+   "Partial Controller Support",
+   "Stats",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "582010": {
+  "success": true,
+  "name": "Monster Hunter: World",
+  "developers": [
+   "CAPCOM Co., Ltd."
+  ],
+  "publishers": [
+   "CAPCOM Co., Ltd."
+  ],
+  "metacritic": 88,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/582010/header.jpg?t=1791439347",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Adjustable Text Size",
+   "Camera Comfort",
+   "Custom Volume Controls",
+   "Keyboard Only Option",
+   "Stereo Sound",
+   "Surround Sound",
+   "Partial Controller Support",
+   "Steam Cloud",
+   "Stats",
+   "Steam Leaderboards",
+   "Remote Play on Tablet",
+   "HDR available",
+   "Family Sharing"
+  ]
+ },
+ "588650": {
+  "success": true,
+  "name": "Dead Cells",
+  "developers": [
+   "Motion Twin"
+  ],
+  "publishers": [
+   "Motion Twin"
+  ],
+  "metacritic": 89,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/588650/header.jpg?t=1779086887",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "593150": {
+  "success": true,
+  "name": "Ooblets",
+  "developers": [
+   "Glumberland"
+  ],
+  "publishers": [
+   "Glumberland"
+  ],
+  "metacritic": 62,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/593150/header.jpg?t=1696517972",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Cloud",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "594570": {
+  "success": true,
+  "name": "Total War: WARHAMMER II",
+  "developers": [
+   "CREATIVE ASSEMBLY",
+   "Feral Interactive (Mac)",
+   "Feral Interactive (Linux)"
+  ],
+  "publishers": [
+   "SEGA",
+   "Feral Interactive (Mac)",
+   "Feral Interactive (Linux)"
+  ],
+  "metacritic": 87,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/594570/header.jpg?t=1780389571",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "LAN PvP",
+   "Co-op",
+   "Online Co-op",
+   "LAN Co-op",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "Camera Comfort",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Playable without Timed Input",
+   "Save Anytime",
+   "Stereo Sound",
+   "Surround Sound",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "606150": {
+  "success": true,
+  "name": "Moonlighter",
+  "developers": [
+   "Digital Sun"
+  ],
+  "publishers": [
+   "11 bit studios"
+  ],
+  "metacritic": 74,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/606150/b6b0789b397ed98c8c5871dd2f99945a8fea0332/header.jpg?t=1793636738",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "632360": {
+  "success": true,
+  "name": "Risk of Rain 2",
+  "developers": [
+   "Hopoo Games"
+  ],
+  "publishers": [
+   "Gearbox Publishing",
+   "2K"
+  ],
+  "metacritic": 85,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/632360/77f4cff7fea7de8a4566d1fb76ace16967604da7/header_alt_assets_7.jpg?t=1791475448",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Adjustable Text Size",
+   "Camera Comfort",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Stereo Sound",
+   "Surround Sound",
+   "Steam Cloud",
+   "Steam Leaderboards",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "632470": {
+  "success": true,
+  "name": "Disco Elysium - The Final Cut",
+  "developers": [
+   "ZA/UM"
+  ],
+  "publishers": [
+   "ZA/UM"
+  ],
+  "metacritic": 97,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/632470/816ea59d6d8ac525f79a07c3a7afa94eddb3437c/header.jpg?t=1780913406",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Steam Cloud",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "638230": {
+  "success": true,
+  "name": "Journey",
+  "developers": [
+   "thatgamecompany"
+  ],
+  "publishers": [
+   "Annapurna Interactive"
+  ],
+  "metacritic": null,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/638230/header.jpg?t=1729099361",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "Full controller support",
+   "Gamepad Recommended",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "646570": {
+  "success": true,
+  "name": "Slay the Spire",
+  "developers": [
+   "Mega Crit"
+  ],
+  "publishers": [
+   "Mega Crit"
+  ],
+  "metacritic": 89,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/646570/header.jpg?t=1774015376",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "Adjustable Text Size",
+   "Custom Volume Controls",
+   "Mouse Only Option",
+   "Playable without Timed Input",
+   "Save Anytime",
+   "Touch Only Option",
+   "Steam Cloud",
+   "Stats",
+   "Steam Leaderboards",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "648800": {
+  "success": true,
+  "name": "Raft",
+  "developers": [
+   "Redbeet Interactive"
+  ],
+  "publishers": [
+   "Axolot Games"
+  ],
+  "metacritic": null,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/648800/header.jpg?t=1727184011",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "Steam Cloud",
+   "Family Sharing"
+  ]
+ },
+ "653530": {
+  "success": true,
+  "name": "Return of the Obra Dinn",
+  "developers": [
+   "Lucas Pope"
+  ],
+  "publishers": [
+   "3909"
+  ],
+  "metacritic": 89,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/653530/header.jpg?t=1686697594",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Cloud",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "666140": {
+  "success": true,
+  "name": "My Time at Portia",
+  "developers": [
+   "Pathea Games"
+  ],
+  "publishers": [
+   "Focus Entertainment"
+  ],
+  "metacritic": 73,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/666140/header.jpg?t=1790754894",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "683320": {
+  "success": true,
+  "name": "GRIS",
+  "developers": [
+   "Nomada Studio"
+  ],
+  "publishers": [
+   "Devolver Digital"
+  ],
+  "metacritic": 84,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/683320/header.jpg?t=1759429603",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Gamepad Recommended",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "719040": {
+  "success": true,
+  "name": "Wasteland 3",
+  "developers": [
+   "inXile Entertainment"
+  ],
+  "publishers": [
+   "inXile Entertainment",
+   "Xbox Game Studios"
+  ],
+  "metacritic": 85,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/719040/header.jpg?t=1788467695",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "728880": {
+  "success": true,
+  "name": "Overcooked! 2",
+  "developers": [
+   "Ghost Town Games Ltd.",
+   "Team17"
+  ],
+  "publishers": [
+   "Team17"
+  ],
+  "metacritic": 81,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/728880/9305414f49b2f7aee7f7198dc507d6b66383fdd6/header.jpg?t=1789548883",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Shared/Split Screen PvP",
+   "Co-op",
+   "Online Co-op",
+   "Shared/Split Screen Co-op",
+   "Shared/Split Screen",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "736260": {
+  "success": true,
+  "name": "Baba Is You",
+  "developers": [
+   "Hempuli Oy"
+  ],
+  "publishers": [
+   "Hempuli Oy"
+  ],
+  "metacritic": 87,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/736260/header.jpg?t=1760102539",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Partial Controller Support",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "739630": {
+  "success": true,
+  "name": "Phasmophobia",
+  "developers": [
+   "Kinetic Games"
+  ],
+  "publishers": [
+   "Kinetic Games"
+  ],
+  "metacritic": null,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/739630/c227a2855aba60f3657bc0c3a46515b8c41fb2b6/header.jpg?t=1793615120",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "Full controller support",
+   "Tracked Controller Support",
+   "VR Supported",
+   "Steam Trading Cards",
+   "Camera Comfort",
+   "Adjustable Difficulty",
+   "Playable without Timed Input",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Stereo Sound",
+   "Surround Sound",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "752590": {
+  "success": true,
+  "name": "A Plague Tale: Innocence",
+  "developers": [
+   "Asobo Studio"
+  ],
+  "publishers": [
+   "Focus Entertainment"
+  ],
+  "metacritic": 81,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/752590/header.jpg?t=1784712345",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "753640": {
+  "success": true,
+  "name": "Outer Wilds",
+  "developers": [
+   "Mobius Digital"
+  ],
+  "publishers": [
+   "Annapurna Interactive"
+  ],
+  "metacritic": 85,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/753640/079ae4a7ff4b5875adc5c63c4c0b84e5a3e6966b/header.jpg?t=1785424341",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Adjustable Text Size",
+   "Camera Comfort",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Gamepad Recommended",
+   "Keyboard Only Option",
+   "Playable without Timed Input",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Stereo Sound",
+   "Surround Sound",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "782330": {
+  "success": true,
+  "name": "DOOM Eternal",
+  "developers": [
+   "id Software"
+  ],
+  "publishers": [
+   "Bethesda Softworks"
+  ],
+  "metacritic": 88,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/782330/feaf8293bcd2d078422faa547bc0d707c08f606e/header.jpg?t=1783432602",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Color Alternatives",
+   "Adjustable Difficulty",
+   "Stereo Sound",
+   "Surround Sound",
+   "Partial Controller Support",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "HDR available",
+   "Family Sharing"
+  ]
+ },
+ "813780": {
+  "success": true,
+  "name": "Age of Empires II: Definitive Edition",
+  "developers": [
+   "World's Edge",
+   "Forgotten Empires",
+   "CaptureAge",
+   "Tantalus Media",
+   "Wicked Witch",
+   "Feral Interactive"
+  ],
+  "publishers": [
+   "Xbox Game Studios"
+  ],
+  "metacritic": 84,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/813780/header.jpg?t=1790623375",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "LAN PvP",
+   "Co-op",
+   "Online Co-op",
+   "LAN Co-op",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Adjustable Text Size",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Mouse Only Option",
+   "Narrated Game Menus",
+   "#category_playable_at_your_own_pace",
+   "Playable without Timed Input",
+   "Save Anytime",
+   "Steam Cloud",
+   "Includes level editor",
+   "Family Sharing"
+  ]
+ },
+ "814380": {
+  "success": true,
+  "name": "Sekiro™: Shadows Die Twice - GOTY Edition",
+  "developers": [
+   "FromSoftware, Inc."
+  ],
+  "publishers": [
+   "Activision (Excluding Japan and Asia)",
+   "FromSoftware, Inc. (Japan)",
+   "方块游戏 (Asia)"
+  ],
+  "metacritic": 88,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/814380/header.jpg?t=1762888662",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "815370": {
+  "success": true,
+  "name": "Green Hell",
+  "developers": [
+   "Creepy Jar"
+  ],
+  "publishers": [
+   "Creepy Jar"
+  ],
+  "metacritic": 78,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/815370/header.jpg?t=1783077147",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Adjustable Text Size",
+   "Camera Comfort",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Playable without Timed Input",
+   "Stereo Sound",
+   "Subtitle Options",
+   "Partial Controller Support",
+   "Steam Cloud",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "837470": {
+  "success": true,
+  "name": "Untitled Goose Game",
+  "developers": [
+   "House House"
+  ],
+  "publishers": [
+   "Panic"
+  ],
+  "metacritic": 79,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/837470/header.jpg?t=1699052664",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Shared/Split Screen Co-op",
+   "Shared/Split Screen",
+   "Steam Achievements",
+   "Full controller support",
+   "DualShock Controller Support",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "860510": {
+  "success": true,
+  "name": "Little Nightmares II",
+  "developers": [
+   "Tarsier Studios"
+  ],
+  "publishers": [
+   "BANDAI NAMCO Entertainment"
+  ],
+  "metacritic": 83,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/860510/header.jpg?t=1730127763",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "892970": {
+  "success": true,
+  "name": "Valheim",
+  "developers": [
+   "Iron Gate AB"
+  ],
+  "publishers": [
+   "Coffee Stain Publishing"
+  ],
+  "metacritic": 89,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/892970/1888731b59362fca6c026cdbafa3dfffd45c3146/header_alt_assets_6.jpg?t=1791544831",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "Full controller support",
+   "Camera Comfort",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Save Anytime",
+   "Stereo Sound",
+   "Steam Cloud",
+   "Stats",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "914800": {
+  "success": true,
+  "name": "Coffee Talk",
+  "developers": [
+   "Toge Productions"
+  ],
+  "publishers": [
+   "Toge Productions"
+  ],
+  "metacritic": 76,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/914800/header.jpg?t=1789739649",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "916440": {
+  "success": true,
+  "name": "Anno 1800",
+  "developers": [
+   "Ubisoft Mainz"
+  ],
+  "publishers": [
+   "Ubisoft"
+  ],
+  "metacritic": 81,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/916440/5700506bb522c60ca89754d3d887833d52debd65/header.jpg?t=1791465786",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Captions available"
+  ]
+ },
+ "945360": {
+  "success": true,
+  "name": "Among Us",
+  "developers": [
+   "Innersloth"
+  ],
+  "publishers": [
+   "Innersloth"
+  ],
+  "metacritic": 85,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/945360/d611f3f87743b5121532023b1d3ee2dd0e96e772/header.jpg?t=1793821899",
+  "categories": [
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "LAN PvP",
+   "Co-op",
+   "Online Co-op",
+   "LAN Co-op",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "In-App Purchases",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "972660": {
+  "success": true,
+  "name": "Spiritfarer®: Farewell Edition",
+  "developers": [
+   "Thunder Lotus"
+  ],
+  "publishers": [
+   "Thunder Lotus"
+  ],
+  "metacritic": 84,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/972660/header.jpg?t=1752503178",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Shared/Split Screen Co-op",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "1055540": {
+  "success": true,
+  "name": "A Short Hike",
+  "developers": [
+   "adamgryu"
+  ],
+  "publishers": [
+   "adamgryu"
+  ],
+  "metacritic": 82,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1055540/header.jpg?t=1777758958",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Gamepad Recommended",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Steam Cloud",
+   "Steam Leaderboards",
+   "Family Sharing"
+  ]
+ },
+ "1057090": {
+  "success": true,
+  "name": "Ori and the Will of the Wisps",
+  "developers": [
+   "Moon Studios GmbH"
+  ],
+  "publishers": [
+   "Xbox Game Studios"
+  ],
+  "metacritic": 88,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1057090/header.jpg?t=1759530749",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "HDR available",
+   "Family Sharing"
+  ]
+ },
+ "1062520": {
+  "success": true,
+  "name": "Dinkum",
+  "developers": [
+   "James Bendon"
+  ],
+  "publishers": [
+   "KRAFTON, Inc."
+  ],
+  "metacritic": null,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1062520/04b22b3889c6d2c903745595c3acd29842473399/header.jpg?t=1767607973",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "Full controller support",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Steam Cloud",
+   "Family Sharing"
+  ]
+ },
+ "1085660": {
+  "success": true,
+  "name": "Destiny 2",
+  "developers": [
+   "Bungie"
+  ],
+  "publishers": [
+   "Bungie"
+  ],
+  "metacritic": 83,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1085660/0ccf0dc0a8c4ec078db7ab99ddc820b2fa884441/header.jpg?t=1781815889",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "In-App Purchases",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Subtitle Options",
+   "Partial Controller Support",
+   "Family Sharing"
+  ]
+ },
+ "1086940": {
+  "success": true,
+  "name": "Baldur's Gate 3",
+  "developers": [
+   "Larian Studios"
+  ],
+  "publishers": [
+   "Larian Studios"
+  ],
+  "metacritic": 96,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1086940/48a2fcbda8565bb45025e98fd8ebde8a7203f6a0/header.jpg?t=1777363040",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "LAN Co-op",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Adjustable Text Size",
+   "Camera Comfort",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Playable without Timed Input",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Save Anytime",
+   "Stereo Sound",
+   "Subtitle Options",
+   "Surround Sound",
+   "Steam Cloud",
+   "Remote Play on TV",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "1091500": {
+  "success": true,
+  "name": "Cyberpunk 2077",
+  "developers": [
+   "CD PROJEKT RED"
+  ],
+  "publishers": [
+   "CD PROJEKT RED"
+  ],
+  "metacritic": 86,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/48a93d6445a67520ea49833c93dae8f2e68fc540/header_alt_assets_9.jpg?t=1792682505",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Adjustable Text Size",
+   "Camera Comfort",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Playable without Timed Input",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Save Anytime",
+   "Stereo Sound",
+   "Subtitle Options",
+   "Surround Sound",
+   "Steam Cloud",
+   "HDR available",
+   "Family Sharing"
+  ]
+ },
+ "1097150": {
+  "success": true,
+  "name": "Fall Guys",
+  "developers": [
+   "Mediatonic"
+  ],
+  "publishers": [],
+  "metacritic": 80,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1097150/header.jpg?t=1698763175",
+  "categories": [
+   "Multi-player",
+   "MMO",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "In-App Purchases",
+   "Partial Controller Support",
+   "Remote Play on Phone",
+   "Remote Play on Tablet"
+  ]
+ },
+ "1135690": {
+  "success": true,
+  "name": "Unpacking",
+  "developers": [
+   "Witch Beam"
+  ],
+  "publishers": [
+   "Balor Games"
+  ],
+  "metacritic": 83,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1135690/header.jpg?t=1789426289",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Adjustable Text Size",
+   "Camera Comfort",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Mouse Only Option",
+   "Playable without Timed Input",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Save Anytime",
+   "Stereo Sound",
+   "Steam Cloud",
+   "Family Sharing"
+  ]
+ },
+ "1145350": {
+  "success": true,
+  "name": "Hades II",
+  "developers": [
+   "Supergiant Games"
+  ],
+  "publishers": [
+   "Supergiant Games"
+  ],
+  "metacritic": 94,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1145350/91ac334a2c137d08968ccc0bc474a02579602100/header.jpg?t=1779901265",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Captions available",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Steam Cloud",
+   "Family Sharing"
+  ]
+ },
+ "1145360": {
+  "success": true,
+  "name": "Hades",
+  "developers": [
+   "Supergiant Games"
+  ],
+  "publishers": [
+   "Supergiant Games"
+  ],
+  "metacritic": 93,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1145360/header.jpg?t=1758127023",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Captions available",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "1158310": {
+  "success": true,
+  "name": "Crusader Kings III",
+  "developers": [
+   "Paradox Development Studio"
+  ],
+  "publishers": [
+   "Paradox Interactive"
+  ],
+  "metacritic": 91,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1158310/8a7e814d13f8e73c0d40471f585ece908f9be282/header.jpg?t=1792414688",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "Adjustable Text Size",
+   "Camera Comfort",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Mouse Only Option",
+   "#category_playable_at_your_own_pace",
+   "Playable without Timed Input",
+   "Save Anytime",
+   "Steam Cloud",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "1172470": {
+  "success": true,
+  "name": "Apex Legends™",
+  "developers": [
+   "Respawn"
+  ],
+  "publishers": [
+   "Electronic Arts"
+  ],
+  "metacritic": 88,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1172470/4219c147f1e094297c726d537518babba7f3ae2d/header.jpg?t=1793731328",
+  "categories": [
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "In-App Purchases",
+   "Chat Speech-to-text",
+   "Playable without Timed Input",
+   "DualShock Controller Support",
+   "DualSense Controller Support"
+  ]
+ },
+ "1172620": {
+  "success": true,
+  "name": "Sea of Thieves: 2026 Edition",
+  "developers": [
+   "Rare Ltd"
+  ],
+  "publishers": [
+   "Xbox Game Studios"
+  ],
+  "metacritic": null,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1172620/579c6d544424019a032f4add98e8f923925c1cef/header.jpg?t=1793617680",
+  "categories": [
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "In-App Purchases",
+   "Partial Controller Support",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Family Sharing"
+  ]
+ },
+ "1174180": {
+  "success": true,
+  "name": "Red Dead Redemption 2",
+  "developers": [
+   "Rockstar Games"
+  ],
+  "publishers": [
+   "Rockstar Games"
+  ],
+  "metacritic": 93,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1174180/header.jpg?t=1759502961",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "In-App Purchases",
+   "Partial Controller Support",
+   "Remote Play on Phone",
+   "Remote Play on Tablet"
+  ]
+ },
+ "1196590": {
+  "success": true,
+  "name": "Resident Evil Village",
+  "developers": [
+   "CAPCOM Co., Ltd."
+  ],
+  "publishers": [
+   "CAPCOM Co., Ltd."
+  ],
+  "metacritic": 83,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1196590/header.jpg?t=1776927117",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "HDR available",
+   "Family Sharing"
+  ]
+ },
+ "1210320": {
+  "success": true,
+  "name": "Potion Craft: Alchemist Simulator",
+  "developers": [
+   "niceplay games"
+  ],
+  "publishers": [
+   "tinyBuild"
+  ],
+  "metacritic": null,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1210320/header.jpg?t=1793194728",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Camera Comfort",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Mouse Only Option",
+   "Playable without Timed Input",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Save Anytime",
+   "Touch Only Option",
+   "Partial Controller Support",
+   "Steam Cloud",
+   "Family Sharing"
+  ]
+ },
+ "1222700": {
+  "success": true,
+  "name": "A Way Out",
+  "developers": [
+   "Hazelight Studios"
+  ],
+  "publishers": [
+   "Electronic Arts"
+  ],
+  "metacritic": 78,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1222700/header.jpg?t=1777323433",
+  "categories": [
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "Shared/Split Screen Co-op",
+   "Shared/Split Screen",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Remote Play Together"
+  ]
+ },
+ "1225570": {
+  "success": true,
+  "name": "Unravel Two",
+  "developers": [
+   "Coldwood Interactive"
+  ],
+  "publishers": [
+   "Electronic Arts"
+  ],
+  "metacritic": 76,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1225570/header.jpg?t=1777389655",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Shared/Split Screen Co-op",
+   "Shared/Split Screen",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Remote Play Together"
+  ]
+ },
+ "1245620": {
+  "success": true,
+  "name": "ELDEN RING",
+  "developers": [
+   "FromSoftware, Inc."
+  ],
+  "publishers": [
+   "FromSoftware, Inc.",
+   "Bandai Namco Entertainment"
+  ],
+  "metacritic": 94,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1245620/header.jpg?t=1790290043",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Camera Comfort",
+   "Custom Volume Controls",
+   "Playable without Timed Input",
+   "Save Anytime",
+   "Stereo Sound",
+   "Surround Sound",
+   "Steam Cloud",
+   "Family Sharing"
+  ]
+ },
+ "1282730": {
+  "success": true,
+  "name": "Loop Hero",
+  "developers": [
+   "Four Quarters"
+  ],
+  "publishers": [
+   "Devolver Digital"
+  ],
+  "metacritic": 82,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1282730/header.jpg?t=1751489185",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Family Sharing"
+  ]
+ },
+ "1313140": {
+  "success": true,
+  "name": "Cult of the Lamb",
+  "developers": [
+   "Massive Monster"
+  ],
+  "publishers": [
+   "Devolver Digital"
+  ],
+  "metacritic": 82,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1313140/19f32bb477a6e9d058e05193b4e282149bd70644/header.jpg?t=1786554901",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Shared/Split Screen Co-op",
+   "Shared/Split Screen",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Adjustable Text Size",
+   "Camera Comfort",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Gamepad Recommended",
+   "Keyboard Only Option",
+   "DualShock Controller Support",
+   "Save Anytime",
+   "Stereo Sound",
+   "Steam Cloud",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "1326470": {
+  "success": true,
+  "name": "Sons Of The Forest",
+  "developers": [
+   "Endnight Games Ltd"
+  ],
+  "publishers": [
+   "Newnight "
+  ],
+  "metacritic": null,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1326470/header.jpg?t=1708624856",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "Full controller support",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Steam Cloud",
+   "Family Sharing"
+  ]
+ },
+ "1426210": {
+  "success": true,
+  "name": "It Takes Two",
+  "developers": [
+   "Hazelight Studios"
+  ],
+  "publishers": [
+   "Electronic Arts"
+  ],
+  "metacritic": 89,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1426210/header.jpg?t=1777395376",
+  "categories": [
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "Shared/Split Screen Co-op",
+   "Shared/Split Screen",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Stereo Sound",
+   "Surround Sound",
+   "Steam Cloud",
+   "Remote Play Together"
+  ]
+ },
+ "1458100": {
+  "success": true,
+  "name": "Cozy Grove",
+  "developers": [
+   "Spry Fox"
+  ],
+  "publishers": [
+   " Spry Fox"
+  ],
+  "metacritic": null,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1458100/header.jpg?t=1784219383",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Remote Play on Phone",
+   "Remote Play on Tablet",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "1466860": {
+  "success": true,
+  "name": "Age of Empires IV: Anniversary Edition",
+  "developers": [
+   "World's Edge",
+   "Relic Entertainment",
+   "Forgotten Empires",
+   "Climax Studios"
+  ],
+  "publishers": [
+   "Xbox Game Studios"
+  ],
+  "metacritic": 81,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1466860/header.jpg?t=1793384195",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Full controller support",
+   "DualSense Controller Support",
+   "Steam Input API Support",
+   "Family Sharing"
+  ]
+ },
+ "1593500": {
+  "success": true,
+  "name": "God of War",
+  "developers": [
+   "Santa Monica Studio",
+   "Jetpack Interactive"
+  ],
+  "publishers": [
+   "PlayStation Publishing LLC"
+  ],
+  "metacritic": 93,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1593500/header.jpg?t=1763059412",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Adjustable Text Size",
+   "Camera Comfort",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Keyboard Only Option",
+   "Narrated Game Menus",
+   "Playable without Timed Input",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Save Anytime",
+   "Stereo Sound",
+   "Subtitle Options",
+   "Surround Sound",
+   "Steam Cloud",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "1623730": {
+  "success": true,
+  "name": "Palworld",
+  "developers": [
+   "Pocketpair"
+  ],
+  "publishers": [
+   "Pocketpair"
+  ],
+  "metacritic": null,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1623730/6912f19c43a95ff5fe514eedd35e68bf12335459/header.jpg?t=1790336367",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Workshop",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Steam Cloud",
+   "Family Sharing"
+  ]
+ },
+ "1659040": {
+  "success": true,
+  "name": "HITMAN World of Assassination",
+  "developers": [
+   "IO Interactive A/S"
+  ],
+  "publishers": [
+   "IO Interactive A/S"
+  ],
+  "metacritic": 87,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1659040/c62446d5c95f583a296d7f1b99045a61e2f81dea/header.jpg?t=1793706156",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Tracked Controller Support",
+   "VR Supported",
+   "VR Support",
+   "Custom Volume Controls",
+   "Playable without Timed Input",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Stereo Sound",
+   "Subtitle Options",
+   "Surround Sound",
+   "Steam Cloud",
+   "Family Sharing"
+  ]
+ },
+ "1693980": {
+  "success": true,
+  "name": "Dead Space",
+  "developers": [
+   "Motive"
+  ],
+  "publishers": [
+   "Electronic Arts"
+  ],
+  "metacritic": 87,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1693980/header.jpg?t=1777396576",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Camera Comfort",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Keyboard Only Option",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Stereo Sound",
+   "Subtitle Options",
+   "Surround Sound",
+   "Steam Cloud",
+   "HDR available",
+   "Family Sharing"
+  ]
+ },
+ "1794680": {
+  "success": true,
+  "name": "Vampire Survivors",
+  "developers": [
+   "poncle"
+  ],
+  "publishers": [
+   "poncle"
+  ],
+  "metacritic": 86,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1794680/2ca07b690dde645771125ed9d9206c4c5fde4dd4/header.jpg?t=1787911678",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Steam Cloud",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ },
+ "1817070": {
+  "success": true,
+  "name": "Marvel’s Spider-Man Remastered",
+  "developers": [
+   "Insomniac Games",
+   "Nixxes Software"
+  ],
+  "publishers": [
+   "PlayStation Publishing LLC"
+  ],
+  "metacritic": null,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1817070/header.jpg?t=1787838689",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Adjustable Text Size",
+   "Camera Comfort",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Adjustable Difficulty",
+   "Playable without Timed Input",
+   "DualShock Controller Support",
+   "DualSense Controller Support",
+   "Save Anytime",
+   "Steam Input API Support",
+   "Stereo Sound",
+   "Subtitle Options",
+   "Surround Sound",
+   "Steam Cloud",
+   "Remote Play on TV",
+   "Family Sharing"
+  ]
+ },
+ "1904540": {
+  "success": true,
+  "name": "Football Manager 2023",
+  "developers": [
+   "Sports Interactive"
+  ],
+  "publishers": [
+   "SEGA"
+  ],
+  "metacritic": null,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1904540/header.jpg?t=1700157303",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Steam Achievements",
+   "Steam Cloud",
+   "Family Sharing"
+  ]
+ },
+ "1966720": {
+  "success": true,
+  "name": "Lethal Company",
+  "developers": [
+   "Zeekerss"
+  ],
+  "publishers": [
+   "Zeekerss"
+  ],
+  "metacritic": null,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1966720/header.jpg?t=1775380053",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op",
+   "Custom Volume Controls",
+   "Stereo Sound",
+   "Partial Controller Support",
+   "Family Sharing"
+  ]
+ },
+ "2060130": {
+  "success": true,
+  "name": "Return to Monkey Island",
+  "developers": [
+   "Terrible Toybox"
+  ],
+  "publishers": [
+   "Devolver Digital"
+  ],
+  "metacritic": 87,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2060130/header.jpg?t=1711536318",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Cloud",
+   "Family Sharing"
+  ]
+ },
+ "2379780": {
+  "success": true,
+  "name": "Balatro",
+  "developers": [
+   "LocalThunk"
+  ],
+  "publishers": [
+   "Playstack"
+  ],
+  "metacritic": 90,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2379780/7a85430784e4d613cdb0547414d8cf16ffa45747/header.jpg?t=1790693638",
+  "categories": [
+   "Single-player",
+   "Steam Achievements",
+   "Full controller support",
+   "Steam Trading Cards",
+   "Color Alternatives",
+   "Custom Volume Controls",
+   "Mouse Only Option",
+   "Playable without Timed Input",
+   "DualSense Controller Support",
+   "Touch Only Option",
+   "Steam Cloud",
+   "Family Sharing"
+  ]
+ },
+ "2399830": {
+  "success": true,
+  "name": "ARK: Survival Ascended",
+  "developers": [
+   "Studio Wildcard",
+   "Grove Street Games",
+   "Instinct Games"
+  ],
+  "publishers": [
+   "Studio Wildcard",
+   "Snail Games USA"
+  ],
+  "metacritic": null,
+  "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2399830/d934813ca531af0fce69fe36bc972f1c90d1aa19/header.jpg?t=1793226168",
+  "categories": [
+   "Single-player",
+   "Multi-player",
+   "MMO",
+   "PvP",
+   "Online PvP",
+   "LAN PvP",
+   "Co-op",
+   "Online Co-op",
+   "LAN Co-op",
+   "Shared/Split Screen Co-op",
+   "Shared/Split Screen",
+   "Cross-Platform Multiplayer",
+   "Steam Achievements",
+   "Full controller support",
+   "Includes level editor",
+   "Remote Play Together",
+   "Family Sharing"
+  ]
+ }
+}
