@@ -1,0 +1,988 @@
+{
+  "run_at": "2026-11-06T19:12:16+00:00",
+  "schema": "hosted",
+  "model": "sentence-transformers/all-MiniLM-L6-v2",
+  "catalogue_games": 1005,
+  "pool_size": 50,
+  "metadata_weight": 0.3,
+  "k": 5,
+  "benchmark_queries": 20,
+  "before": {
+    "prompts": 20,
+    "mean_p@5": 0.25,
+    "mean_normalised": 0.375,
+    "mrr": 0.537,
+    "zero_hit_prompts": 7
+  },
+  "after": {
+    "prompts": 20,
+    "mean_p@5": 0.32,
+    "mean_normalised": 0.463,
+    "mrr": 0.633,
+    "zero_hit_prompts": 4
+  },
+  "outcomes": {
+    "improved": 5,
+    "regressed": 0,
+    "unchanged": 15
+  },
+  "by_category": {
+    "genre": {
+      "before": {
+        "prompts": 5,
+        "mean_p@5": 0.44,
+        "mean_normalised": 0.86,
+        "mrr": 0.9,
+        "zero_hit_prompts": 0
+      },
+      "after": {
+        "prompts": 5,
+        "mean_p@5": 0.44,
+        "mean_normalised": 0.86,
+        "mrr": 0.9,
+        "zero_hit_prompts": 0
+      }
+    },
+    "mood": {
+      "before": {
+        "prompts": 5,
+        "mean_p@5": 0.32,
+        "mean_normalised": 0.32,
+        "mrr": 0.409,
+        "zero_hit_prompts": 2
+      },
+      "after": {
+        "prompts": 5,
+        "mean_p@5": 0.44,
+        "mean_normalised": 0.44,
+        "mrr": 0.672,
+        "zero_hit_prompts": 1
+      }
+    },
+    "comparison": {
+      "before": {
+        "prompts": 5,
+        "mean_p@5": 0.08,
+        "mean_normalised": 0.09,
+        "mrr": 0.203,
+        "zero_hit_prompts": 3
+      },
+      "after": {
+        "prompts": 5,
+        "mean_p@5": 0.12,
+        "mean_normalised": 0.19,
+        "mrr": 0.24,
+        "zero_hit_prompts": 2
+      }
+    },
+    "platform": {
+      "before": {
+        "prompts": 5,
+        "mean_p@5": 0.16,
+        "mean_normalised": 0.23,
+        "mrr": 0.636,
+        "zero_hit_prompts": 2
+      },
+      "after": {
+        "prompts": 5,
+        "mean_p@5": 0.28,
+        "mean_normalised": 0.36,
+        "mrr": 0.722,
+        "zero_hit_prompts": 1
+      }
+    }
+  },
+  "weakest_categories": [
+    "comparison",
+    "platform",
+    "mood",
+    "genre"
+  ],
+  "sweep": {
+    "0.0": {
+      "all": {
+        "prompts": 20,
+        "mean_p@5": 0.26,
+        "mean_normalised": 0.4,
+        "mrr": 0.546,
+        "zero_hit_prompts": 6
+      },
+      "genre": {
+        "prompts": 5,
+        "mean_p@5": 0.44,
+        "mean_normalised": 0.86,
+        "mrr": 0.9,
+        "zero_hit_prompts": 0
+      },
+      "mood": {
+        "prompts": 5,
+        "mean_p@5": 0.32,
+        "mean_normalised": 0.32,
+        "mrr": 0.409,
+        "zero_hit_prompts": 2
+      },
+      "comparison": {
+        "prompts": 5,
+        "mean_p@5": 0.12,
+        "mean_normalised": 0.19,
+        "mrr": 0.24,
+        "zero_hit_prompts": 2
+      },
+      "platform": {
+        "prompts": 5,
+        "mean_p@5": 0.16,
+        "mean_normalised": 0.23,
+        "mrr": 0.636,
+        "zero_hit_prompts": 2
+      }
+    },
+    "0.1": {
+      "all": {
+        "prompts": 20,
+        "mean_p@5": 0.31,
+        "mean_normalised": 0.452,
+        "mrr": 0.617,
+        "zero_hit_prompts": 4
+      },
+      "genre": {
+        "prompts": 5,
+        "mean_p@5": 0.48,
+        "mean_normalised": 0.91,
+        "mrr": 0.9,
+        "zero_hit_prompts": 0
+      },
+      "mood": {
+        "prompts": 5,
+        "mean_p@5": 0.44,
+        "mean_normalised": 0.44,
+        "mrr": 0.655,
+        "zero_hit_prompts": 1
+      },
+      "comparison": {
+        "prompts": 5,
+        "mean_p@5": 0.12,
+        "mean_normalised": 0.19,
+        "mrr": 0.24,
+        "zero_hit_prompts": 2
+      },
+      "platform": {
+        "prompts": 5,
+        "mean_p@5": 0.2,
+        "mean_normalised": 0.27,
+        "mrr": 0.672,
+        "zero_hit_prompts": 1
+      }
+    },
+    "0.2": {
+      "all": {
+        "prompts": 20,
+        "mean_p@5": 0.32,
+        "mean_normalised": 0.463,
+        "mrr": 0.633,
+        "zero_hit_prompts": 4
+      },
+      "genre": {
+        "prompts": 5,
+        "mean_p@5": 0.44,
+        "mean_normalised": 0.86,
+        "mrr": 0.9,
+        "zero_hit_prompts": 0
+      },
+      "mood": {
+        "prompts": 5,
+        "mean_p@5": 0.44,
+        "mean_normalised": 0.44,
+        "mrr": 0.672,
+        "zero_hit_prompts": 1
+      },
+      "comparison": {
+        "prompts": 5,
+        "mean_p@5": 0.12,
+        "mean_normalised": 0.19,
+        "mrr": 0.24,
+        "zero_hit_prompts": 2
+      },
+      "platform": {
+        "prompts": 5,
+        "mean_p@5": 0.28,
+        "mean_normalised": 0.36,
+        "mrr": 0.722,
+        "zero_hit_prompts": 1
+      }
+    },
+    "0.3": {
+      "all": {
+        "prompts": 20,
+        "mean_p@5": 0.32,
+        "mean_normalised": 0.463,
+        "mrr": 0.633,
+        "zero_hit_prompts": 4
+      },
+      "genre": {
+        "prompts": 5,
+        "mean_p@5": 0.44,
+        "mean_normalised": 0.86,
+        "mrr": 0.9,
+        "zero_hit_prompts": 0
+      },
+      "mood": {
+        "prompts": 5,
+        "mean_p@5": 0.44,
+        "mean_normalised": 0.44,
+        "mrr": 0.672,
+        "zero_hit_prompts": 1
+      },
+      "comparison": {
+        "prompts": 5,
+        "mean_p@5": 0.12,
+        "mean_normalised": 0.19,
+        "mrr": 0.24,
+        "zero_hit_prompts": 2
+      },
+      "platform": {
+        "prompts": 5,
+        "mean_p@5": 0.28,
+        "mean_normalised": 0.36,
+        "mrr": 0.722,
+        "zero_hit_prompts": 1
+      }
+    },
+    "0.4": {
+      "all": {
+        "prompts": 20,
+        "mean_p@5": 0.31,
+        "mean_normalised": 0.45,
+        "mrr": 0.608,
+        "zero_hit_prompts": 4
+      },
+      "genre": {
+        "prompts": 5,
+        "mean_p@5": 0.4,
+        "mean_normalised": 0.81,
+        "mrr": 0.9,
+        "zero_hit_prompts": 0
+      },
+      "mood": {
+        "prompts": 5,
+        "mean_p@5": 0.44,
+        "mean_normalised": 0.44,
+        "mrr": 0.672,
+        "zero_hit_prompts": 1
+      },
+      "comparison": {
+        "prompts": 5,
+        "mean_p@5": 0.12,
+        "mean_normalised": 0.19,
+        "mrr": 0.24,
+        "zero_hit_prompts": 2
+      },
+      "platform": {
+        "prompts": 5,
+        "mean_p@5": 0.28,
+        "mean_normalised": 0.36,
+        "mrr": 0.622,
+        "zero_hit_prompts": 1
+      }
+    },
+    "0.5": {
+      "all": {
+        "prompts": 20,
+        "mean_p@5": 0.31,
+        "mean_normalised": 0.45,
+        "mrr": 0.608,
+        "zero_hit_prompts": 4
+      },
+      "genre": {
+        "prompts": 5,
+        "mean_p@5": 0.4,
+        "mean_normalised": 0.81,
+        "mrr": 0.9,
+        "zero_hit_prompts": 0
+      },
+      "mood": {
+        "prompts": 5,
+        "mean_p@5": 0.44,
+        "mean_normalised": 0.44,
+        "mrr": 0.672,
+        "zero_hit_prompts": 1
+      },
+      "comparison": {
+        "prompts": 5,
+        "mean_p@5": 0.12,
+        "mean_normalised": 0.19,
+        "mrr": 0.24,
+        "zero_hit_prompts": 2
+      },
+      "platform": {
+        "prompts": 5,
+        "mean_p@5": 0.28,
+        "mean_normalised": 0.36,
+        "mrr": 0.622,
+        "zero_hit_prompts": 1
+      }
+    }
+  },
+  "per_query": [
+    {
+      "id": "genre-01",
+      "category": "genre",
+      "prompt": "turn-based tactics where I command a squad against an alien invasion",
+      "attainable": 0.4,
+      "before_p@5": 0.4,
+      "after_p@5": 0.4,
+      "delta": 0.0,
+      "outcome": "unchanged",
+      "before_first_hit": 1,
+      "after_first_hit": 1,
+      "before_top_5": [
+        "XCOM: Enemy Unknown",
+        "Sabre Team",
+        "XCOM 2",
+        "Squad",
+        "Half-Life: Opposing Force"
+      ],
+      "after_top_5": [
+        "XCOM: Enemy Unknown",
+        "XCOM 2",
+        "Wasteland 3",
+        "Sabre Team",
+        "Squad"
+      ],
+      "expected_titles": [
+        "XCOM 2",
+        "XCOM: Enemy Unknown"
+      ],
+      "expected_missing_from_catalogue": []
+    },
+    {
+      "id": "genre-02",
+      "category": "genre",
+      "prompt": "metroidvania with a big map to explore and tough combat",
+      "attainable": 1.0,
+      "before_p@5": 0.8,
+      "after_p@5": 0.8,
+      "delta": 0.0,
+      "outcome": "unchanged",
+      "before_first_hit": 1,
+      "after_first_hit": 1,
+      "before_top_5": [
+        "Cave Story+",
+        "Hollow Knight",
+        "Dead Cells",
+        "Ori and the Will of the Wisps",
+        "METRO Last Light Redux"
+      ],
+      "after_top_5": [
+        "Hollow Knight",
+        "Dead Cells",
+        "Cave Story+",
+        "Ori and the Will of the Wisps",
+        "Blasphemous"
+      ],
+      "expected_titles": [
+        "Hollow Knight",
+        "Ori and the Blind Forest",
+        "Ori and the Will of the Wisps",
+        "Dead Cells",
+        "Cave Story+"
+      ],
+      "expected_missing_from_catalogue": []
+    },
+    {
+      "id": "genre-03",
+      "category": "genre",
+      "prompt": "grand strategy where I run a galactic empire",
+      "attainable": 0.2,
+      "before_p@5": 0.2,
+      "after_p@5": 0.2,
+      "delta": 0.0,
+      "outcome": "unchanged",
+      "before_first_hit": 2,
+      "after_first_hit": 2,
+      "before_top_5": [
+        "STAR WARS\u2122 Empire at War - Gold Pack",
+        "Stellaris",
+        "ENDLESS Space\u2122 2",
+        "X4: Foundations",
+        "Europa Universalis IV"
+      ],
+      "after_top_5": [
+        "STAR WARS\u2122 Empire at War - Gold Pack",
+        "Stellaris",
+        "ENDLESS Space\u2122 2",
+        "X4: Foundations",
+        "Europa Universalis IV"
+      ],
+      "expected_titles": [
+        "Stellaris"
+      ],
+      "expected_missing_from_catalogue": []
+    },
+    {
+      "id": "genre-04",
+      "category": "genre",
+      "prompt": "roguelike deckbuilder where each run I build a new deck",
+      "attainable": 0.4,
+      "before_p@5": 0.4,
+      "after_p@5": 0.4,
+      "delta": 0.0,
+      "outcome": "unchanged",
+      "before_first_hit": 1,
+      "after_first_hit": 1,
+      "before_top_5": [
+        "Slay the Spire",
+        "Balatro",
+        "Loop Hero",
+        "Cult of the Lamb",
+        "Hades"
+      ],
+      "after_top_5": [
+        "Slay the Spire",
+        "Balatro",
+        "Loop Hero",
+        "Cult of the Lamb",
+        "Hades"
+      ],
+      "expected_titles": [
+        "Slay the Spire",
+        "Balatro"
+      ],
+      "expected_missing_from_catalogue": []
+    },
+    {
+      "id": "genre-05",
+      "category": "genre",
+      "prompt": "sci-fi survival horror aboard a derelict space station",
+      "attainable": 0.8,
+      "before_p@5": 0.4,
+      "after_p@5": 0.4,
+      "delta": 0.0,
+      "outcome": "unchanged",
+      "before_first_hit": 1,
+      "after_first_hit": 1,
+      "before_top_5": [
+        "Dead Space (2023)",
+        "Alien: Isolation",
+        "Dead Space (2008)",
+        "Subnautica: Below Zero",
+        "Lethal Company"
+      ],
+      "after_top_5": [
+        "Alien: Isolation",
+        "Lethal Company",
+        "Outlast",
+        "Dead by Daylight",
+        "Dead Space (2023)"
+      ],
+      "expected_titles": [
+        "Dead Space (2023)",
+        "Alien: Isolation",
+        "SOMA",
+        "Prey (2017)"
+      ],
+      "expected_missing_from_catalogue": []
+    },
+    {
+      "id": "mood-01",
+      "category": "mood",
+      "prompt": "something calm and low stress to unwind with after a long day",
+      "attainable": 1.0,
+      "before_p@5": 0.6,
+      "after_p@5": 0.6,
+      "delta": 0.0,
+      "outcome": "unchanged",
+      "before_first_hit": 1,
+      "after_first_hit": 1,
+      "before_top_5": [
+        "Unpacking",
+        "A Short Hike",
+        "Cozy Grove",
+        "PowerWash Simulator",
+        "Keep Talking and Nobody Explodes"
+      ],
+      "after_top_5": [
+        "Unpacking",
+        "A Short Hike",
+        "Cozy Grove",
+        "PowerWash Simulator",
+        "Potion Craft"
+      ],
+      "expected_titles": [
+        "Stardew Valley",
+        "A Short Hike",
+        "Unpacking",
+        "Coffee Talk",
+        "Cozy Grove",
+        "Journey",
+        "ABZU",
+        "Spiritfarer"
+      ],
+      "expected_missing_from_catalogue": []
+    },
+    {
+      "id": "mood-02",
+      "category": "mood",
+      "prompt": "an emotional story that will probably make me cry",
+      "attainable": 1.0,
+      "before_p@5": 0.0,
+      "after_p@5": 0.2,
+      "delta": 0.2,
+      "outcome": "improved",
+      "before_first_hit": 48,
+      "after_first_hit": 3,
+      "before_top_5": [
+        "Cry of Fear",
+        "Secret in Story",
+        "Stories: The Path of Destinies",
+        "DmC: Devil May Cry",
+        "Crysis"
+      ],
+      "after_top_5": [
+        "To the Moon",
+        "Detroit: Become Human",
+        "Undertale",
+        "Cry of Fear",
+        "Secret in Story"
+      ],
+      "expected_titles": [
+        "Spiritfarer",
+        "GRIS",
+        "Night in the Woods",
+        "Firewatch",
+        "Undertale"
+      ],
+      "expected_missing_from_catalogue": []
+    },
+    {
+      "id": "mood-03",
+      "category": "mood",
+      "prompt": "genuinely scary, I want to feel tense the whole time",
+      "attainable": 1.0,
+      "before_p@5": 0.4,
+      "after_p@5": 0.8,
+      "delta": 0.4,
+      "outcome": "improved",
+      "before_first_hit": 2,
+      "after_first_hit": 1,
+      "before_top_5": [
+        "Layers of Fear (2016)",
+        "Amnesia: The Dark Descent",
+        "Alien: Isolation",
+        "The Evil Within",
+        "Poppy Playtime"
+      ],
+      "after_top_5": [
+        "Amnesia: The Dark Descent",
+        "Alien: Isolation",
+        "Phasmophobia",
+        "Dead by Daylight",
+        "Outlast"
+      ],
+      "expected_titles": [
+        "Alien: Isolation",
+        "Outlast",
+        "Amnesia: The Dark Descent",
+        "Phasmophobia",
+        "Lethal Company",
+        "SOMA"
+      ],
+      "expected_missing_from_catalogue": []
+    },
+    {
+      "id": "mood-04",
+      "category": "mood",
+      "prompt": "silly chaotic fun for a party with friends on the couch",
+      "attainable": 1.0,
+      "before_p@5": 0.6,
+      "after_p@5": 0.6,
+      "delta": 0.0,
+      "outcome": "unchanged",
+      "before_first_hit": 2,
+      "after_first_hit": 1,
+      "before_top_5": [
+        "Party Animals",
+        "Human: Fall Flat",
+        "Overcooked! 2",
+        "Unpacking",
+        "Golf With Your Friends"
+      ],
+      "after_top_5": [
+        "Human: Fall Flat",
+        "Overcooked! 2",
+        "Golf With Your Friends",
+        "Draw & Guess",
+        "Duck Game"
+      ],
+      "expected_titles": [
+        "Overcooked! 2",
+        "Human: Fall Flat",
+        "Fall Guys",
+        "Golf With Your Friends",
+        "Among Us"
+      ],
+      "expected_missing_from_catalogue": []
+    },
+    {
+      "id": "mood-05",
+      "category": "mood",
+      "prompt": "brutally hard but rewarding when I finally beat it",
+      "attainable": 1.0,
+      "before_p@5": 0.0,
+      "after_p@5": 0.0,
+      "delta": 0.0,
+      "outcome": "unchanged",
+      "before_first_hit": 40,
+      "after_first_hit": 40,
+      "before_top_5": [
+        "Bayonetta",
+        "Serious Sam HD: The First Encounter",
+        "Getting Over It with Bennett Foddy",
+        "Hunt: Showdown 1896",
+        "Brutal Legend"
+      ],
+      "after_top_5": [
+        "Bayonetta",
+        "Serious Sam HD: The First Encounter",
+        "Getting Over It with Bennett Foddy",
+        "Hunt: Showdown 1896",
+        "Brutal Legend"
+      ],
+      "expected_titles": [
+        "Dark Souls III",
+        "Sekiro: Shadows Die Twice",
+        "Elden Ring",
+        "Celeste",
+        "Super Meat Boy",
+        "Cuphead",
+        "Hollow Knight"
+      ],
+      "expected_missing_from_catalogue": []
+    },
+    {
+      "id": "comparison-01",
+      "category": "comparison",
+      "prompt": "like Stardew Valley but with more crafting and building",
+      "attainable": 0.8,
+      "before_p@5": 0.0,
+      "after_p@5": 0.0,
+      "delta": 0.0,
+      "outcome": "unchanged",
+      "before_first_hit": 73,
+      "after_first_hit": null,
+      "before_top_5": [
+        "Stardew Valley",
+        "ASTRONEER",
+        "The Planet Crafter",
+        "Don't Starve",
+        "Craftopia"
+      ],
+      "after_top_5": [
+        "ASTRONEER",
+        "The Planet Crafter",
+        "Don't Starve",
+        "Craftopia",
+        "Star Conflict"
+      ],
+      "expected_titles": [
+        "My Time at Portia",
+        "Dinkum",
+        "Ooblets",
+        "Slime Rancher"
+      ],
+      "expected_missing_from_catalogue": []
+    },
+    {
+      "id": "comparison-02",
+      "category": "comparison",
+      "prompt": "something like Dark Souls but with samurai and ninjas",
+      "attainable": 0.4,
+      "before_p@5": 0.0,
+      "after_p@5": 0.2,
+      "delta": 0.2,
+      "outcome": "improved",
+      "before_first_hit": 6,
+      "after_first_hit": 5,
+      "before_top_5": [
+        "DARK SOULS\u2122: REMASTERED",
+        "Dark Souls III",
+        "Yakuza 0",
+        "DARK SOULS\u2122 II: Scholar of the First Sin",
+        "SoulWorker - Anime Action MMO"
+      ],
+      "after_top_5": [
+        "Dark Souls III",
+        "Yakuza 0",
+        "DARK SOULS\u2122 II: Scholar of the First Sin",
+        "SoulWorker - Anime Action MMO",
+        "Sekiro: Shadows Die Twice"
+      ],
+      "expected_titles": [
+        "Sekiro: Shadows Die Twice",
+        "Nioh"
+      ],
+      "expected_missing_from_catalogue": []
+    },
+    {
+      "id": "comparison-03",
+      "category": "comparison",
+      "prompt": "I finished Hades, what other fast action roguelikes should I try",
+      "attainable": 1.0,
+      "before_p@5": 0.2,
+      "after_p@5": 0.2,
+      "delta": 0.0,
+      "outcome": "unchanged",
+      "before_first_hit": 2,
+      "after_first_hit": 2,
+      "before_top_5": [
+        "Hades",
+        "Hades II",
+        "Warhammer 40,000: Chaos Gate - Daemonhunters",
+        "Vampire Survivors",
+        "Neon Abyss"
+      ],
+      "after_top_5": [
+        "Hades",
+        "Hades II",
+        "Vampire Survivors",
+        "Neon Abyss",
+        "Deathmatch Classic"
+      ],
+      "expected_titles": [
+        "Hades II",
+        "Dead Cells",
+        "Enter the Gungeon",
+        "Risk of Rain 2",
+        "The Binding of Isaac: Rebirth"
+      ],
+      "expected_missing_from_catalogue": []
+    },
+    {
+      "id": "comparison-04",
+      "category": "comparison",
+      "prompt": "Factorio but in 3D and a bit less overwhelming",
+      "attainable": 0.2,
+      "before_p@5": 0.0,
+      "after_p@5": 0.0,
+      "delta": 0.0,
+      "outcome": "unchanged",
+      "before_first_hit": null,
+      "after_first_hit": null,
+      "before_top_5": [
+        "Factorio",
+        "BLOCKPOST LEGACY",
+        "BLOCKADE 3D",
+        "Crysis",
+        "Far Cry 3"
+      ],
+      "after_top_5": [
+        "Factorio",
+        "BLOCKPOST LEGACY",
+        "BLOCKADE 3D",
+        "Crysis",
+        "Far Cry 3"
+      ],
+      "expected_titles": [
+        "Satisfactory"
+      ],
+      "expected_missing_from_catalogue": []
+    },
+    {
+      "id": "comparison-05",
+      "category": "comparison",
+      "prompt": "short story game like Firewatch where you mostly walk and explore",
+      "attainable": 0.8,
+      "before_p@5": 0.2,
+      "after_p@5": 0.2,
+      "delta": 0.0,
+      "outcome": "unchanged",
+      "before_first_hit": 3,
+      "after_first_hit": 2,
+      "before_top_5": [
+        "Firewatch",
+        "Stories: The Path of Destinies",
+        "Journey",
+        "A Story About My Uncle",
+        "Mirror's Edge\u2122"
+      ],
+      "after_top_5": [
+        "Stories: The Path of Destinies",
+        "Journey",
+        "A Story About My Uncle",
+        "Mirror's Edge\u2122",
+        "Monster Hunter Wilds"
+      ],
+      "expected_titles": [
+        "Gone Home",
+        "Kentucky Route Zero",
+        "The Stanley Parable",
+        "Journey"
+      ],
+      "expected_missing_from_catalogue": []
+    },
+    {
+      "id": "platform-01",
+      "category": "platform",
+      "prompt": "cozy farming game I can play on Xbox",
+      "attainable": 0.8,
+      "before_p@5": 0.2,
+      "after_p@5": 0.4,
+      "delta": 0.2,
+      "outcome": "improved",
+      "before_first_hit": 1,
+      "after_first_hit": 1,
+      "before_top_5": [
+        "Stardew Valley",
+        "Farm Together",
+        "Farming Simulator 19",
+        "Valheim",
+        "Farming Simulator 22"
+      ],
+      "after_top_5": [
+        "Stardew Valley",
+        "Cozy Grove",
+        "Unpacking",
+        "Spiritfarer",
+        "My Time at Portia"
+      ],
+      "expected_titles": [
+        "Stardew Valley",
+        "Slime Rancher",
+        "My Time at Portia",
+        "Ooblets"
+      ],
+      "expected_missing_from_catalogue": []
+    },
+    {
+      "id": "platform-02",
+      "category": "platform",
+      "prompt": "co-op shooter on Steam where my friends and I fight off hordes",
+      "attainable": 1.0,
+      "before_p@5": 0.4,
+      "after_p@5": 0.4,
+      "delta": 0.0,
+      "outcome": "unchanged",
+      "before_first_hit": 1,
+      "after_first_hit": 1,
+      "before_top_5": [
+        "Killing Floor 2",
+        "Warhammer: Vermintide 2",
+        "Counter-Strike: Global Offensive",
+        "POLYGON",
+        "Helldivers 2"
+      ],
+      "after_top_5": [
+        "Killing Floor 2",
+        "Warhammer: Vermintide 2",
+        "Counter-Strike: Global Offensive",
+        "Helldivers 2",
+        "Team Fortress 2"
+      ],
+      "expected_titles": [
+        "Deep Rock Galactic",
+        "Left 4 Dead 2",
+        "Helldivers 2",
+        "Killing Floor 2",
+        "Risk of Rain 2"
+      ],
+      "expected_missing_from_catalogue": []
+    },
+    {
+      "id": "platform-03",
+      "category": "platform",
+      "prompt": "action roguelike on the Epic Games Store",
+      "attainable": 0.4,
+      "before_p@5": 0.2,
+      "after_p@5": 0.2,
+      "delta": 0.0,
+      "outcome": "unchanged",
+      "before_first_hit": 1,
+      "after_first_hit": 1,
+      "before_top_5": [
+        "Hades",
+        "Slay the Spire",
+        "Spelunky 2",
+        "The Binding of Isaac: Rebirth",
+        "Loop Hero"
+      ],
+      "after_top_5": [
+        "Hades",
+        "Tomb Raider",
+        "Slay the Spire",
+        "Spelunky 2",
+        "The Binding of Isaac: Rebirth"
+      ],
+      "expected_titles": [
+        "Hades",
+        "Hades II"
+      ],
+      "expected_missing_from_catalogue": []
+    },
+    {
+      "id": "platform-04",
+      "category": "platform",
+      "prompt": "story-heavy RPG on Xbox where my choices change the ending",
+      "attainable": 1.0,
+      "before_p@5": 0.0,
+      "after_p@5": 0.4,
+      "delta": 0.4,
+      "outcome": "improved",
+      "before_first_hit": 15,
+      "after_first_hit": 2,
+      "before_top_5": [
+        "Tales of ARISE",
+        "FINAL FANTASY XV WINDOWS EDITION",
+        "Stories: The Path of Destinies",
+        "Fallout: New Vegas",
+        "Grim Dawn"
+      ],
+      "after_top_5": [
+        "Fallout: New Vegas",
+        "The Witcher 3: Wild Hunt",
+        "Divinity: Original Sin",
+        "Wasteland 3",
+        "Baldur's Gate 3"
+      ],
+      "expected_titles": [
+        "The Witcher 3: Wild Hunt",
+        "Baldur's Gate 3",
+        "Divinity: Original Sin 2",
+        "Disco Elysium",
+        "Cyberpunk 2077"
+      ],
+      "expected_missing_from_catalogue": []
+    },
+    {
+      "id": "platform-05",
+      "category": "platform",
+      "prompt": "survive on a remote island and build a base with friends, on Steam",
+      "attainable": 0.8,
+      "before_p@5": 0.0,
+      "after_p@5": 0.0,
+      "delta": 0.0,
+      "outcome": "unchanged",
+      "before_first_hit": 9,
+      "after_first_hit": 9,
+      "before_top_5": [
+        "How to Survive",
+        "Palworld",
+        "Cozy Grove",
+        "Banished",
+        "Farm Together"
+      ],
+      "after_top_5": [
+        "How to Survive",
+        "Palworld",
+        "Cozy Grove",
+        "Banished",
+        "Farm Together"
+      ],
+      "expected_titles": [
+        "The Forest",
+        "Sons of the Forest",
+        "Raft",
+        "Valheim"
+      ],
+      "expected_missing_from_catalogue": []
+    }
+  ]
+}
