@@ -80,6 +80,9 @@ Set `NEXT_PUBLIC_API_URL` if the API isn't on `http://localhost:8000`.
 | Script | What it does | Idempotency |
 |--------|--------------|-------------|
 | `scripts/seed_games.py` | Inserts ~150 games from `scripts/fixtures/games.json` (or RAWG if `RAWG_API_KEY` set) | Upserts on `steam_appid`; re-run = updates, no dupes |
+| `scripts/ingest_games.py` + `catalogue_source.py` | Loads the hosted `public.games` from the seed fixture, no RAWG ([TM11-159](#rebuilding-the-hosted-catalogue-without-rawg-tm11-159)) | Upserts on `steam_appid`; identical rows skipped |
+| `scripts/steam_catalogue.py` | Grows the hosted catalogue to 1000 games from Steam's most-owned ranking ([TM11-159](#growing-the-hosted-catalogue-to-1000-games-tm11-159)) | Cached; the load is idempotent |
+| `scripts/verify_catalogue.py` | Read-only check of the hosted catalogue: size, duplicates, embeddings, benchmark titles | Read-only |
 | `scripts/embed_games.py` | Embeds each game's document ([template](embedding-documents.md)) → `embedding` column | Only embeds `NULL` rows; `--all` re-embeds everything |
 | `scripts/embed_catalogue.py` | Embeds the Supabase catalogue into `game_embeddings` in batches (TM11-39) | Only games with no vector from the model; `--all` re-embeds everything |
 | `scripts/seed_demo.py` | Local schema, the fixture catalogue, and the demo account: linked Steam account, 7-game library, 3 queries with recommendations, 5 votes (TM11-88) | Fixed keys and upserts; `--reset` wipes the account first, `--check` only verifies |
@@ -91,6 +94,133 @@ python scripts/embed_games.py --all
 ```
 Existing vectors made by a different model are incompatible — `--all` regenerates
 them. If you also changed the dimension, run migration `0002` (or recreate the DB).
+
+### Rebuilding the hosted catalogue without RAWG (TM11-159)
+
+RAWG is down, so the hosted `public.games` is loaded from the committed seed
+catalogue, `scripts/fixtures/games.json` (167 games, every TM11-63 benchmark
+title), enriched from Steam's public store data. `scripts/catalogue_source.py`
+maps it into the rows `ingest_games.py` expects, keyed on `steam_appid`. No API
+key is needed.
+
+The Steam details are cached in `.cache/catalogue/steam_appdetails.json`, so
+the load itself never calls Steam. The cache is **gitignored** (about 1.3 MB with
+the 1000-game data), so a fresh clone has to build it first, about 1.6s per app
+to stay under Steam's rate limit. For the seed games only:
+
+```bash
+python scripts/steam_store.py              # fetch app ids the cache lacks (~5 min from empty)
+python scripts/steam_store.py --refresh    # re-fetch all of them
+cd scripts && python -m unittest test_steam_store   # fails if an app id names another game
+```
+
+`steam_store.py` also writes the seed games' Steam names to the committed
+`scripts/fixtures/steam_seed_names.json`. That small file is what CI checks the
+fixture's app ids against; commit it when it changes. Without a cache, the load
+stops and says which script to run.
+
+This writes to the shared hosted database. Agree the run with the team first,
+and use the **service_role** connection string (`games` is write-restricted by
+RLS). Keep `DATABASE_URL` in `.env` only; never paste it into a command line.
+
+```bash
+pip install "psycopg[binary]"                        # once; ingest + verify need it
+set -a; source .env; set +a                          # DATABASE_URL = hosted, service_role
+
+# 0. Before: note the current state, so the run can be compared against it
+python scripts/verify_catalogue.py                   # expect FAIL now (about 16 games)
+
+# 1. Rehearse without touching the database: expect 167 valid, 0 rejected
+python scripts/ingest_games.py --source-func catalogue_source:fetch_steam_enriched_catalogue \
+    --source steam-seed --target 167 --dry-run --run-id steam-seed-dry-run
+
+# 2. Load the hosted catalogue
+python scripts/ingest_games.py --source-func catalogue_source:fetch_steam_enriched_catalogue \
+    --source steam-seed --target 167 --run-id steam-seed-01
+
+# 3. Run it again: expect inserted=0 updated=0 unchanged=167 (idempotent)
+python scripts/ingest_games.py --source-func catalogue_source:fetch_steam_enriched_catalogue \
+    --source steam-seed --target 167 --run-id steam-seed-02
+
+# 4. Embed the new games so search and recommend can return them
+python scripts/embed_catalogue.py
+
+# 5. Check: size, duplicates, embeddings, benchmark titles. Exit 0 = all pass
+python scripts/verify_catalogue.py
+```
+
+- **Reports:** `artifacts/ingestion/<run id>/ingestion_run.md` (counts, duration,
+  `rejects.jsonl` with a reason per rejected row), the embedding report under
+  `artifacts/embeddings/`, and `artifacts/sprint9/tm11-159-catalogue-check.md`.
+- **Idempotent:** the upsert is `ON CONFLICT (steam_appid)` and skips a row whose
+  values are identical, so a re-run touches nothing and doesn't churn
+  `updated_at` or invalidate embeddings.
+- **Rows already there:** the RAWG-era games have a `rawg_id` and no
+  `steam_appid`, so they would not hit that conflict. Before each upsert the
+  job gives a same-titled row with no `steam_appid` (trimmed, case-insensitive)
+  this game's app id, so the seed game updates that row in place and keeps
+  its `game_id`, `rawg_id` and library links. Its data columns are replaced by
+  the seed + Steam values (so its `XBOX` platform and RAWG tags go), and its
+  vector is re-embedded. The run report counts these as **Adopted by title**.
+  A RAWG game with no seed counterpart is left as it is.
+- **What's loaded:** from the fixture, title, description, genres, tags, release
+  date and review score (0–1 scaled to 0–100); from Steam, `critic_score`
+  (Metacritic, when Steam has one), publishers, developers, `header_image_url`
+  and its categories appended to tags; plus `steam_appid`,
+  `available_platforms = {STEAM}` and the Steam store link. Steam doesn't report
+  Xbox or Epic availability, so none is claimed; the benchmark's Xbox and Epic
+  prompts still need that from another source.
+- **App ids:** ten fixture games pointed at other Steam apps (Dinkum's was
+  Timberborn's) and Owlboy's didn't exist; TM11-159 corrected them.
+  `test_steam_store` compares every Steam name in `steam_seed_names.json` with
+  its fixture title, so a wrong id fails CI.
+- **Rejected rows:** an entry with no Steam app id, a blank title or a bad score
+  is rejected, logged with its reason and written to `rejects.jsonl`; the rest
+  still load. Exit code 2 means fewer than `--target` games loaded.
+- **Undo:** the load only inserts or updates `games`; it never deletes. To back
+  out a bad run, restore from the Supabase daily backup (Database → Backups).
+
+### Growing the hosted catalogue to 1000 games (TM11-159)
+
+`scripts/steam_catalogue.py` adds Steam's most-owned games, in SteamSpy's rank
+order, after the 167 seed games until the catalogue holds 1000. Each new game
+gets its description, genres, release date, developers, publishers, Metacritic
+score and header image from Steam's store data, its tags from SteamSpy's user
+tags (highest-voted first) plus Steam's categories, and a `review_score` from
+the share of positive Steam reviews (when it has 50+). No key is needed.
+
+```bash
+# 1. Fill the caches in .cache/catalogue/ (steamspy_ranking.json, steamspy_tags.json,
+#    steam_appdetails.json; gitignored). Fetches the seed games' details too, so it
+#    works from an empty cache on a fresh clone. Slow: Steam and SteamSpy are
+#    rate-limited, so about 3s per app, ~45 minutes from empty. Safe to stop and
+#    rerun; it resumes.
+python scripts/steam_catalogue.py --target 1000
+
+# 2-5. Same as the rebuild above, with the larger source and target
+python scripts/ingest_games.py --source-func steam_catalogue:fetch_top_steam_catalogue \
+    --source steam-top --limit 1000 --target 1000 --dry-run --run-id steam-top-dry-run
+python scripts/ingest_games.py --source-func steam_catalogue:fetch_top_steam_catalogue \
+    --source steam-top --limit 1000 --target 1000 --run-id steam-top-01
+python scripts/ingest_games.py --source-func steam_catalogue:fetch_top_steam_catalogue \
+    --source steam-top --limit 1000 --target 1000 --run-id steam-top-02   # expect unchanged=1000
+python scripts/embed_catalogue.py
+python scripts/verify_catalogue.py --min-games 1000
+```
+
+- **Seed games come first and keep their curated text;** a ranked app already in
+  the seed fixture is not loaded twice.
+- **Skipped apps** are logged and listed with a reason in
+  `artifacts/ingestion/steam-catalogue-skips.json`: not a game (DLC, software,
+  soundtrack), adult-only (Steam content descriptors 3 and 4), no description,
+  unknown to Steam, or a title already in the catalogue.
+- **Idempotent:** the load reads only the caches, so re-running it from the same
+  cache changes nothing. Re-running step 1 later only fetches apps the cache
+  lacks. A cache rebuilt elsewhere (or a newer SteamSpy ranking) can hold newer
+  Steam data, so a load from it may report some rows as updated; that is the
+  catalogue being refreshed, not duplicated.
+- Steam store names are used as titles (for example "Counter-Strike 2"), so a
+  RAWG-era row is only adopted when its title matches exactly.
 
 ### Embedding the Supabase catalogue (TM11-39)
 
@@ -282,3 +412,5 @@ auto-deploy from `main` once connected.
    then `supabase/seed.sql` (SQL editor or `psql`).
 3. Run `scripts/seed_games.py` and `scripts/embed_games.py` against the project's
    `DATABASE_URL`.
+   For the hosted `public.games` schema, follow
+   [Rebuilding the hosted catalogue without RAWG](#rebuilding-the-hosted-catalogue-without-rawg-tm11-159) instead.

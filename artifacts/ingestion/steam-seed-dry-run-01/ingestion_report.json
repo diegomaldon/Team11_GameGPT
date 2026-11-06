@@ -1,0 +1,87 @@
+{
+  "run_id": "steam-seed-dry-run-01",
+  "source": "steam-seed",
+  "generated_at": "2026-11-05T14:34:02+00:00",
+  "rows_total": 167,
+  "rows_valid": 167,
+  "rows_rejected": 0,
+  "rejection_reasons": {},
+  "warning_counts": {},
+  "coverage_valid_rows": {
+    "description": {
+      "present": 167,
+      "total": 167,
+      "pct": 100.0
+    },
+    "genres": {
+      "present": 167,
+      "total": 167,
+      "pct": 100.0
+    },
+    "scores": {
+      "present": 167,
+      "total": 167,
+      "pct": 100.0
+    },
+    "platforms": {
+      "present": 167,
+      "total": 167,
+      "pct": 100.0
+    },
+    "purchase_links": {
+      "present": 167,
+      "total": 167,
+      "pct": 100.0
+    }
+  },
+  "coverage_all_rows": {
+    "description": {
+      "present": 167,
+      "total": 167,
+      "pct": 100.0
+    },
+    "genres": {
+      "present": 167,
+      "total": 167,
+      "pct": 100.0
+    },
+    "scores": {
+      "present": 167,
+      "total": 167,
+      "pct": 100.0
+    },
+    "platforms": {
+      "present": 167,
+      "total": 167,
+      "pct": 100.0
+    },
+    "purchase_links": {
+      "present": 167,
+      "total": 167,
+      "pct": 100.0
+    }
+  },
+  "purchase_link_coverage": {
+    "any": {
+      "present": 167,
+      "total": 167,
+      "pct": 100.0
+    },
+    "STEAM": {
+      "present": 167,
+      "total": 167,
+      "pct": 100.0
+    },
+    "XBOX": {
+      "present": 0,
+      "total": 167,
+      "pct": 0.0
+    },
+    "EPIC": {
+      "present": 0,
+      "total": 167,
+      "pct": 0.0
+    }
+  },
+  "rejected": []
+}

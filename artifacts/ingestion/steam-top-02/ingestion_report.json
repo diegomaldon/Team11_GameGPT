@@ -1,0 +1,87 @@
+{
+  "run_id": "steam-top-02",
+  "source": "steam-top",
+  "generated_at": "2026-11-05T16:32:08+00:00",
+  "rows_total": 1000,
+  "rows_valid": 1000,
+  "rows_rejected": 0,
+  "rejection_reasons": {},
+  "warning_counts": {},
+  "coverage_valid_rows": {
+    "description": {
+      "present": 1000,
+      "total": 1000,
+      "pct": 100.0
+    },
+    "genres": {
+      "present": 1000,
+      "total": 1000,
+      "pct": 100.0
+    },
+    "scores": {
+      "present": 997,
+      "total": 1000,
+      "pct": 99.7
+    },
+    "platforms": {
+      "present": 1000,
+      "total": 1000,
+      "pct": 100.0
+    },
+    "purchase_links": {
+      "present": 1000,
+      "total": 1000,
+      "pct": 100.0
+    }
+  },
+  "coverage_all_rows": {
+    "description": {
+      "present": 1000,
+      "total": 1000,
+      "pct": 100.0
+    },
+    "genres": {
+      "present": 1000,
+      "total": 1000,
+      "pct": 100.0
+    },
+    "scores": {
+      "present": 997,
+      "total": 1000,
+      "pct": 99.7
+    },
+    "platforms": {
+      "present": 1000,
+      "total": 1000,
+      "pct": 100.0
+    },
+    "purchase_links": {
+      "present": 1000,
+      "total": 1000,
+      "pct": 100.0
+    }
+  },
+  "purchase_link_coverage": {
+    "any": {
+      "present": 1000,
+      "total": 1000,
+      "pct": 100.0
+    },
+    "STEAM": {
+      "present": 1000,
+      "total": 1000,
+      "pct": 100.0
+    },
+    "XBOX": {
+      "present": 0,
+      "total": 1000,
+      "pct": 0.0
+    },
+    "EPIC": {
+      "present": 0,
+      "total": 1000,
+      "pct": 0.0
+    }
+  },
+  "rejected": []
+}

@@ -35,6 +35,10 @@ eng.txt
 # Generated — openapi.json IS committed as the frozen contract (see below).
 web/lib/api/schema.d.ts
 
+# Fetched Steam/SteamSpy catalogue data (TM11-159). Large; scripts/steam_catalogue.py
+# rebuilds it. Only scripts/fixtures/steam_seed_names.json is committed.
+.cache/
+
 # OS / editor
 .DS_Store
 Thumbs.db

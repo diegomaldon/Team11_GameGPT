@@ -16,6 +16,10 @@ Row source is pluggable so the job does not care how rows were fetched:
   # called as function(limit=<int>)
   python3 scripts/ingest_games.py --source-func rawg_client:fetch_top_games --limit 3000
 
+  # TM11-159: the committed 167-game seed catalogue, keyed on steam_appid (no RAWG)
+  python3 scripts/ingest_games.py --source-func catalogue_source:fetch_seed_catalogue \\
+      --source steam-seed --target 167
+
 Database: set DATABASE_URL (use the service_role connection; `games` is
 write-restricted by RLS). Without --dry-run, needs `pip install "psycopg[binary]"`.
 """
@@ -112,6 +116,24 @@ def build_upsert_sql(id_col: str) -> str:
             f"RETURNING (xmax = 0) AS inserted")
 
 
+def build_adopt_sql(id_col: str) -> str:
+    """Give a same-titled row that has no `id_col` yet this row's id (TM11-159).
+
+    A row loaded from another source (the RAWG-era catalogue has rawg_id and no
+    steam_appid) would not hit ON CONFLICT (steam_appid), so the upsert would
+    add a second copy of the game. Claiming the existing row first turns that
+    into an in-place update and keeps its game_id, embeddings and library links.
+    Matches on trimmed, case-folded title; adopts at most one row, and only
+    when no row holds the id already.
+    """
+    return (f"UPDATE public.games SET {id_col} = %s "
+            f"WHERE game_id = (SELECT game_id FROM public.games "
+            f"WHERE {id_col} IS NULL AND lower(btrim(title)) = lower(btrim(%s)) "
+            f"ORDER BY created_at, game_id LIMIT 1) "
+            f"AND NOT EXISTS (SELECT 1 FROM public.games WHERE {id_col} = %s) "
+            f"RETURNING game_id")
+
+
 class PostgresStore:
     """Upserts into `games` keyed on the per-source unique id column.
 
@@ -123,16 +145,25 @@ class PostgresStore:
         from psycopg.types.json import Jsonb
         self._Jsonb = Jsonb
         self.conn = psycopg.connect(dsn)
+        self.adopted: list[str] = []
 
     def upsert(self, row: dict) -> str:
         data = normalise(row)
-        vals = [int(row["source_id"])]
+        source_id = int(row["source_id"])
+        vals = [source_id]
         for c in DATA_COLUMNS:
             v = data[c]
             vals.append(self._Jsonb(v) if c == "purchase_links" else v)
-        sql = build_upsert_sql(ID_COLUMN[row["source"]])
+        id_col = ID_COLUMN[row["source"]]
+        sql = build_upsert_sql(id_col)
         # nested transaction = savepoint, so one bad row can't poison the batch
         with self.conn.transaction():
+            adopted = self.conn.execute(build_adopt_sql(id_col),
+                                        [source_id, data["title"], source_id]).fetchone()
+            if adopted is not None:
+                key = f"{row['source']}:{source_id}"
+                log.info("adopted existing game %s for %s by title %r", adopted[0], key, data["title"])
+                self.adopted.append(key)
             res = self.conn.execute(sql, vals).fetchone()
         if res is None:
             return "unchanged"
@@ -161,6 +192,7 @@ class RunStats:
     inserted: int = 0
     updated: int = 0
     unchanged: int = 0
+    adopted: int = 0  # of the updates, rows claimed by title from another source
     fetch_seconds: float = 0.0
     load_seconds: float = 0.0
     total_seconds: float = 0.0
@@ -252,6 +284,7 @@ def run_job(rows: Iterable[dict], store: Store, run_id: str, source: str,
         if i % BATCH_SIZE == 0:
             store.commit()
     store.commit()
+    stats.adopted = len(getattr(store, "adopted", []))
     stats.load_seconds = round(time.perf_counter() - t1, 3)
 
     stats.target_met = stats.loaded >= target
@@ -284,6 +317,7 @@ def _write_run_summary(s: RunStats, out: Path) -> None:
           f"| Inserted (new) | {s.inserted} |",
           f"| Updated (present, values changed) | {s.updated} |",
           f"| Unchanged (present, identical) | {s.unchanged} |",
+          f"| Adopted by title (row from another source given this id) | {s.adopted} |",
           f"| Rejected — validation | {s.rejected_validation} |",
           f"| Rejected — database | {s.rejected_database} |",
           f"| Purchase links kept | {s.links_kept} |",
