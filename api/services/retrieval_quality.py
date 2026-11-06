@@ -83,6 +83,98 @@ def score_prompt(query: BenchmarkQuery, titles: Sequence[str], k: int = PRECISIO
     )
 
 
+# ───────────────────── summaries, before/after, weakest ─────────────────────
+
+
+@dataclass(frozen=True)
+class Summary:
+    """Mean scores over a group of prompts (one category, or all of them)."""
+
+    name: str
+    prompts: int
+    mean_precision: float
+    mean_normalised: float
+    mrr: float  # mean of 1 / first_hit_rank, 0 for a prompt with no hit
+    zero_hit_prompts: int  # prompts with nothing expected in the top k
+
+
+def summarise(name: str, scores: Sequence[PromptScore]) -> Summary:
+    if not scores:
+        raise ValueError(f"{name}: no prompts to summarise")
+    n = len(scores)
+    return Summary(
+        name=name,
+        prompts=n,
+        mean_precision=round(sum(s.precision for s in scores) / n, 3),
+        mean_normalised=round(sum(s.normalised for s in scores) / n, 3),
+        mrr=round(sum(1 / s.first_hit_rank if s.first_hit_rank else 0 for s in scores) / n, 3),
+        zero_hit_prompts=sum(1 for s in scores if s.hits == 0),
+    )
+
+
+def by_category(scores: Sequence[PromptScore]) -> dict[str, Summary]:
+    """One Summary per category, in the order categories first appear."""
+    order = list(dict.fromkeys(s.category for s in scores))
+    return {c: summarise(c, [s for s in scores if s.category == c]) for c in order}
+
+
+def weakest_categories(scores: Sequence[PromptScore]) -> list[Summary]:
+    """Categories weakest first: lowest normalised P@k, then lowest MRR, then name.
+
+    Normalised P@k leads so a category isn't called weak just because its
+    prompts expect fewer titles.
+    """
+    return sorted(by_category(scores).values(),
+                  key=lambda s: (s.mean_normalised, s.mrr, s.name))
+
+
+IMPROVED, REGRESSED, UNCHANGED = "improved", "regressed", "unchanged"
+
+
+@dataclass(frozen=True)
+class PromptChange:
+    """One prompt's score before and after a retrieval change."""
+
+    before: PromptScore
+    after: PromptScore
+
+    @property
+    def id(self) -> str:
+        return self.after.id
+
+    @property
+    def category(self) -> str:
+        return self.after.category
+
+    @property
+    def delta(self) -> float:
+        return round(self.after.precision - self.before.precision, 3)
+
+    @property
+    def outcome(self) -> str:
+        if self.delta > 0:
+            return IMPROVED
+        if self.delta < 0:
+            return REGRESSED
+        return UNCHANGED
+
+
+def compare(before: Sequence[PromptScore], after: Sequence[PromptScore]) -> list[PromptChange]:
+    """Pair two runs prompt by prompt. Both must score the same prompts in the same order."""
+    if [s.id for s in before] != [s.id for s in after]:
+        raise ValueError("before and after must score the same prompts in the same order")
+    if any(b.k != a.k for b, a in zip(before, after)):
+        raise ValueError("before and after must use the same k")
+    return [PromptChange(b, a) for b, a in zip(before, after)]
+
+
+def outcome_counts(changes: Sequence[PromptChange]) -> dict[str, int]:
+    counts = {IMPROVED: 0, REGRESSED: 0, UNCHANGED: 0}
+    for c in changes:
+        counts[c.outcome] += 1
+    return counts
+
+
 def _distinct(titles: Sequence[str]) -> list[str]:
     """Titles in order with repeats dropped, so one game can't fill two slots."""
     seen: set[str] = set()
