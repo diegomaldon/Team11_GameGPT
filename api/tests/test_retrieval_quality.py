@@ -195,3 +195,72 @@ def test_ac03_ties_break_on_mrr_then_name():
     none_a = score_prompt(a, ["x"])
     none_b = score_prompt(b, ["x"])
     assert [s.name for s in weakest_categories([none_a, none_b])] == ["genre", "mood"]
+
+
+# ──────────── the report scripts/eval_retrieval_quality.py writes ────────────
+
+
+def _load_script():
+    import importlib.util
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parents[2] / "scripts" / "eval_retrieval_quality.py"
+    spec = importlib.util.spec_from_file_location("eval_retrieval_quality", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+META = {"run_at": "2026-11-06T00:00:00+00:00", "schema": "hosted", "model": "m",
+        "catalogue_games": 3, "pool_size": 50, "metadata_weight": 0.3}
+
+
+@pytest.fixture(scope="module")
+def report():
+    script = _load_script()
+    before = [["A", "x", "y", "z", "w"], ["M", "N", "O", "x", "y"], ["x", "y", "z", "w", "v"]]
+    after = [["A", "B", "x", "y", "z"], ["M", "x", "y", "z", "w"], ["x", "y", "z", "w", "v"]]
+    return script, script.build_report(
+        [GENRE, MOOD, PLATFORM], before, after, {0.0: before, 0.3: after},
+        catalogue_titles={"A", "B", "C", "D", "M", "N", "O", "P"}, meta=META,
+    )
+
+
+def test_ac01_report_records_p_at_5_for_every_prompt(report):
+    _, r = report
+    assert [(q["id"], q["after_p@5"]) for q in r["per_query"]] == [
+        ("genre-01", 0.4), ("mood-01", 0.2), ("platform-01", 0.0)]
+    assert r["k"] == 5
+
+
+def test_ac02_report_carries_before_after_and_the_sweep(report):
+    _, r = report
+    assert [q["before_p@5"] for q in r["per_query"]] == [0.2, 0.6, 0.0]
+    assert r["outcomes"] == {"improved": 1, "regressed": 1, "unchanged": 1}
+    assert set(r["sweep"]) == {"0.0", "0.3"}
+    assert r["by_category"]["genre"]["after"]["mean_p@5"] == 0.4
+
+
+def test_ac03_report_names_the_weakest_categories_and_missing_titles(report):
+    _, r = report
+    assert r["weakest_categories"] == ["platform", "mood", "genre"]
+    assert r["per_query"][2]["expected_missing_from_catalogue"] == ["S"]
+
+
+def test_report_needs_one_result_list_per_prompt(report):
+    script, _ = report
+    with pytest.raises(ValueError, match="one result list"):
+        script.build_report([GENRE], [], [], {}, set(), META)
+
+
+def test_markdown_has_every_section_and_prompt(report):
+    script, r = report
+    md = script.to_markdown(r)
+    for heading in ("## By category", "## Metadata weight sweep", "## Per prompt",
+                    "## Catalogue coverage"):
+        assert heading in md
+    for q in r["per_query"]:
+        assert f"| {q['id']} |" in md
+    assert "1 improved, 1 regressed, 1 unchanged" in md
+    assert "| 0.3 (chosen) |" in md
+    assert "| platform-01 | S |" in md
