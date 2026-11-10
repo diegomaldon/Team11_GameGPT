@@ -188,7 +188,17 @@ export default function DiscoverPage() {
           </ul>
         )}
 
-        {result && !loading && (
+        {result && !loading && result.notice && (
+          // TM11-66: e.g. every match is already in the library. Said, never a blank list.
+          <div
+            role="status"
+            className="mb-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 text-sm text-[var(--ink-soft)]"
+          >
+            {result.notice.message}
+          </div>
+        )}
+
+        {result && !loading && result.recommendations.length > 0 && (
           <>
             <div className="mb-5 flex items-baseline justify-between gap-4">
               <h2 className="font-display text-[28px]">

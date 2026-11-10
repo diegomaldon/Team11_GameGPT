@@ -272,7 +272,8 @@ async def test_the_pipeline_retrieves_with_the_parsed_signals():
 
     store = FakeStore([game("Off genre", 0.6), game("Hades", 0.5, genres=["Roguelike"])])
     stub = Stub()
-    await RAGPipeline(stub, store, stub, stub, k=1, parser=Parser()).recommend(
+    # refill_k=1: no TM11-66 refill, so the LLM sees exactly the first pass.
+    await RAGPipeline(stub, store, stub, stub, k=1, refill_k=1, parser=Parser()).recommend(
         UUID(int=1), "a roguelike"
     )
 

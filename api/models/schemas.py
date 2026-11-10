@@ -59,6 +59,21 @@ class Recommendation(BaseModel):
     review_score: Optional[float] = None
 
 
+class RecommendNotice(BaseModel):
+    """Why a recommend call came back with fewer results than asked for (TM11-66).
+
+    `code` is for the client to branch on; `message` is safe to show as is.
+    """
+
+    code: str = Field(
+        ...,
+        description="Machine-readable reason. 'all_owned': every match is already in "
+        "the user's library.",
+        examples=["all_owned"],
+    )
+    message: str = Field(..., description="A sentence the client can show the user.")
+
+
 class RecommendResponse(BaseModel):
     """Body returned from POST /api/recommend."""
 
@@ -67,6 +82,10 @@ class RecommendResponse(BaseModel):
     )
     query: str
     recommendations: list[Recommendation]
+    notice: Optional[RecommendNotice] = Field(
+        default=None,
+        description="Set when the results are short or empty for a known reason (TM11-66).",
+    )
 
 
 # ─────────────────────────── /api/history (TM11-64) ───────────────────────────

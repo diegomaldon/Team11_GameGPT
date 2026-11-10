@@ -21,6 +21,7 @@ from api.models import HistoryEntry, Recommendation
 from api.routers import history as history_router
 from api.routers import recommend as recommend_router
 from api.services import query_history
+from api.services.rag_pipeline import RecommendOutcome
 
 USER = uuid4()
 ASKED_AT = datetime(2026, 11, 3, 15, 0, tzinfo=timezone.utc)
@@ -307,8 +308,8 @@ class FakePipeline:
     def __init__(self, *args, **kwargs) -> None:
         pass
 
-    async def recommend(self, user_id, query, *, timings=None):
-        return RESULTS
+    async def recommend_outcome(self, user_id, query, *, timings=None):
+        return RecommendOutcome(RESULTS)
 
 
 @pytest.fixture

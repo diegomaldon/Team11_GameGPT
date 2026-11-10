@@ -151,7 +151,27 @@ query and its results to the user's history in the background (TM11-64).
 | Field | Type | Notes |
 |-------|------|-------|
 | `query_id` | uuid | The id the query is saved under — echo it back in feedback |
-| `recommendations[]` | array | 3 items; `rank` 1..n; `reason` never empty |
+| `recommendations[]` | array | Up to 3 items; `rank` 1..n; `reason` never empty; never a game the user owns |
+| `notice` | object \| null | `null` normally. Set when the list is short or empty for a known reason (TM11-66) |
+
+**200, every match already owned** (TM11-66)
+```json
+{
+  "query_id": "5eee89fc-1c2a-4f3b-9a1e-8b0c7d2e5f10",
+  "query": "a cozy farming sim",
+  "recommendations": [],
+  "notice": {
+    "code": "all_owned",
+    "message": "You already own every game that matches this search. Try describing it differently or widening the genre."
+  }
+}
+```
+- Owned games are dropped before the LLM ranks (REQ007), on every linked platform.
+  If that leaves fewer than 3, the API searches deeper once (top 100) and keeps
+  the unowned games it finds. Only if none are left does it answer with
+  `notice.code = "all_owned"`, and the LLM isn't called. Branch on `code`;
+  `message` is safe to show as is. New codes may be added, so treat an unknown
+  code as "show the message".
 
 - The response is sent first. The query and its results are then saved in one
   transaction as a background task, so a slow or failed write never delays or

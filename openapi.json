@@ -1547,6 +1547,30 @@
         "title": "PlatformGamesRemoved",
         "description": "Body returned from DELETE /api/library/platforms/{platform} (TM11-61)."
       },
+      "RecommendNotice": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "Machine-readable reason. 'all_owned': every match is already in the user's library.",
+            "examples": [
+              "all_owned"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "A sentence the client can show the user."
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "RecommendNotice",
+        "description": "Why a recommend call came back with fewer results than asked for (TM11-66).\n\n`code` is for the client to branch on; `message` is safe to show as is."
+      },
       "RecommendRequest": {
         "properties": {
           "query": {
@@ -1582,6 +1606,17 @@
             },
             "type": "array",
             "title": "Recommendations"
+          },
+          "notice": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecommendNotice"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set when the results are short or empty for a known reason (TM11-66)."
           }
         },
         "type": "object",

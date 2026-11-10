@@ -21,6 +21,7 @@ from api.observability.stage_timings import (
     StageTimings,
 )
 from api.routers import recommend as recommend_router
+from api.services.rag_pipeline import RecommendOutcome
 
 
 class FakeClock:
@@ -134,15 +135,15 @@ class TimedFakePipeline:
     def __init__(self, *args, **kwargs) -> None:
         pass
 
-    async def recommend(self, user_id, query, *, timings):
+    async def recommend_outcome(self, user_id, query, *, timings):
         for stage in STAGES:
             with timings.stage(stage):
                 pass
-        return [RESULT]
+        return RecommendOutcome([RESULT])
 
 
 class FailingFakePipeline(TimedFakePipeline):
-    async def recommend(self, user_id, query, *, timings):
+    async def recommend_outcome(self, user_id, query, *, timings):
         with timings.stage("rank"):
             raise RuntimeError("LLM provider down")
 
