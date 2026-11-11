@@ -68,10 +68,12 @@ _SAVE_RESULTS_SQL = {
               "values (%s, %s, %s, %s, %s)",
 }
 # The user's latest queries first, then their results joined on. A query with
-# no saved results still comes back, with nulls in the result columns.
+# no saved results still comes back, with nulls in the result columns. Each
+# result's time is the row's own (TM11-69): generated_at hosted, created_at in
+# the local slice, which has no generated_at column.
 _LIST_HISTORY_SQL = {
     "hosted": "select q.query_id, q.query_text, q.created_at, "
-              "r.rank, r.game_id, g.title, r.explanation, g.steam_appid "
+              "r.rank, r.game_id, g.title, r.explanation, g.steam_appid, r.generated_at "
               "from (select query_id, query_text, created_at from public.queries "
               "where user_id = %s order by created_at desc limit %s) q "
               "left join public.recommendations r on r.query_id = q.query_id "
@@ -80,7 +82,8 @@ _LIST_HISTORY_SQL = {
     # The local slice still copies the title. Prefer the catalogue's, so both
     # shapes read the game's current title.
     "legacy": "select q.id, q.text, q.created_at, "
-              "r.rank, r.game_id, coalesce(g.title, r.title), r.reason, g.steam_appid "
+              "r.rank, r.game_id, coalesce(g.title, r.title), r.reason, g.steam_appid, "
+              "r.created_at "
               "from (select id, text, created_at from queries "
               "where user_id = %s order by created_at desc limit %s) q "
               "left join recommendations r on r.query_id = q.id "
@@ -131,14 +134,14 @@ async def list_query_history(user_id: UUID, *, limit: int) -> list[HistoryEntry]
             rows = await cur.fetchall()
 
     entries: dict[UUID, HistoryEntry] = {}
-    for query_id, text, created_at, rank, game_id, title, reason, steam_appid in rows:
+    for query_id, text, created_at, rank, game_id, title, reason, steam_appid, made_at in rows:
         entry = entries.setdefault(
             _as_uuid(query_id), HistoryEntry(query_id=query_id, query=text, created_at=created_at)
         )
         if rank is not None:
             entry.recommendations.append(HistoryRecommendation(
                 rank=rank, game_id=_as_uuid(game_id), title=title or "",
-                reason=reason, steam_appid=steam_appid,
+                reason=reason, steam_appid=steam_appid, generated_at=made_at,
             ))
     return list(entries.values())
 
