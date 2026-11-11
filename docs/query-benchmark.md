@@ -8,7 +8,9 @@ and every evaluation scores the same questions.
 - Loader: `api/services/query_benchmark.py` (`load_query_benchmark`, `BenchmarkQuery`)
 - Tests: `api/tests/test_query_benchmark.py`, run in the CI **API tests** job
 - Used by: `scripts/eval_vector_index.py` (TM11-40), `scripts/eval_search_latency.py`
-  (TM11-42). The TM11-67 quality evaluation should import the same loader.
+  (TM11-42), `scripts/eval_hybrid_retrieval.py` (TM11-65) and
+  `scripts/eval_retrieval_quality.py` (TM11-67). Precision at 5 per prompt and
+  the weakest categories are written up in [retrieval-quality.md](retrieval-quality.md).
 
 ## The prompts
 

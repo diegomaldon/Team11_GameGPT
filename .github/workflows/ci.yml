@@ -250,6 +250,13 @@ jobs:
         working-directory: .
         run: python -m pytest api/tests/test_hybrid_retrieval.py -v
 
+      # TM11-67. Precision at 5 per prompt, the before/after comparison and the
+      # weakest-category ranking are acceptance criteria. Pure scoring, no
+      # database or model; the live run is scripts/eval_retrieval_quality.py.
+      - name: Pytest — retrieval quality evaluation
+        working-directory: .
+        run: python -m pytest api/tests/test_retrieval_quality.py -v
+
       # TM11-64. Every query and its results saved, game ids not copied titles,
       # the save never blocking or failing the response. The database is faked.
       - name: Pytest — query history
