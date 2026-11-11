@@ -1,4 +1,5 @@
-"""LLMService tests: the keyless fallback, and the TM11-69 prompt and parsing."""
+"""LLMService tests: the keyless fallback, the TM11-69 prompt and parsing, and the
+TM11-71 hallucination guard."""
 
 from __future__ import annotations
 
@@ -196,7 +197,7 @@ async def test_a_made_up_title_is_dropped_even_with_a_valid_index(candidates, ca
     assert titles[:2] == ["Stardew Valley", "Dorfromantik"]
     [record] = [r for r in caplog.records if r.msg == "llm.picks_rejected"]
     assert record.rejected_count == 1
-    assert record.rejected_titles == ["Animal Crossing: New Horizons"]
+    assert record.rejected_picks == [{"index": 1, "title": "Animal Crossing: New Horizons"}]
 
 
 async def test_out_of_range_and_non_numeric_indexes_are_dropped(candidates):
@@ -484,7 +485,7 @@ async def test_a_long_rejected_title_is_capped_in_the_log(candidates, caplog):
         _picks_to_recs(data, candidates, "cozy", 3)
 
     [record] = [r for r in caplog.records if r.msg == "llm.picks_rejected"]
-    assert record.rejected_titles == ["X" * 100]
+    assert record.rejected_picks == [{"index": 0, "title": "X" * 100}]
 
 
 # PR #61 review (Diego): an abbreviation's full stop is not a sentence end.
@@ -504,3 +505,133 @@ async def test_etc_still_ends_a_sentence():
     assert normalise_explanation("Farming, fishing, etc. Very calm. Third.") == (
         "Farming, fishing, etc. Very calm."
     )
+
+
+# TM11-71 (REQ015): the hallucination guard. A pick whose title is not one of the
+# candidates the model was shown is rejected, and the log says what the model wrote.
+
+DARK_SOULS_II = "DARK SOULS™ II: Scholar of the First Sin"
+
+
+async def test_a_trademark_or_punctuation_variant_of_a_candidate_is_not_rejected(caplog):
+    pool = [make_candidate("Stardew Valley"), make_candidate(DARK_SOULS_II)]
+    data = {"recommendations": [
+        _pick(1, "Dark Souls II - Scholar of the First Sin"),
+        _pick(0, "stardew valley"),
+    ]}
+
+    with caplog.at_level(logging.WARNING, logger="gamegpt.llm"):
+        recs = _picks_to_recs(data, pool, "hard", 2)
+
+    assert [r.title for r in recs] == [DARK_SOULS_II, "Stardew Valley"]
+    assert not _records(caplog, "llm.picks_rejected")
+
+
+async def test_a_variant_title_finds_its_candidate_even_with_the_wrong_index():
+    pool = [make_candidate("Stardew Valley"), make_candidate(DARK_SOULS_II)]
+    data = {"recommendations": [_pick(0, "Dark Souls II: Scholar of the First Sin")]}
+
+    recs = _picks_to_recs(data, pool, "hard", 1)
+
+    assert recs[0].game_id == pool[1].game_id
+
+
+async def test_another_edition_of_a_candidate_is_rejected_not_matched(caplog):
+    pool = [make_candidate("Dark Souls III"), make_candidate("Sekiro: Shadows Die Twice")]
+    data = {"recommendations": [
+        _pick(0, "Dark Souls Remastered"),
+        _pick(1, "Sekiro: Shadows Die Twice"),
+    ]}
+
+    with caplog.at_level(logging.WARNING, logger="gamegpt.llm"):
+        recs = _picks_to_recs(data, pool, "hard", 2)
+
+    assert recs[0].title == "Sekiro: Shadows Die Twice"
+    [record] = _records(caplog, "llm.picks_rejected")
+    assert record.rejected_picks == [{"index": 0, "title": "Dark Souls Remastered"}]
+
+
+@pytest.mark.parametrize("title", ["™", "!!!"])
+async def test_a_title_of_only_symbols_is_rejected_not_trusted_by_its_index(
+    candidates, caplog, title
+):
+    # Regression guard, not a new rule: these were already rejected, but
+    # normalise_title turns them into "", which would let the index decide.
+    data = {"recommendations": [_pick(0, title), _pick(1, "Coffee Talk")]}
+
+    with caplog.at_level(logging.WARNING, logger="gamegpt.llm"):
+        recs = _picks_to_recs(data, candidates, "cozy", 1)
+
+    assert recs[0].title == "Coffee Talk"
+    [record] = _records(caplog, "llm.picks_rejected")
+    assert record.rejected_picks == [{"index": 0, "title": title}]
+
+
+async def test_a_rejected_pick_without_a_usable_title_still_logs_what_was_sent(
+    candidates, caplog
+):
+    data = {"recommendations": [
+        {"index": 99, "explanation": "No such candidate."},
+        "Elden Ring",
+        _pick(3, "Unpacking"),
+    ]}
+
+    with caplog.at_level(logging.WARNING, logger="gamegpt.llm"):
+        _picks_to_recs(data, candidates, "cozy", 3)
+
+    [record] = _records(caplog, "llm.picks_rejected")
+    assert record.rejected_count == 2
+    assert record.rejected_picks == [{"index": 99, "title": None}, {"pick": "Elden Ring"}]
+
+
+async def test_a_numeric_index_is_logged_as_a_number_and_anything_else_as_text(
+    candidates, caplog
+):
+    # PR #62 review (Maceo): a string "1" in the log won't match a number filter.
+    data = {"recommendations": [
+        _pick(7, "Fake One"),
+        _pick("7", "Fake Two"),
+        _pick(True, "Fake Three"),
+        _pick(0, "Stardew Valley"),
+    ]}
+
+    with caplog.at_level(logging.WARNING, logger="gamegpt.llm"):
+        _picks_to_recs(data, candidates, "cozy", 1)
+
+    [record] = _records(caplog, "llm.picks_rejected")
+    assert [p["index"] for p in record.rejected_picks] == [7, "7", "True"]
+    assert '"index": 7,' in JsonFormatter().format(record)
+
+
+async def test_a_rejected_picks_explanation_stays_out_of_the_log(candidates, caplog):
+    # The explanation is free text that can repeat the player's request.
+    data = {"recommendations": [
+        _pick(1, "Made Up Game", "Perfect for your podcast night with Sam."),
+        _pick(0, "Stardew Valley"),
+    ]}
+
+    with caplog.at_level(logging.WARNING, logger="gamegpt.llm"):
+        _picks_to_recs(data, candidates, "cozy", 3)
+
+    [record] = _records(caplog, "llm.picks_rejected")
+    line = JsonFormatter().format(record)
+    assert "Made Up Game" in line
+    assert "podcast" not in line
+
+
+async def test_a_game_filtered_out_before_ranking_is_rejected_when_the_model_names_it(
+    monkeypatch, caplog, candidates
+):
+    # Owned games are dropped before rank() (TM11-66), so the guard checks the
+    # filtered list: naming the owned game is a rejection, not a result.
+    owned, unowned = candidates[0], candidates[1:]
+    _fake_gemini(monkeypatch, _gemini_body([_pick(0, owned.title), _pick(1, "Dorfromantik")]))
+    llm = LLMService(gemini_api_key=GEMINI_KEY, anthropic_api_key=None)
+
+    with caplog.at_level(logging.WARNING, logger="gamegpt.llm"):
+        recs = await llm.rank("cozy", unowned, n=3)
+
+    assert owned.game_id not in {r.game_id for r in recs}
+    assert recs[0].title == "Dorfromantik"
+    [record] = _records(caplog, "llm.picks_rejected")
+    assert record.rejected_picks == [{"index": 0, "title": owned.title}]
