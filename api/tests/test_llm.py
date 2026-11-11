@@ -1,10 +1,17 @@
-"""LLMService keyless deterministic fallback tests."""
+"""LLMService tests: the keyless fallback, and the TM11-69 prompt and parsing."""
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
-from api.services.llm import LLMService, clamp_recommendation_count
+from api.services.llm import (
+    LLMService,
+    _build_messages,
+    _picks_to_recs,
+    clamp_recommendation_count,
+)
 from api.tests.conftest import make_candidate
 
 pytestmark = pytest.mark.asyncio
@@ -72,3 +79,46 @@ async def test_rank_asks_for_at_least_three(candidates):
     recs = await llm.rank("anything", candidates, n=1)
 
     assert len(recs) == 3
+
+
+# TM11-69 AC-01: the prompt asks for ranked titles, each with a one or two
+# sentence explanation.
+
+async def test_prompt_lists_every_candidate_by_index_and_title(candidates):
+    system, user = _build_messages("cozy farming", candidates, 3)
+
+    payload = user.split("Candidates (JSON):\n", 1)[1].split("\n\n", 1)[0]
+    listed = json.loads(payload)
+    assert [(c["index"], c["title"]) for c in listed] == [
+        (i, c.title) for i, c in enumerate(candidates)
+    ]
+    assert "Request: cozy farming" in user
+
+
+async def test_prompt_asks_for_ranked_titles_with_short_explanations(candidates):
+    system, user = _build_messages("cozy farming", candidates, 4)
+
+    assert "exactly 4 games" in user
+    assert '"rank"' in user and '"title"' in user and '"explanation"' in user
+    assert "one or two sentences" in user
+    assert "best match first" in user
+
+
+async def test_prompt_forbids_games_outside_the_list(candidates):
+    system, _ = _build_messages("anything", candidates, 3)
+
+    assert "Only choose games from the candidate list" in system
+    assert "Never suggest a game that is not on the list" in system
+
+
+async def test_explanation_key_is_read_and_reason_still_accepted(candidates):
+    data = {"recommendations": [
+        {"rank": 1, "index": 1, "title": "Coffee Talk", "explanation": "Chatty and calm."},
+        {"index": 0, "reason": "Older response shape."},
+    ]}
+
+    recs = _picks_to_recs(data, candidates, "cozy", 2)
+
+    assert [(r.title, r.reason) for r in recs] == [
+        ("Coffee Talk", "Chatty and calm."), ("Stardew Valley", "Older response shape."),
+    ]

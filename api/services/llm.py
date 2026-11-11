@@ -77,8 +77,20 @@ def _extract_json(text: str) -> str:
     return text[start:end + 1]
 
 
-def _build_messages(query: str, pool: list[GameCandidate], want: int):
-    """Shared prompt for every provider."""
+# The model sees each candidate by index and title and must echo both back, so
+# the parser can check every pick against the set it was given (AC-03).
+_SYSTEM_PROMPT = (
+    "You are GameGPT's recommendation ranker. You are given a player's request and a "
+    "numbered list of candidate games retrieved from our catalogue. Choose the games "
+    "that best fit the request and rank them, best first. Only choose games from the "
+    "candidate list, and copy each one's index and title exactly. Never suggest a "
+    "game that is not on the list. Respond with only a JSON object, no prose and no "
+    "code fences."
+)
+
+
+def _build_messages(query: str, pool: list[GameCandidate], want: int) -> tuple[str, str]:
+    """The system and user prompt every provider sends (TM11-69 AC-01)."""
     catalog = [
         {
             "index": i,
@@ -90,20 +102,20 @@ def _build_messages(query: str, pool: list[GameCandidate], want: int):
         }
         for i, c in enumerate(pool)
     ]
-    system = (
-        "You are a game recommendation engine. Rank the candidate games by how "
-        "well they fit the user's query. Respond with ONLY a JSON object, no prose."
-    )
     user = (
-        f"Query: {query}\n\n"
+        f"Request: {query}\n\n"
         f"Candidates (JSON):\n{json.dumps(catalog)}\n\n"
-        f"Return a JSON object of the form "
-        f'{{"recommendations": [{{"index": <int>, "reason": <string>}}]}} '
-        f"with exactly {want} entries, best match first. `index` must be one of "
-        f"the candidate indices above; `reason` must be a short, non-empty "
-        f"explanation that references the query."
+        f"Return exactly {want} games as a JSON object of the form\n"
+        '{"recommendations": [{"rank": 1, "index": <int>, "title": <string>, '
+        '"explanation": <string>}]}\n'
+        f"Rules:\n"
+        f"- `rank` runs 1 to {want}, best match first.\n"
+        f"- `index` and `title` are copied from one candidate above; each game "
+        f"appears once.\n"
+        f"- `explanation` is one or two sentences saying why this game fits the "
+        f"request. Name something specific about the game."
     )
-    return system, user
+    return _SYSTEM_PROMPT, user
 
 
 def _picks_to_recs(
@@ -120,7 +132,10 @@ def _picks_to_recs(
             continue
         seen.add(idx)
         c = pool[idx]
-        reason = str(pick.get("reason") or "").strip() or _synthesize_reason(query, c)
+        reason = (
+            str(pick.get("explanation") or pick.get("reason") or "").strip()
+            or _synthesize_reason(query, c)
+        )
         recs.append(
             Recommendation(
                 rank=len(recs) + 1,
