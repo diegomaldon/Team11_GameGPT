@@ -464,3 +464,24 @@ async def test_usage_lines_reach_the_json_log_unredacted_and_without_the_key(
     assert (usage["input_tokens"], usage["output_tokens"], usage["total_tokens"]) == (
         812, 96, 908,
     )
+
+
+async def test_a_non_string_explanation_is_synthesized_not_rendered(candidates):
+    data = {"recommendations": [
+        {"index": 0, "title": "Stardew Valley", "explanation": ["calm", "farming"]},
+    ]}
+
+    recs = _picks_to_recs(data, candidates, "cozy", 3)
+
+    assert "[" not in recs[0].reason
+    assert "Stardew Valley" in recs[0].reason
+
+
+async def test_a_long_rejected_title_is_capped_in_the_log(candidates, caplog):
+    data = {"recommendations": [_pick(0, "X" * 500), _pick(1, "Coffee Talk")]}
+
+    with caplog.at_level(logging.WARNING, logger="gamegpt.llm"):
+        _picks_to_recs(data, candidates, "cozy", 3)
+
+    [record] = [r for r in caplog.records if r.msg == "llm.picks_rejected"]
+    assert record.rejected_titles == ["X" * 100]

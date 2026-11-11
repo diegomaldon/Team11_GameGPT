@@ -23,7 +23,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
 import httpx
@@ -49,6 +49,9 @@ MAX_RECOMMENDATIONS = 5
 # swamping a result card.
 MAX_EXPLANATION_SENTENCES = 2
 MAX_EXPLANATION_CHARS = 320
+
+# Rejected titles are model output; cap what one log line can carry.
+MAX_LOGGED_TITLE_CHARS = 100
 
 # A sentence ends at . ! or ? (optionally followed by a closing quote or bracket)
 # and then whitespace. Good enough for short English explanations.
@@ -89,6 +92,17 @@ def normalise_explanation(text: str) -> str:
         cut = kept[:MAX_EXPLANATION_CHARS].rsplit(" ", 1)[0].rstrip(",;:-")
         kept = cut + "…"
     return kept
+
+
+def _to_recommendation(rank: int, c: GameCandidate, reason: str) -> Recommendation:
+    return Recommendation(
+        rank=rank,
+        game_id=c.game_id,
+        title=c.title,
+        reason=reason,
+        steam_appid=c.steam_appid,
+        review_score=c.review_score,
+    )
 
 
 def _deterministic_rank(
@@ -197,17 +211,6 @@ def _in_model_order(picks: list) -> list:
     return picks
 
 
-def _to_recommendation(rank: int, c: GameCandidate, reason: str) -> Recommendation:
-    return Recommendation(
-        rank=rank,
-        game_id=c.game_id,
-        title=c.title,
-        reason=reason,
-        steam_appid=c.steam_appid,
-        review_score=c.review_score,
-    )
-
-
 def _picks_to_recs(
     data: dict, pool: list[GameCandidate], query: str, n: int
 ) -> list[Recommendation]:
@@ -230,12 +233,15 @@ def _picks_to_recs(
             break
         idx = _resolve_pick(pick, pool)
         if idx is None:
-            rejected.append(str(pick.get("title", "")) if isinstance(pick, dict) else "")
+            title = pick.get("title", "") if isinstance(pick, dict) else ""
+            rejected.append(str(title)[:MAX_LOGGED_TITLE_CHARS])
             continue
         if idx in seen:
             continue
         seen.add(idx)
-        explanation = pick.get("explanation") or pick.get("reason") or ""
+        explanation = pick.get("explanation") or pick.get("reason")
+        if not isinstance(explanation, str):
+            explanation = ""  # a list or number would render as junk; synthesize instead
         chosen.append((idx, normalise_explanation(explanation)))
 
     if rejected:
@@ -270,7 +276,6 @@ class _UsageTally:
     attempts: int = 0
     input_tokens: int = 0
     output_tokens: int = 0
-    by_attempt: list[dict] = field(default_factory=list)
 
     def record(
         self, provider: str, model: str, input_tokens: int | None, output_tokens: int | None
@@ -288,7 +293,6 @@ class _UsageTally:
             "output_tokens": output_tokens,
             "total_tokens": input_tokens + output_tokens,
         }
-        self.by_attempt.append(fields)
         log.info("llm.usage", extra=fields)
 
     @property

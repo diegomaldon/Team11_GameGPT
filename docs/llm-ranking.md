@@ -125,6 +125,19 @@ jq -s 'map(select(.msg == "llm.usage")) | group_by(.provider)
               tokens: (map(.total_tokens) | add)})' render.log
 ```
 
+## Verifying it
+
+```bash
+python -m pytest api/tests/test_llm.py -v            # AC-01 to AC-04, no key or network
+python -m pytest api/tests/test_query_history.py -v  # generated_at read back (AC-02)
+python scripts/export_openapi.py --check             # generated_at is in the contract
+```
+
+On the branch's last commit (2026-11-11) the full suite was 1116 passed, 22 skipped and
+1 xfailed. `openapi.json` was up to date and the web typecheck passed.
+`test_saved_results_read_back_with_generated_at` writes to a real database, so it
+only runs on the local schema and was skipped here.
+
 ## Not covered here
 
 - **No live provider run.** The tests fake Gemini at the HTTP layer and Claude at
