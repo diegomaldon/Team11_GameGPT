@@ -4,6 +4,9 @@ SysML block: LLM. Prefers Google Gemini (structured JSON out), then Anthropic,
 then a deterministic offline ranking. Each real provider gets one retry on a
 parse/validation failure; if every provider fails the deterministic ranker
 guarantees valid, non-empty output so the slice never dead-ends.
+
+TM11-69 (REQ015): a ranking is always 3 to 5 games, the same range the
+recommendations table's rank check allows.
 """
 
 from __future__ import annotations
@@ -19,6 +22,16 @@ from api.observability.upstream import raise_for_status_safe
 _UNSET = object()
 
 _GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+
+# REQ015: "a ranked list of 3 to 5". recommendations.rank is checked 1..5 in the
+# hosted schema, so a sixth result would fail the history write.
+MIN_RECOMMENDATIONS = 3
+MAX_RECOMMENDATIONS = 5
+
+
+def clamp_recommendation_count(n: int) -> int:
+    """Pull a requested result count into REQ015's 3-5 range."""
+    return max(MIN_RECOMMENDATIONS, min(MAX_RECOMMENDATIONS, n))
 
 
 def _synthesize_reason(query: str, candidate: GameCandidate) -> str:
@@ -152,11 +165,13 @@ class LLMService:
     ) -> list[Recommendation]:
         """Pick and rank the best `n` candidates for `query`.
 
-        Returns exactly-ranked Recommendations (rank 1..n) each with a non-empty
-        `reason`. Falls back to a deterministic ranking if no provider succeeds.
+        `n` is clamped to 3-5 (REQ015). Returns Recommendations ranked 1..n, each
+        with a non-empty `reason`; fewer only when there are fewer candidates.
+        Falls back to a deterministic ranking if no provider succeeds.
         """
         if not candidates:
             return []
+        n = clamp_recommendation_count(n)
 
         providers = []
         if self._gemini_key:

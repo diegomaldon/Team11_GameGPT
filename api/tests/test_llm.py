@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from api.services.llm import LLMService
+from api.services.llm import LLMService, clamp_recommendation_count
+from api.tests.conftest import make_candidate
 
 pytestmark = pytest.mark.asyncio
 
@@ -46,3 +47,28 @@ async def test_rank_handles_fewer_candidates_than_n(candidates):
 async def test_rank_empty_candidates_returns_empty():
     llm = LLMService(anthropic_api_key=None, gemini_api_key=None)
     assert await llm.rank("anything", [], n=3) == []
+
+
+
+# TM11-69 / REQ015: a ranking is 3 to 5 games.
+
+@pytest.mark.parametrize("asked, expected", [(1, 3), (3, 3), (4, 4), (5, 5), (9, 5)])
+async def test_count_is_clamped_to_the_req015_range(asked, expected):
+    assert clamp_recommendation_count(asked) == expected
+
+
+async def test_rank_never_returns_more_than_five(candidates):
+    many = candidates + [make_candidate(f"Extra {i}", genres=["Indie"]) for i in range(5)]
+    llm = LLMService(anthropic_api_key=None, gemini_api_key=None)
+
+    recs = await llm.rank("anything", many, n=8)
+
+    assert [r.rank for r in recs] == [1, 2, 3, 4, 5]
+
+
+async def test_rank_asks_for_at_least_three(candidates):
+    llm = LLMService(anthropic_api_key=None, gemini_api_key=None)
+
+    recs = await llm.rank("anything", candidates, n=1)
+
+    assert len(recs) == 3
