@@ -201,7 +201,7 @@ them without opening the logs.
 | parse | Reading genre, mood, platform and titles out of the query (TM11-62) | 250 ms |
 | embed | Embedding the query with the local model | 250 ms |
 | retrieve | Top-k vector search, opening its connection included | 750 ms |
-| filter | Dropping games the user owns (its own DB connection) | 500 ms |
+| filter | Dropping games the user owns (its own DB connection); both passes when TM11-66 refills | 500 ms |
 | rank | The LLM picking and explaining the top 3 | 7,500 ms |
 | total | All five stages | 10,000 ms |
 

@@ -6,6 +6,8 @@ runs as a background task after the response is sent, so a slow or failed
 write never holds up or breaks a recommendation. The query_id is made here, so
 the response can carry the id the history row will be saved under, which
 feedback echoes back. A pipeline failure surfaces as a structured JSON error.
+When every match is a game the user owns, the body carries an `all_owned`
+notice instead of a silent empty list (TM11-66).
 
 A successful response carries each stage's time as a Server-Timing header (TM11-68),
 so the browser's network tab shows where the seconds went.
@@ -50,7 +52,7 @@ async def recommend(
 
     timings = StageTimings()
     try:
-        recommendations = await pipeline.recommend(user_id, req.query, timings=timings)
+        outcome = await pipeline.recommend_outcome(user_id, req.query, timings=timings)
     except Exception as exc:  # embedding / vector / dedup / LLM failure
         log.exception("recommend pipeline failed")
         raise HTTPException(
@@ -62,10 +64,12 @@ async def recommend(
         ) from exc
 
     query_id = uuid4()
+    recommendations = outcome.recommendations
     body = RecommendResponse(
         query_id=query_id,
         query=req.query,
         recommendations=recommendations,
+        notice=outcome.notice,
     )
     response.headers[SERVER_TIMING_HEADER] = timings.server_timing()
     background_tasks.add_task(

@@ -42,7 +42,11 @@ class StageTimings:
 
     @contextmanager
     def stage(self, name: str) -> Iterator[None]:
-        """Time the block as stage `name`. If it raises, the stage is still timed."""
+        """Time the block as stage `name`. If it raises, the stage is still timed.
+
+        Timing the same stage twice adds the two up: when the user owns most of the
+        first candidates, the pipeline retrieves and filters again (TM11-66).
+        """
         if name not in STAGES:
             raise ValueError(f"unknown pipeline stage {name!r}; expected one of {STAGES}")
         started = self._clock()
@@ -54,7 +58,8 @@ class StageTimings:
             self.failed_stage = name
             raise
         finally:
-            self._durations_ms[name] = (self._clock() - started) * 1000
+            elapsed_ms = (self._clock() - started) * 1000
+            self._durations_ms[name] = self._durations_ms.get(name, 0.0) + elapsed_ms
 
     def total_ms(self) -> float:
         # The stages run one after another, so their sum is the pipeline's run time.

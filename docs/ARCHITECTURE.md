@@ -66,11 +66,13 @@ web/app/(app)/page.tsx  (user submits a query)
                  │    │    ├─ VectorStore.top_k(embedding, k=50)   → semantic pool    ┐ concurrent
                  │    │    ├─ VectorStore.top_k(…, filters)        → genre/platform pool┘
                  │    │    └─ merge_and_score                      → drop ruled out, weight, top 20
-                 │    ├─ DeduplicationService.filter_owned(...)    → drop games in owned_games
+                 │    ├─ DeduplicationService.filter_owned(...)    → drop games in owned_games, before the LLM (TM11-66)
+                 │    ├─ fewer than 3 left → retrieve(k=100), filter only the new games, append
+                 │    ├─ none left         → RecommendOutcome([], notice=all_owned), LLM skipped
                  │    └─ LLMService.rank(query, candidates, n=3)   → 3 ranked Recommendations (Gemini)
                  └─ background: query_history.record_query(...)    → after the response (TM11-64)
                       └─ repositories.save_query_history(...)      → queries + recommendations rows, one transaction
-            ← RecommendResponse { query_id, query, recommendations[] }   (query_id made by the API)
+            ← RecommendResponse { query_id, query, recommendations[], notice }   (query_id made by the API)
   └─ three cards render (rank, title, reason, score, Steam link); user clicks 👍/👎
        └─ web/lib/api/client.ts  sendFeedback({query_id, game_id, title, rank, vote})
             └─ POST /api/feedback → repositories.insert_feedback() → 204
@@ -243,6 +245,14 @@ Incremental runs (TM11-41): each run re-embeds only new games and games whose
 - `filter_owned(user_id, candidates)` drops every game `owned_platforms` reports,
   keeping input order (REQ007). Recommend uses it, so a game is never both badged
   as owned and recommended.
+- **Before ranking (TM11-66):** `RAGPipeline` filters between retrieve and rank,
+  so the LLM never sees an owned game and can't pick one. When fewer than `n`
+  survive, it retrieves once more at `refill_k = 100` and filters only the games
+  the first pass hadn't checked, appending them after the first pass's survivors.
+  When none survive, it skips the LLM and returns an `all_owned` notice, which the
+  API sends as `RecommendResponse.notice` and the search page shows. A refill adds
+  to the `retrieve` and `filter` stage times. Tests:
+  `api/tests/test_ownership_before_ranking.py`, one per acceptance criterion.
 - **Hosted:** matches on `owned_games.game_id`; the platform comes from the joined
   `platform_accounts` row. **Legacy:** matches on `game_id`, `steam_appid` or
   title, platform from `owned_games.platform`, and unions the platforms
