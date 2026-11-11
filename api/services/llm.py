@@ -12,6 +12,7 @@ recommendations table's rank check allows.
 from __future__ import annotations
 
 import json
+import re
 
 import httpx
 
@@ -27,6 +28,17 @@ _GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:g
 # hosted schema, so a sixth result would fail the history write.
 MIN_RECOMMENDATIONS = 3
 MAX_RECOMMENDATIONS = 5
+
+
+# AC-01 asks for one or two sentences. Models sometimes write a paragraph, so the
+# parser keeps the first two. The character cap stops one run-on sentence from
+# swamping a result card.
+MAX_EXPLANATION_SENTENCES = 2
+MAX_EXPLANATION_CHARS = 320
+
+# A sentence ends at . ! or ? (optionally followed by a closing quote or bracket)
+# and then whitespace. Good enough for short English explanations.
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+|(?<=[.!?][\"')\]])\s+")
 
 
 def clamp_recommendation_count(n: int) -> int:
@@ -47,6 +59,22 @@ def _synthesize_reason(query: str, candidate: GameCandidate) -> str:
         f"A strong match for \"{query}\": {candidate.title} lines up well "
         f"with what you're looking for."
     )
+
+
+def normalise_explanation(text: str) -> str:
+    """Collapse whitespace and keep at most two sentences (TM11-69 AC-01).
+
+    Returns "" for blank input so the caller can substitute a synthesized reason.
+    """
+    flat = " ".join(str(text).split())
+    if not flat:
+        return ""
+    sentences = [part for part in _SENTENCE_END.split(flat) if part]
+    kept = " ".join(sentences[:MAX_EXPLANATION_SENTENCES])
+    if len(kept) > MAX_EXPLANATION_CHARS:
+        cut = kept[:MAX_EXPLANATION_CHARS].rsplit(" ", 1)[0].rstrip(",;:-")
+        kept = cut + "…"
+    return kept
 
 
 def _deterministic_rank(
@@ -133,7 +161,7 @@ def _picks_to_recs(
         seen.add(idx)
         c = pool[idx]
         reason = (
-            str(pick.get("explanation") or pick.get("reason") or "").strip()
+            normalise_explanation(pick.get("explanation") or pick.get("reason") or "")
             or _synthesize_reason(query, c)
         )
         recs.append(

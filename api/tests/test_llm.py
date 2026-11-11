@@ -7,10 +7,12 @@ import json
 import pytest
 
 from api.services.llm import (
+    MAX_EXPLANATION_CHARS,
     LLMService,
     _build_messages,
     _picks_to_recs,
     clamp_recommendation_count,
+    normalise_explanation,
 )
 from api.tests.conftest import make_candidate
 
@@ -122,3 +124,46 @@ async def test_explanation_key_is_read_and_reason_still_accepted(candidates):
     assert [(r.title, r.reason) for r in recs] == [
         ("Coffee Talk", "Chatty and calm."), ("Stardew Valley", "Older response shape."),
     ]
+
+
+# TM11-69 AC-01: each explanation is one or two sentences.
+
+async def test_a_long_explanation_keeps_its_first_two_sentences():
+    text = "It is calm. It has no fail states. It also has fishing. And cats."
+
+    assert normalise_explanation(text) == "It is calm. It has no fail states."
+
+
+async def test_short_explanations_and_closing_quotes_are_kept_intact():
+    assert normalise_explanation("A gentle farming sim.") == "A gentle farming sim."
+    assert normalise_explanation('Fits "cozy." Truly relaxing! Extra.') == (
+        'Fits "cozy." Truly relaxing!'
+    )
+
+
+async def test_whitespace_is_collapsed_and_blank_becomes_empty():
+    assert normalise_explanation("  Calm \n\n and   slow.  ") == "Calm and slow."
+    assert normalise_explanation("   \n ") == ""
+
+
+async def test_one_run_on_sentence_is_capped_at_a_word_boundary():
+    text = "This game " + "really " * 80 + "fits."
+
+    out = normalise_explanation(text)
+
+    assert len(out) <= MAX_EXPLANATION_CHARS + 1
+    assert out.endswith("…")
+    assert not out[:-1].endswith(" ")
+
+
+async def test_parsed_picks_are_normalised_and_blank_ones_synthesized(candidates):
+    data = {"recommendations": [
+        {"index": 0, "title": "Stardew Valley",
+         "explanation": "Farming. Fishing. Friendship. Festivals."},
+        {"index": 1, "title": "Coffee Talk", "explanation": "   "},
+    ]}
+
+    recs = _picks_to_recs(data, candidates, "cozy", 2)
+
+    assert recs[0].reason == "Farming. Fishing."
+    assert "Coffee Talk" in recs[1].reason and recs[1].reason.strip()
