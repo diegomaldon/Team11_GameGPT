@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 
 import pytest
 
@@ -167,3 +168,112 @@ async def test_parsed_picks_are_normalised_and_blank_ones_synthesized(candidates
 
     assert recs[0].reason == "Farming. Fishing."
     assert "Coffee Talk" in recs[1].reason and recs[1].reason.strip()
+
+
+# TM11-69 AC-03: output is constrained to the retrieved candidate set.
+
+def _pick(index, title, explanation="Fits.", **extra):
+    return {"index": index, "title": title, "explanation": explanation, **extra}
+
+
+async def test_a_made_up_title_is_dropped_even_with_a_valid_index(candidates, caplog):
+    data = {"recommendations": [
+        _pick(0, "Stardew Valley"),
+        _pick(1, "Animal Crossing: New Horizons"),  # not retrieved
+        _pick(2, "Dorfromantik"),
+    ]}
+
+    with caplog.at_level(logging.WARNING, logger="gamegpt.llm"):
+        recs = _picks_to_recs(data, candidates, "cozy", 3)
+
+    titles = [r.title for r in recs]
+    assert "Animal Crossing: New Horizons" not in titles
+    assert titles[:2] == ["Stardew Valley", "Dorfromantik"]
+    [record] = [r for r in caplog.records if r.msg == "llm.picks_rejected"]
+    assert record.rejected_count == 1
+    assert record.rejected_titles == ["Animal Crossing: New Horizons"]
+
+
+async def test_out_of_range_and_non_numeric_indexes_are_dropped(candidates):
+    data = {"recommendations": [
+        {"index": 99, "explanation": "No such candidate."},
+        {"index": "two", "explanation": "Not a number."},
+        {"index": True, "explanation": "A bool is not an index."},
+        "not even an object",
+        _pick(3, "Unpacking"),
+    ]}
+
+    recs = _picks_to_recs(data, candidates, "cozy", 3)
+
+    assert recs[0].title == "Unpacking"
+    assert recs[0].reason == "Fits."
+
+
+async def test_the_title_wins_when_the_index_points_elsewhere(candidates):
+    data = {"recommendations": [_pick(0, "a short hike", "Tiny and lovely.")]}
+
+    recs = _picks_to_recs(data, candidates, "cozy", 3)
+
+    assert (recs[0].title, recs[0].reason) == ("A Short Hike", "Tiny and lovely.")
+    assert recs[0].game_id == candidates[4].game_id
+
+
+async def test_duplicate_picks_are_counted_once(candidates):
+    data = {"recommendations": [
+        _pick(0, "Stardew Valley", "First."),
+        _pick(0, "Stardew Valley", "Again."),
+        _pick(1, "Coffee Talk"),
+    ]}
+
+    recs = _picks_to_recs(data, candidates, "cozy", 3)
+
+    assert [r.title for r in recs].count("Stardew Valley") == 1
+    assert recs[0].reason == "First."
+
+
+async def test_a_short_answer_is_filled_from_unpicked_candidates(candidates, caplog):
+    data = {"recommendations": [_pick(2, "Dorfromantik")]}
+
+    with caplog.at_level(logging.INFO, logger="gamegpt.llm"):
+        recs = _picks_to_recs(data, candidates, "cozy", 3)
+
+    assert [r.title for r in recs] == ["Dorfromantik", "Stardew Valley", "Coffee Talk"]
+    assert [r.rank for r in recs] == [1, 2, 3]
+    assert all(r.reason.strip() for r in recs)
+    assert any(r.msg == "llm.picks_filled" and r.filled_count == 2 for r in caplog.records)
+
+
+async def test_the_models_rank_field_orders_the_result(candidates):
+    data = {"recommendations": [
+        _pick(1, "Coffee Talk", rank=2),
+        _pick(0, "Stardew Valley", rank=1),
+        _pick(2, "Dorfromantik", rank=3),
+    ]}
+
+    recs = _picks_to_recs(data, candidates, "cozy", 3)
+
+    assert [r.title for r in recs] == ["Stardew Valley", "Coffee Talk", "Dorfromantik"]
+
+
+@pytest.mark.parametrize("data", [
+    {"recommendations": []},
+    {"recommendations": "Stardew Valley"},
+    {"recommendations": [_pick(0, "Hollow Knight"), _pick(1, "Celeste")]},
+    ["not", "an", "object"],
+])
+async def test_nothing_usable_raises_so_the_provider_is_retried(candidates, data):
+    with pytest.raises(ValueError):
+        _picks_to_recs(data, candidates, "cozy", 3)
+
+
+async def test_every_result_comes_from_the_candidates_given(candidates):
+    allowed = {c.game_id for c in candidates}
+    llm = LLMService(anthropic_api_key=None, gemini_api_key=None)
+    offline = await llm.rank("anything", candidates, n=5)
+    parsed = _picks_to_recs(
+        {"recommendations": [_pick(4, "A Short Hike"), _pick(0, "Portal 2")]},
+        candidates, "anything", 5,
+    )
+
+    for recs in (offline, parsed):
+        assert {r.game_id for r in recs} <= allowed

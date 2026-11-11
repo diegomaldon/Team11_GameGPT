@@ -6,12 +6,16 @@ parse/validation failure; if every provider fails the deterministic ranker
 guarantees valid, non-empty output so the slice never dead-ends.
 
 TM11-69 (REQ015): a ranking is always 3 to 5 games, the same range the
-recommendations table's rank check allows.
+recommendations table's rank check allows. Every pick is checked against the
+candidates the model was shown: a title that isn't among them is dropped and
+logged, and the list is topped up from the unpicked candidates, so the output
+never names a game retrieval didn't return.
 """
 
 from __future__ import annotations
 
 import json
+import logging
 import re
 
 import httpx
@@ -19,6 +23,8 @@ import httpx
 from api.config import get_settings
 from api.models import GameCandidate, Recommendation
 from api.observability.upstream import raise_for_status_safe
+
+log = logging.getLogger("gamegpt.llm")
 
 _UNSET = object()
 
@@ -81,19 +87,10 @@ def _deterministic_rank(
     query: str, candidates: list[GameCandidate], n: int
 ) -> list[Recommendation]:
     """Take the first `n` (already similarity-ordered) candidates, rank 1..n."""
-    recs: list[Recommendation] = []
-    for i, c in enumerate(candidates[:n]):
-        recs.append(
-            Recommendation(
-                rank=i + 1,
-                game_id=c.game_id,
-                title=c.title,
-                reason=_synthesize_reason(query, c),
-                steam_appid=c.steam_appid,
-                review_score=c.review_score,
-            )
-        )
-    return recs
+    return [
+        _to_recommendation(i + 1, c, _synthesize_reason(query, c))
+        for i, c in enumerate(candidates[:n])
+    ]
 
 
 def _extract_json(text: str) -> str:
@@ -146,37 +143,116 @@ def _build_messages(query: str, pool: list[GameCandidate], want: int) -> tuple[s
     return _SYSTEM_PROMPT, user
 
 
+def _title_key(title: str) -> str:
+    return " ".join(title.split()).casefold()
+
+
+def _as_index(value: object) -> int | None:
+    """An int index, or None. Rejects bools and non-numeric strings."""
+    if isinstance(value, bool):
+        return None
+    try:
+        return int(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+
+
+def _resolve_pick(pick: object, pool: list[GameCandidate]) -> int | None:
+    """Which candidate a pick means, or None if it isn't one of them (AC-03).
+
+    The title is the stronger signal: a model that copies the wrong index next
+    to a real title still meant that title. A title that matches no candidate
+    is a game the model made up or remembered, and is rejected even if its
+    index is valid, since its explanation is about a different game.
+    """
+    if not isinstance(pick, dict):
+        return None
+    idx = _as_index(pick.get("index"))
+    in_range = idx is not None and 0 <= idx < len(pool)
+    title = pick.get("title")
+    if isinstance(title, str) and title.strip():
+        key = _title_key(title)
+        if in_range and _title_key(pool[idx].title) == key:
+            return idx
+        for i, c in enumerate(pool):
+            if _title_key(c.title) == key:
+                return i
+        return None
+    return idx if in_range else None
+
+
+def _in_model_order(picks: list) -> list:
+    """The picks sorted by the model's `rank` when every pick has one, else as listed."""
+    ranks = [_as_index(p.get("rank")) if isinstance(p, dict) else None for p in picks]
+    if all(r is not None for r in ranks):
+        return [p for _, p in sorted(zip(ranks, picks), key=lambda pair: pair[0])]
+    return picks
+
+
+def _to_recommendation(rank: int, c: GameCandidate, reason: str) -> Recommendation:
+    return Recommendation(
+        rank=rank,
+        game_id=c.game_id,
+        title=c.title,
+        reason=reason,
+        steam_appid=c.steam_appid,
+        review_score=c.review_score,
+    )
+
+
 def _picks_to_recs(
     data: dict, pool: list[GameCandidate], query: str, n: int
 ) -> list[Recommendation]:
-    picks = data.get("recommendations")
+    """Turn the model's JSON into ranked Recommendations drawn only from `pool`.
+
+    Raises ValueError when nothing usable came back, so the caller retries.
+    When some picks survive but fewer than asked, the rest are filled from the
+    unpicked candidates in retrieval order (TM11-69 AC-03).
+    """
+    picks = data.get("recommendations") if isinstance(data, dict) else None
     if not isinstance(picks, list) or not picks:
         raise ValueError("empty or malformed recommendations")
-    recs: list[Recommendation] = []
+    want = min(n, len(pool))
+
+    chosen: list[tuple[int, str]] = []
     seen: set[int] = set()
-    for pick in picks[:n]:
-        idx = int(pick["index"])
-        if idx < 0 or idx >= len(pool) or idx in seen:
+    rejected: list[str] = []
+    for pick in _in_model_order(picks):
+        if len(chosen) == want:
+            break
+        idx = _resolve_pick(pick, pool)
+        if idx is None:
+            rejected.append(str(pick.get("title", "")) if isinstance(pick, dict) else "")
+            continue
+        if idx in seen:
             continue
         seen.add(idx)
-        c = pool[idx]
-        reason = (
-            normalise_explanation(pick.get("explanation") or pick.get("reason") or "")
-            or _synthesize_reason(query, c)
+        explanation = pick.get("explanation") or pick.get("reason") or ""
+        chosen.append((idx, normalise_explanation(explanation)))
+
+    if rejected:
+        log.warning(
+            "llm.picks_rejected",
+            extra={"rejected_count": len(rejected), "rejected_titles": rejected[:5]},
         )
-        recs.append(
-            Recommendation(
-                rank=len(recs) + 1,
-                game_id=c.game_id,
-                title=c.title,
-                reason=reason,
-                steam_appid=c.steam_appid,
-                review_score=c.review_score,
-            )
-        )
-    if not recs:
-        raise ValueError("no valid recommendations parsed")
-    return recs
+    if not chosen:
+        raise ValueError("no recommendation matched a retrieved candidate")
+
+    filled = 0
+    for i in range(len(pool)):
+        if len(chosen) == want:
+            break
+        if i not in seen:
+            seen.add(i)
+            chosen.append((i, ""))
+            filled += 1
+    if filled:
+        log.info("llm.picks_filled", extra={"filled_count": filled})
+
+    return [
+        _to_recommendation(rank, pool[idx], reason or _synthesize_reason(query, pool[idx]))
+        for rank, (idx, reason) in enumerate(chosen, start=1)
+    ]
 
 
 class LLMService:
