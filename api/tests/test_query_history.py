@@ -236,7 +236,9 @@ async def test_legacy_history_prefers_the_catalogue_title(monkeypatch):
 # AC: history survives sign-out and sign-in (it is keyed by user, not session).
 
 def history_row(query_id, text, asked_at, rank=None, title=None, game_id=None):
-    return (query_id, text, asked_at, rank, game_id, title, f"why {title}" if title else None, None)
+    reason = f"why {title}" if title else None
+    generated_at = asked_at if rank is not None else None
+    return (query_id, text, asked_at, rank, game_id, title, reason, None, generated_at)
 
 
 @pytest.mark.asyncio
@@ -282,6 +284,36 @@ async def test_a_query_with_no_saved_results_is_listed_with_none(monkeypatch):
 
     assert entry.query_id == query_id
     assert entry.recommendations == []
+
+
+# TM11-69 AC-02: a saved result reads back with its rank, explanation and
+# generated_at.
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("shape, column", [
+    ("hosted", "r.generated_at"), ("legacy", "r.created_at"),
+])
+async def test_history_reads_each_results_own_time(monkeypatch, shape, column):
+    db = fake_db(monkeypatch, shape)
+
+    await repositories.list_query_history(USER, limit=5)
+
+    (sql, _), = db.cursor.executed
+    assert f"g.steam_appid, {column} " in sql
+
+
+@pytest.mark.asyncio
+async def test_a_history_result_carries_rank_explanation_and_generated_at(monkeypatch):
+    query_id = uuid4()
+    row = history_row(query_id, "cozy farming", ASKED_AT, 1, "Stardew Valley")
+    fake_db(monkeypatch, "hosted", rows=[row])
+
+    [entry] = await repositories.list_query_history(USER, limit=5)
+
+    [result] = entry.recommendations
+    assert (result.rank, result.reason, result.generated_at) == (
+        1, "why Stardew Valley", ASKED_AT,
+    )
 
 
 # AC: writes do not block the user response.
