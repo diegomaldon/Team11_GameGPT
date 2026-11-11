@@ -49,6 +49,9 @@ sentence before the JSON doesn't break it. Then `_picks_to_recs`:
    candidate are dropped, and so are duplicates.
 3. Normalises the explanation: whitespace is collapsed, the first two sentences
    are kept, and the result is capped at 320 characters on a word boundary. A
+   full stop after a common abbreviation ("Mr.", "Dr.", "vs.", "e.g.") or an
+   initial doesn't end a sentence, so "Inspired by Mr. Robot. Very tense." stays
+   whole. "etc." and "No." still do, since they end a sentence as often as not. A
    blank explanation gets a synthesized one that names the query and the game's
    genres. The older `reason` key is still read.
 4. If at least one pick survived but fewer than `n` did, it fills the list from the

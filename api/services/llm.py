@@ -57,6 +57,14 @@ MAX_LOGGED_TITLE_CHARS = 100
 # and then whitespace. Good enough for short English explanations.
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s+|(?<=[.!?][\"')\]])\s+")
 
+# A full stop after one of these doesn't end the sentence ("Inspired by Mr. Robot."),
+# so the split is undone there. "etc." and "no." are left out: in an explanation
+# they end a sentence as often as not. Initials ("J. R. R.", "U.S.") count too.
+_ABBREVIATIONS = frozenset(
+    "mr mrs ms dr prof st jr sr vs vol ft mt e.g i.e approx".split()
+)
+_INITIALS = re.compile(r"^(?:[A-Za-z]\.)+$")
+
 
 def clamp_recommendation_count(n: int) -> int:
     """Pull a requested result count into REQ015's 3-5 range."""
@@ -78,15 +86,35 @@ def _synthesize_reason(query: str, candidate: GameCandidate) -> str:
     )
 
 
+def _ends_with_abbreviation(part: str) -> bool:
+    last_word = part.rsplit(" ", 1)[-1]
+    return last_word.lower().rstrip(".") in _ABBREVIATIONS or bool(_INITIALS.match(last_word))
+
+
+def _split_sentences(text: str) -> list[str]:
+    """Split on sentence ends, rejoining a split made after an abbreviation."""
+    sentences: list[str] = []
+    for part in _SENTENCE_END.split(text):
+        if not part:
+            continue
+        if sentences and _ends_with_abbreviation(sentences[-1]):
+            sentences[-1] = f"{sentences[-1]} {part}"
+        else:
+            sentences.append(part)
+    return sentences
+
+
 def normalise_explanation(text: str) -> str:
     """Collapse whitespace and keep at most two sentences (TM11-69 AC-01).
 
-    Returns "" for blank input so the caller can substitute a synthesized reason.
+    A full stop after a common abbreviation or an initial doesn't count as a
+    sentence end. Returns "" for blank input so the caller can substitute a
+    synthesized reason.
     """
     flat = " ".join(str(text).split())
     if not flat:
         return ""
-    sentences = [part for part in _SENTENCE_END.split(flat) if part]
+    sentences = _split_sentences(flat)
     kept = " ".join(sentences[:MAX_EXPLANATION_SENTENCES])
     if len(kept) > MAX_EXPLANATION_CHARS:
         cut = kept[:MAX_EXPLANATION_CHARS].rsplit(" ", 1)[0].rstrip(",;:-")

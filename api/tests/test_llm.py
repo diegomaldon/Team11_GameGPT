@@ -485,3 +485,22 @@ async def test_a_long_rejected_title_is_capped_in_the_log(candidates, caplog):
 
     [record] = [r for r in caplog.records if r.msg == "llm.picks_rejected"]
     assert record.rejected_titles == ["X" * 100]
+
+
+# PR #61 review (Diego): an abbreviation's full stop is not a sentence end.
+
+@pytest.mark.parametrize("text, expected", [
+    ("Inspired by Mr. Robot. Very tense.", "Inspired by Mr. Robot. Very tense."),
+    ("Like Dr. Mario vs. Tetris. Fast. Third.", "Like Dr. Mario vs. Tetris. Fast."),
+    ("A J. R. R. Tolkien-style epic. Huge world. Long.",
+     "A J. R. R. Tolkien-style epic. Huge world."),
+    ("Puzzles, e.g. sliding blocks. Calm. Third.", "Puzzles, e.g. sliding blocks. Calm."),
+])
+async def test_abbreviations_and_initials_do_not_end_a_sentence(text, expected):
+    assert normalise_explanation(text) == expected
+
+
+async def test_etc_still_ends_a_sentence():
+    assert normalise_explanation("Farming, fishing, etc. Very calm. Third.") == (
+        "Farming, fishing, etc. Very calm."
+    )
