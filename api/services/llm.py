@@ -9,7 +9,9 @@ TM11-69 (REQ015): a ranking is always 3 to 5 games, the same range the
 recommendations table's rank check allows. Every pick is checked against the
 candidates the model was shown: a title that isn't among them is dropped and
 logged, and the list is topped up from the unpicked candidates, so the output
-never names a game retrieval didn't return.
+never names a game retrieval didn't return. Each result carries the
+generated_at of the call that produced it, alongside its rank and explanation,
+which are the columns of a recommendations row.
 """
 
 from __future__ import annotations
@@ -17,6 +19,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from datetime import datetime, timezone
 
 import httpx
 
@@ -255,6 +258,12 @@ def _picks_to_recs(
     ]
 
 
+def _stamp(recs: list[Recommendation]) -> list[Recommendation]:
+    """Give one call's results the same generated_at (TM11-69 AC-02)."""
+    generated_at = datetime.now(timezone.utc)
+    return [r.model_copy(update={"generated_at": generated_at}) for r in recs]
+
+
 class LLMService:
     def __init__(
         self,
@@ -301,10 +310,10 @@ class LLMService:
         for provider in providers:
             for _ in range(2):  # one attempt + one retry
                 try:
-                    return await provider(query, candidates, n)
+                    return _stamp(await provider(query, candidates, n))
                 except Exception:
                     continue
-        return _deterministic_rank(query, candidates, n)
+        return _stamp(_deterministic_rank(query, candidates, n))
 
     # ── Gemini (preferred) ──
     async def _rank_with_gemini(

@@ -57,6 +57,11 @@ class Recommendation(BaseModel):
     reason: str = Field(..., description="Why this fits the query. Never empty.")
     steam_appid: Optional[int] = None
     review_score: Optional[float] = None
+    generated_at: Optional[datetime] = Field(
+        default=None,
+        description="When the ranking that produced this result was parsed (UTC). "
+        "Every result of one call shares it (TM11-69).",
+    )
 
 
 class RecommendNotice(BaseModel):

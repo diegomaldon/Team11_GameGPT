@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import datetime, timezone
 
 import pytest
 
@@ -277,3 +278,45 @@ async def test_every_result_comes_from_the_candidates_given(candidates):
 
     for recs in (offline, parsed):
         assert {r.game_id for r in recs} <= allowed
+
+
+# TM11-69 AC-02: each result carries rank, explanation and generated_at.
+
+async def test_every_result_is_stamped_with_one_utc_generated_at(candidates):
+    before = datetime.now(timezone.utc)
+    llm = LLMService(anthropic_api_key=None, gemini_api_key=None)
+
+    recs = await llm.rank("cozy", candidates, n=3)
+
+    after = datetime.now(timezone.utc)
+    stamps = {r.generated_at for r in recs}
+    assert len(stamps) == 1
+    [stamp] = stamps
+    assert stamp.tzinfo is not None
+    assert before <= stamp <= after
+
+
+async def test_a_parsed_result_has_the_columns_of_a_recommendations_row(candidates):
+    async def fake_provider(query, pool, n):
+        return _picks_to_recs(
+            {"recommendations": [_pick(1, "Coffee Talk", "Calm chats over coffee.")]},
+            pool, query, n,
+        )
+
+    llm = LLMService(anthropic_api_key=None, gemini_api_key="test-key")
+    llm._rank_with_gemini = fake_provider
+
+    top = (await llm.rank("cozy", candidates, n=3))[0]
+
+    assert (top.rank, top.reason) == (1, "Calm chats over coffee.")
+    assert top.game_id == candidates[1].game_id
+    assert top.generated_at is not None
+
+
+async def test_generated_at_is_sent_in_the_response_body(candidates):
+    llm = LLMService(anthropic_api_key=None, gemini_api_key=None)
+
+    [first, *_] = await llm.rank("cozy", candidates, n=3)
+
+    body = first.model_dump(mode="json")
+    assert datetime.fromisoformat(body["generated_at"]) == first.generated_at
