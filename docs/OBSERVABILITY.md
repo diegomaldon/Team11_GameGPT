@@ -258,6 +258,17 @@ jq -c 'select(.msg == "recommend.timings") | {total_ms, rank_ms, failed_stage, r
 
 ---
 
+## LLM token usage — TM11-69
+
+Each call `LLMService` makes to Gemini or Claude logs an `llm.usage` line on
+`gamegpt.llm`, with `provider`, `model`, `attempt`, `input_tokens`, `output_tokens`
+and `total_tokens`. The line is written before the answer is parsed, so a retry
+shows up as a second line. One `llm.ranked` line per recommend call gives the
+provider that answered (`deterministic` when no key is set) and the call's summed
+tokens. The field names and a `jq` one-liner to total spend are in
+[llm-ranking.md](llm-ranking.md#token-usage). `llm.attempt_failed` carries the
+exception type only, because an httpx message can carry Gemini's keyed URL.
+
 ## Verifying it
 
 ```bash
