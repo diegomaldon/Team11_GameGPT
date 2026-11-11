@@ -12,6 +12,10 @@ logged, and the list is topped up from the unpicked candidates, so the output
 never names a game retrieval didn't return. Each result carries the
 generated_at of the call that produced it, alongside its rank and explanation,
 which are the columns of a recommendations row.
+
+Token usage is logged for every provider attempt (`llm.usage`), including one
+whose answer then fails to parse, since those tokens were still spent. One
+`llm.ranked` line per call says which provider answered and the call's total.
 """
 
 from __future__ import annotations
@@ -19,6 +23,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 import httpx
@@ -258,6 +263,39 @@ def _picks_to_recs(
     ]
 
 
+@dataclass
+class _UsageTally:
+    """Token counts across every attempt of one rank() call (TM11-69 AC-04)."""
+
+    attempts: int = 0
+    input_tokens: int = 0
+    output_tokens: int = 0
+    by_attempt: list[dict] = field(default_factory=list)
+
+    def record(
+        self, provider: str, model: str, input_tokens: int | None, output_tokens: int | None
+    ) -> None:
+        self.attempts += 1
+        input_tokens = input_tokens or 0
+        output_tokens = output_tokens or 0
+        self.input_tokens += input_tokens
+        self.output_tokens += output_tokens
+        fields = {
+            "provider": provider,
+            "model": model,
+            "attempt": self.attempts,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "total_tokens": input_tokens + output_tokens,
+        }
+        self.by_attempt.append(fields)
+        log.info("llm.usage", extra=fields)
+
+    @property
+    def total_tokens(self) -> int:
+        return self.input_tokens + self.output_tokens
+
+
 def _stamp(recs: list[Recommendation]) -> list[Recommendation]:
     """Give one call's results the same generated_at (TM11-69 AC-02)."""
     generated_at = datetime.now(timezone.utc)
@@ -303,21 +341,45 @@ class LLMService:
 
         providers = []
         if self._gemini_key:
-            providers.append(self._rank_with_gemini)
+            providers.append(("gemini", self._rank_with_gemini))
         if self._anthropic_key:
-            providers.append(self._rank_with_anthropic)
+            providers.append(("anthropic", self._rank_with_anthropic))
 
-        for provider in providers:
+        tally = _UsageTally()
+        for name, provider in providers:
             for _ in range(2):  # one attempt + one retry
                 try:
-                    return _stamp(await provider(query, candidates, n))
-                except Exception:
+                    recs = await provider(query, candidates, n, tally=tally)
+                except Exception as exc:
+                    # Type only: an httpx or SDK message can carry the request URL.
+                    log.warning(
+                        "llm.attempt_failed",
+                        extra={"provider": name, "error_type": type(exc).__name__},
+                    )
                     continue
-        return _stamp(_deterministic_rank(query, candidates, n))
+                self._log_ranked(name, tally, len(recs))
+                return _stamp(recs)
+        recs = _deterministic_rank(query, candidates, n)
+        self._log_ranked("deterministic", tally, len(recs))
+        return _stamp(recs)
+
+    @staticmethod
+    def _log_ranked(provider: str, tally: _UsageTally, result_count: int) -> None:
+        log.info(
+            "llm.ranked",
+            extra={
+                "provider": provider,
+                "attempts": tally.attempts,
+                "result_count": result_count,
+                "input_tokens": tally.input_tokens,
+                "output_tokens": tally.output_tokens,
+                "total_tokens": tally.total_tokens,
+            },
+        )
 
     # ── Gemini (preferred) ──
     async def _rank_with_gemini(
-        self, query: str, candidates: list[GameCandidate], n: int
+        self, query: str, candidates: list[GameCandidate], n: int, *, tally: _UsageTally
     ) -> list[Recommendation]:
         pool = candidates[: max(n * 4, n)]
         want = min(n, len(pool))
@@ -339,6 +401,11 @@ class LLMService:
             # in the exception message. See observability/upstream.py.
             raise_for_status_safe(resp, "gemini")
             body = resp.json()
+        usage = body.get("usageMetadata") or {}
+        tally.record(
+            "gemini", self._gemini_model,
+            usage.get("promptTokenCount"), usage.get("candidatesTokenCount"),
+        )
         text = "".join(
             part.get("text", "")
             for part in body["candidates"][0]["content"]["parts"]
@@ -355,7 +422,7 @@ class LLMService:
         return self._anthropic_client
 
     async def _rank_with_anthropic(
-        self, query: str, candidates: list[GameCandidate], n: int
+        self, query: str, candidates: list[GameCandidate], n: int, *, tally: _UsageTally
     ) -> list[Recommendation]:
         pool = candidates[: max(n * 4, n)]
         want = min(n, len(pool))
@@ -365,6 +432,11 @@ class LLMService:
             max_tokens=1024,
             system=system,
             messages=[{"role": "user", "content": user}],
+        )
+        usage = getattr(response, "usage", None)
+        tally.record(
+            "anthropic", self._anthropic_model,
+            getattr(usage, "input_tokens", None), getattr(usage, "output_tokens", None),
         )
         text = "".join(
             block.text for block in response.content

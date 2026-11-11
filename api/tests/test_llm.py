@@ -5,9 +5,13 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime, timezone
+from types import SimpleNamespace
 
+import httpx
 import pytest
 
+from api.observability.logging_config import JsonFormatter
+from api.services import llm as llm_module
 from api.services.llm import (
     MAX_EXPLANATION_CHARS,
     LLMService,
@@ -297,7 +301,7 @@ async def test_every_result_is_stamped_with_one_utc_generated_at(candidates):
 
 
 async def test_a_parsed_result_has_the_columns_of_a_recommendations_row(candidates):
-    async def fake_provider(query, pool, n):
+    async def fake_provider(query, pool, n, **_):
         return _picks_to_recs(
             {"recommendations": [_pick(1, "Coffee Talk", "Calm chats over coffee.")]},
             pool, query, n,
@@ -320,3 +324,143 @@ async def test_generated_at_is_sent_in_the_response_body(candidates):
 
     body = first.model_dump(mode="json")
     assert datetime.fromisoformat(body["generated_at"]) == first.generated_at
+
+
+# TM11-69 AC-04: token usage is logged.
+
+GEMINI_KEY = "test-gemini-key-not-real"
+
+
+def _gemini_body(picks: list[dict] | str, usage: dict | None = None) -> dict:
+    text = picks if isinstance(picks, str) else json.dumps({"recommendations": picks})
+    body: dict = {"candidates": [{"content": {"parts": [{"text": text}]}}]}
+    if usage is not None:
+        body["usageMetadata"] = usage
+    return body
+
+
+def _fake_gemini(monkeypatch, *bodies: dict) -> list[httpx.Request]:
+    """Serve each body in turn to LLMService's Gemini call; return the requests."""
+    seen: list[httpx.Request] = []
+    replies = iter(bodies)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(200, json=next(replies))
+
+    real_client = httpx.AsyncClient
+    monkeypatch.setattr(
+        llm_module.httpx, "AsyncClient",
+        lambda **kw: real_client(transport=httpx.MockTransport(handler), **kw),
+    )
+    return seen
+
+
+def _records(caplog, msg: str) -> list[logging.LogRecord]:
+    return [r for r in caplog.records if r.msg == msg]
+
+
+USAGE = {"promptTokenCount": 812, "candidatesTokenCount": 96, "totalTokenCount": 908}
+
+
+async def test_gemini_token_usage_is_logged_per_attempt_and_per_call(
+    monkeypatch, caplog, candidates
+):
+    _fake_gemini(monkeypatch, _gemini_body([_pick(0, "Stardew Valley")], USAGE))
+    llm = LLMService(gemini_api_key=GEMINI_KEY, gemini_model="gemini-test",
+                     anthropic_api_key=None)
+
+    with caplog.at_level(logging.INFO, logger="gamegpt.llm"):
+        recs = await llm.rank("cozy", candidates, n=3)
+
+    assert recs[0].title == "Stardew Valley"
+    [usage] = _records(caplog, "llm.usage")
+    assert (usage.provider, usage.model, usage.attempt) == ("gemini", "gemini-test", 1)
+    assert (usage.input_tokens, usage.output_tokens, usage.total_tokens) == (812, 96, 908)
+    [ranked] = _records(caplog, "llm.ranked")
+    assert (ranked.provider, ranked.attempts, ranked.total_tokens) == ("gemini", 1, 908)
+
+
+async def test_a_failed_parse_still_logs_the_tokens_it_spent(monkeypatch, caplog, candidates):
+    _fake_gemini(
+        monkeypatch,
+        _gemini_body("Sorry, here are some games: Hollow Knight", USAGE),
+        _gemini_body([_pick(1, "Coffee Talk")], USAGE),
+    )
+    llm = LLMService(gemini_api_key=GEMINI_KEY, anthropic_api_key=None)
+
+    with caplog.at_level(logging.INFO, logger="gamegpt.llm"):
+        recs = await llm.rank("cozy", candidates, n=3)
+
+    assert recs[0].title == "Coffee Talk"
+    assert [r.attempt for r in _records(caplog, "llm.usage")] == [1, 2]
+    [failed] = _records(caplog, "llm.attempt_failed")
+    assert (failed.provider, failed.error_type) == ("gemini", "ValueError")
+    [ranked] = _records(caplog, "llm.ranked")
+    assert (ranked.attempts, ranked.total_tokens) == (2, 2 * 908)
+
+
+async def test_a_response_without_usage_logs_zero_rather_than_failing(
+    monkeypatch, caplog, candidates
+):
+    _fake_gemini(monkeypatch, _gemini_body([_pick(0, "Stardew Valley")]))
+    llm = LLMService(gemini_api_key=GEMINI_KEY, anthropic_api_key=None)
+
+    with caplog.at_level(logging.INFO, logger="gamegpt.llm"):
+        recs = await llm.rank("cozy", candidates, n=3)
+
+    assert recs[0].title == "Stardew Valley"
+    [usage] = _records(caplog, "llm.usage")
+    assert usage.total_tokens == 0
+
+
+async def test_anthropic_token_usage_is_logged(caplog, candidates):
+    reply = json.dumps({"recommendations": [_pick(2, "Dorfromantik", "Calm tiles.")]})
+
+    class FakeMessages:
+        async def create(self, **_):
+            return SimpleNamespace(
+                content=[SimpleNamespace(type="text", text=reply)],
+                usage=SimpleNamespace(input_tokens=700, output_tokens=80),
+            )
+
+    llm = LLMService(gemini_api_key=None, anthropic_api_key="test-anthropic-key",
+                     anthropic_model="claude-test")
+    llm._anthropic_client = SimpleNamespace(messages=FakeMessages())
+
+    with caplog.at_level(logging.INFO, logger="gamegpt.llm"):
+        recs = await llm.rank("cozy", candidates, n=3)
+
+    assert recs[0].title == "Dorfromantik"
+    [usage] = _records(caplog, "llm.usage")
+    assert (usage.provider, usage.model) == ("anthropic", "claude-test")
+    assert (usage.input_tokens, usage.output_tokens, usage.total_tokens) == (700, 80, 780)
+
+
+async def test_the_offline_ranker_logs_a_zero_token_call(caplog, candidates):
+    llm = LLMService(gemini_api_key=None, anthropic_api_key=None)
+
+    with caplog.at_level(logging.INFO, logger="gamegpt.llm"):
+        await llm.rank("cozy", candidates, n=3)
+
+    assert _records(caplog, "llm.usage") == []
+    [ranked] = _records(caplog, "llm.ranked")
+    assert (ranked.provider, ranked.attempts, ranked.total_tokens) == ("deterministic", 0, 0)
+
+
+async def test_usage_lines_reach_the_json_log_unredacted_and_without_the_key(
+    monkeypatch, caplog, candidates
+):
+    requests = _fake_gemini(monkeypatch, _gemini_body([_pick(0, "Stardew Valley")], USAGE))
+    llm = LLMService(gemini_api_key=GEMINI_KEY, anthropic_api_key=None)
+
+    with caplog.at_level(logging.INFO, logger="gamegpt.llm"):
+        await llm.rank("cozy", candidates, n=3)
+
+    assert requests[0].url.params["key"] == GEMINI_KEY  # the key was used...
+    lines = [JsonFormatter().format(r) for r in caplog.records]
+    assert all(GEMINI_KEY not in line for line in lines)  # ...and never logged
+    usage = json.loads(next(line for line in lines if '"llm.usage"' in line))
+    assert (usage["input_tokens"], usage["output_tokens"], usage["total_tokens"]) == (
+        812, 96, 908,
+    )
