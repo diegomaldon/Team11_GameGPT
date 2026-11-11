@@ -1120,6 +1120,19 @@
               }
             ],
             "title": "Steam Appid"
+          },
+          "generated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated At",
+            "description": "When the result was saved, from the recommendations row."
           }
         },
         "type": "object",

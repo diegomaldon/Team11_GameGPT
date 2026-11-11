@@ -107,6 +107,9 @@ class HistoryRecommendation(BaseModel):
     title: str
     reason: Optional[str] = None
     steam_appid: Optional[int] = None
+    generated_at: Optional[datetime] = Field(
+        default=None, description="When the result was saved, from the recommendations row."
+    )
 
 
 class HistoryEntry(BaseModel):
