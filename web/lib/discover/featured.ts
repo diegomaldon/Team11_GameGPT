@@ -49,25 +49,23 @@ export const POPULAR: readonly FeaturedGame[] = [
   { title: "Portal 2", steamAppId: 620 },
 ];
 
-/** Suggested prompts under "Describe a vibe", grouped the way players tend to ask. */
-export const PROMPT_GROUPS: readonly { label: string; prompts: readonly string[] }[] = [
-  {
-    label: "Mood",
-    prompts: ["Calm and low stress, to unwind", "Genuinely scary, tense the whole time"],
-  },
-  {
-    label: "Genre",
-    prompts: ["Roguelike deckbuilder", "Metroidvania with a big map"],
-  },
-  {
-    label: "Like a game you love",
-    prompts: ["Like Stardew Valley, with more crafting", "Factorio, but in 3D"],
-  },
-  {
-    label: "Where you play",
-    prompts: ["Cozy farming game on Xbox", "Co-op shooter on Steam"],
-  },
+/**
+ * The three example prompts under "Describe a vibe" (TM11-74). Clicking one fills the
+ * search field so the player can tweak it before searching. One per way players
+ * tend to ask: how it should feel, a game they love, and where they play.
+ */
+export const EXAMPLE_PROMPTS: readonly { label: string; prompt: string }[] = [
+  { label: "Mood", prompt: "Calm and low stress, to unwind after work" },
+  { label: "Like a game you love", prompt: "Like Stardew Valley, but with more crafting" },
+  { label: "Where you play", prompt: "A co-op shooter I can play with friends on Steam" },
 ];
+
+/**
+ * Shown when a search comes back empty and the API sent no notice saying why
+ * (TM11-74), so the page is never blank. TM11-77 owns the full no-results state.
+ */
+export const NO_RESULTS_MESSAGE =
+  "Nothing came back for that search. Try describing it differently.";
 
 /** The prompt a featured game's "Find games like this" sends. */
 export function promptLike(title: string): string {

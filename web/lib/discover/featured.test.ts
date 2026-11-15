@@ -1,8 +1,8 @@
 // TM11-142. The Discover page's curated games and prompts.
 import { describe, expect, it } from "vitest";
 import {
+  EXAMPLE_PROMPTS,
   POPULAR,
-  PROMPT_GROUPS,
   SPOTLIGHT,
   promptLike,
   steamCoverUrl,
@@ -30,18 +30,22 @@ describe("featured games", () => {
   });
 });
 
-describe("suggested prompts", () => {
-  it("covers mood, genre, comparison and platform", () => {
-    expect(PROMPT_GROUPS.map((g) => g.label)).toEqual([
+describe("example prompts (TM11-74)", () => {
+  it("has exactly three, one each for mood, comparison and platform", () => {
+    expect(EXAMPLE_PROMPTS.map((e) => e.label)).toEqual([
       "Mood",
-      "Genre",
       "Like a game you love",
       "Where you play",
     ]);
   });
 
+  it("has no duplicate prompts", () => {
+    const prompts = EXAMPLE_PROMPTS.map((e) => e.prompt);
+    expect(new Set(prompts).size).toBe(prompts.length);
+  });
+
   it("fits within the recommend query limit", () => {
-    const all = [...PROMPT_GROUPS.flatMap((g) => g.prompts), ...POPULAR.map((g) => promptLike(g.title))];
+    const all = [...EXAMPLE_PROMPTS.map((e) => e.prompt), ...POPULAR.map((g) => promptLike(g.title))];
     for (const p of all) {
       expect(p.length).toBeLessThanOrEqual(500);
     }
