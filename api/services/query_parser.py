@@ -546,7 +546,10 @@ def _find_titles(tokens: list[str | None], index: TitleIndex) -> _ClauseTitles:
     i = 0
     while i < len(tokens):
         cue = _cue_length(tokens, i)
-        if not cue:
+        # A title that starts with the cue word is the title, not a cue: "Beat
+        # Saber" isn't "beat" + "saber". The uncued pass below matches it.
+        starts_title = cue and index.longest_match(tokens, i, cued=False)
+        if not cue or (starts_title and starts_title[0] > i + cue):
             i += 1
             continue
         j = i + cue

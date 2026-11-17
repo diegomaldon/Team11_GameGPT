@@ -512,6 +512,16 @@ def test_beat_em_up_is_a_genre_not_a_finished_game(series):
     assert parsed.unrecognised_references == ()
 
 
+def test_a_title_starting_with_a_cue_word_is_the_title_not_a_cue():
+    # PR #64 review: "beat" also starts "Beat Saber", which must not leave "saber" behind.
+    index = TitleIndex([CatalogueGame(uuid4(), "Beat Saber"), CatalogueGame(uuid4(), "Celeste")])
+    parsed = parse_query("I love Beat Saber, want more rhythm games", index)
+    assert titles(parsed) == ["Beat Saber"]
+    assert parsed.unrecognised_references == ()
+    # "beat" is still a cue in front of another title.
+    assert titles(parse_query("just beat Celeste", index)) == ["Celeste"]
+
+
 def test_beat_it_after_a_signal_is_not_an_unrecognised_title(series):
     parsed = parse_query("tough, but satisfying once you beat it", series)
     assert parsed.unrecognised_references == ()
