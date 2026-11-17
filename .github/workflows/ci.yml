@@ -257,6 +257,14 @@ jobs:
         working-directory: .
         run: python -m pytest api/tests/test_retrieval_quality.py -v
 
+      # TM11-69. Ranked titles with one or two sentence explanations, rows with
+      # rank, explanation and generated_at, output limited to the retrieved
+      # candidates, and token usage logged are acceptance criteria. Gemini is
+      # faked at the HTTP layer and Claude at the client; no key or network.
+      - name: Pytest — LLM ranking and parsing
+        working-directory: .
+        run: python -m pytest api/tests/test_llm.py -v
+
       # TM11-64. Every query and its results saved, game ids not copied titles,
       # the save never blocking or failing the response. The database is faked.
       - name: Pytest — query history

@@ -143,7 +143,8 @@ query and its results to the user's history in the background (TM11-64).
       "title": "My Time at Portia",
       "reason": "Cozy, low-stress crafting and management loops you can half-watch…",
       "steam_appid": 666140,
-      "review_score": 0.9
+      "review_score": 0.9,
+      "generated_at": "2026-11-11T15:00:02.418Z"
     }
   ]
 }
@@ -151,7 +152,8 @@ query and its results to the user's history in the background (TM11-64).
 | Field | Type | Notes |
 |-------|------|-------|
 | `query_id` | uuid | The id the query is saved under — echo it back in feedback |
-| `recommendations[]` | array | Up to 3 items; `rank` 1..n; `reason` never empty; never a game the user owns |
+| `recommendations[]` | array | 3 items (REQ015 allows 3–5), fewer only if fewer unowned games were found; `rank` 1..n; `reason` never empty, one or two sentences; never a game the user owns, and always one the search retrieved (TM11-69) |
+| `recommendations[].generated_at` | datetime | When the ranking was parsed (UTC); every result of one call has the same value (TM11-69) |
 | `notice` | object \| null | `null` normally. Set when the list is short or empty for a known reason (TM11-66) |
 
 **200, every match already owned** (TM11-66)
@@ -179,6 +181,8 @@ query and its results to the user's history in the background (TM11-64).
   is made by the API, so it is in the response before the row exists.
 - On the hosted schema a result is saved as its `game_id` and explanation only;
   a result that matched no catalogue game is left out of the history.
+- The LLM's prompt, how its answer is parsed and checked against the retrieved
+  games, and the token usage log lines are in [llm-ranking.md](llm-ranking.md).
 - Latency: ~7s on the first call after boot (model warm-up), then dominated by
   LLM latency; **< 10 s** warm.
 - A 200 carries a `Server-Timing` header with each stage's time in ms (TM11-68), for
@@ -223,7 +227,8 @@ verifies sign-ins, that user is the dev user, like every other route.
           "game_id": "ad9134d9-a3ae-4417-a1c2-381ef709f7ff",
           "title": "My Time at Portia",
           "reason": "Cozy, low-stress crafting and management loops you can half-watch…",
-          "steam_appid": 666140
+          "steam_appid": 666140,
+          "generated_at": "2026-11-03T15:00:00.204Z"
         }
       ]
     }
@@ -236,6 +241,7 @@ verifies sign-ins, that user is the dev user, like every other route.
 | `items[].created_at` | datetime | when the query was saved (database clock) |
 | `items[].recommendations[]` | array | best first; `[]` if none could be saved |
 | `recommendations[].title` | string | read from the catalogue by `game_id`, not stored with the result |
+| `recommendations[].generated_at` | datetime | when the result was saved (database clock): the row's `generated_at`, or `created_at` on the local schema (TM11-69) |
 
 - **422**: `limit` outside 1–50.
 - **503** `db_unavailable`: the read failed; the cause is only logged.
