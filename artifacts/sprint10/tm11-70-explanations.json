@@ -1,0 +1,380 @@
+{
+  "run_at": "2026-11-17T15:47:06+00:00",
+  "llm_model": "gemini-3-flash-preview",
+  "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "catalogue_games": 167,
+  "benchmark_queries": 5,
+  "candidates_k": 20,
+  "picks": 3,
+  "summary": {
+    "before": {
+      "all": {
+        "explanations": 12,
+        "passing": 6,
+        "using_request": 9,
+        "tag_lists": 3,
+        "with_stock_phrases": 1,
+        "mean_words": 31.9
+      },
+      "top_pick": {
+        "explanations": 4,
+        "passing": 1,
+        "using_request": 3,
+        "tag_lists": 1,
+        "with_stock_phrases": 1,
+        "mean_words": 33.0
+      }
+    },
+    "after": {
+      "all": {
+        "explanations": 9,
+        "passing": 9,
+        "using_request": 9,
+        "tag_lists": 0,
+        "with_stock_phrases": 0,
+        "mean_words": 30.6
+      },
+      "top_pick": {
+        "explanations": 3,
+        "passing": 3,
+        "using_request": 3,
+        "tag_lists": 0,
+        "with_stock_phrases": 0,
+        "mean_words": 31.0
+      }
+    }
+  },
+  "per_query": [
+    {
+      "id": "genre-04",
+      "category": "genre",
+      "prompt": "roguelike deckbuilder where each run I build a new deck",
+      "before": [
+        {
+          "title": "Slay the Spire",
+          "reason": "This is the definitive roguelike deckbuilder where you start with a basic set of cards and draft new ones after every encounter to create powerful synergies. Every run requires adapting your strategy to the specific cards and relics you find along the way.",
+          "passes": false,
+          "request_words": [
+            "roguelike",
+            "deckbuilder",
+            "run"
+          ],
+          "labels_restated": [
+            "Deckbuilder",
+            "Roguelike",
+            "strategy",
+            "roguelike"
+          ],
+          "stock_phrases": [],
+          "words": 43
+        },
+        {
+          "title": "Balatro",
+          "reason": "A unique poker-themed roguelike where you build a deck of Jokers and modified playing cards to create massive scoring combos. It perfectly captures the loop of starting fresh and constructing a broken, high-scoring engine each run.",
+          "passes": false,
+          "request_words": [
+            "roguelike",
+            "build",
+            "deck",
+            "run"
+          ],
+          "labels_restated": [
+            "Roguelike",
+            "roguelike"
+          ],
+          "stock_phrases": [],
+          "words": 38
+        },
+        {
+          "title": "Loop Hero",
+          "reason": "While it features auto-battler elements, you manage a deck of landscape cards to build the world around your hero. Each run involves choosing which cards to bring and strategically placing them to manage difficulty and rewards.",
+          "passes": true,
+          "request_words": [
+            "deck",
+            "build",
+            "run"
+          ],
+          "labels_restated": [],
+          "stock_phrases": [],
+          "words": 37
+        }
+      ],
+      "after": [
+        {
+          "title": "Slay the Spire",
+          "reason": "Every card choice you make ripples through your run as you climb the spire. You will build a new deck of abilities each time to overcome this deceptively deep and challenging experience.",
+          "passes": true,
+          "request_words": [
+            "run",
+            "build",
+            "deck"
+          ],
+          "labels_restated": [],
+          "stock_phrases": [],
+          "words": 32
+        },
+        {
+          "title": "Balatro",
+          "reason": "You will stack joker synergies and manipulate poker hands to create absurd scoring combos. It provides a compelling way to build a new deck of powerful cards during every attempt.",
+          "passes": true,
+          "request_words": [
+            "build",
+            "deck"
+          ],
+          "labels_restated": [],
+          "stock_phrases": [],
+          "words": 30
+        },
+        {
+          "title": "Loop Hero",
+          "reason": "You use a deck of cards to place tiles and reconstruct a world for a looping hero. It lets you build a new deck of locations to survive each hypnotic run through the loop.",
+          "passes": true,
+          "request_words": [
+            "deck",
+            "build",
+            "run"
+          ],
+          "labels_restated": [],
+          "stock_phrases": [],
+          "words": 34
+        }
+      ]
+    },
+    {
+      "id": "mood-01",
+      "category": "mood",
+      "prompt": "something calm and low stress to unwind with after a long day",
+      "before": [
+        {
+          "title": "A Short Hike",
+          "reason": "Climbing a mountain at your own pace and chatting with birds along the way offers a delightful, pressure-free exploration experience. It is specifically designed to be a quick and charming relaxer for any player.",
+          "passes": false,
+          "request_words": [],
+          "labels_restated": [
+            "exploration"
+          ],
+          "stock_phrases": [],
+          "words": 35
+        },
+        {
+          "title": "Unpacking",
+          "reason": "This meditative puzzle game focuses on the soothing act of unpacking boxes and arranging items in a new home. It provides an oddly moving and endlessly calming experience that helps you decompress through organization.",
+          "passes": false,
+          "request_words": [],
+          "labels_restated": [
+            "Puzzle"
+          ],
+          "stock_phrases": [],
+          "words": 34
+        },
+        {
+          "title": "Coffee Talk",
+          "reason": "Brewing coffee for fantasy creatures while listening to their late-night problems creates an extremely cozy and gentle atmosphere. The lo-fi music and low-stakes gameplay make it an ideal companion for a quiet evening.",
+          "passes": true,
+          "request_words": [
+            "low"
+          ],
+          "labels_restated": [
+            "cozy"
+          ],
+          "stock_phrases": [],
+          "words": 36
+        }
+      ],
+      "after": [
+        {
+          "title": "Unpacking",
+          "reason": "This meditative experience lets you unpack boxes into new homes across someone's life. It provides a soothing way to unwind by turning the simple act of unpacking into a moving story.",
+          "passes": true,
+          "request_words": [
+            "unwind"
+          ],
+          "labels_restated": [],
+          "stock_phrases": [],
+          "words": 32
+        },
+        {
+          "title": "A Short Hike",
+          "reason": "Explore a peaceful mountain and chat with birds at your own pace. It offers a gentle, low stress environment where you simply wander and enjoy the scenery to help you unwind.",
+          "passes": true,
+          "request_words": [
+            "low",
+            "stress",
+            "unwind"
+          ],
+          "labels_restated": [],
+          "stock_phrases": [],
+          "words": 31
+        },
+        {
+          "title": "Coffee Talk",
+          "reason": "Spend your evening brewing coffee for fantasy creatures while listening to their late-night problems. The calm atmosphere and setting make it an ideal way to quietly unwind after a long day.",
+          "passes": true,
+          "request_words": [
+            "calm",
+            "unwind",
+            "long",
+            "day"
+          ],
+          "labels_restated": [],
+          "stock_phrases": [],
+          "words": 32
+        }
+      ]
+    },
+    {
+      "id": "mood-05",
+      "category": "mood",
+      "prompt": "brutally hard but rewarding when I finally beat it",
+      "before": [
+        {
+          "title": "Super Meat Boy",
+          "reason": "This game is the definition of brutally hard, featuring instant death and pixel-perfect platforming that makes every successful level feel like a massive victory.",
+          "passes": true,
+          "request_words": [
+            "brutally",
+            "hard"
+          ],
+          "labels_restated": [],
+          "stock_phrases": [],
+          "words": 25
+        },
+        {
+          "title": "Celeste",
+          "reason": "While the mountain climb is incredibly difficult and requires extreme precision, the tight controls and fair mechanics ensure that overcoming its toughest challenges is deeply satisfying.",
+          "passes": false,
+          "request_words": [],
+          "labels_restated": [
+            "difficult",
+            "precision"
+          ],
+          "stock_phrases": [],
+          "words": 26
+        },
+        {
+          "title": "Hollow Knight",
+          "reason": "The game features punishing boss encounters and tight combat that demand mastery, rewarding your persistence with a sense of accomplishment and further exploration of its beautiful world.",
+          "passes": true,
+          "request_words": [
+            "rewarding"
+          ],
+          "labels_restated": [
+            "exploration"
+          ],
+          "stock_phrases": [],
+          "words": 27
+        }
+      ],
+      "after": null
+    },
+    {
+      "id": "comparison-03",
+      "category": "comparison",
+      "prompt": "I finished Hades, what other fast action roguelikes should I try",
+      "before": null,
+      "after": null
+    },
+    {
+      "id": "platform-05",
+      "category": "platform",
+      "prompt": "survive on a remote island and build a base with friends, on Steam",
+      "before": [
+        {
+          "title": "Raft",
+          "reason": "This game perfectly matches your request as you and your friends survive in the middle of the ocean, visiting remote islands to scavenge resources for your expanding floating base.",
+          "passes": false,
+          "request_words": [
+            "friend",
+            "survive",
+            "remote",
+            "island",
+            "base"
+          ],
+          "labels_restated": [],
+          "stock_phrases": [
+            "perfectly match"
+          ],
+          "words": 29
+        },
+        {
+          "title": "The Forest",
+          "reason": "Stranded on a remote island after a plane crash, you must work with friends to build a base and survive against a hostile tribe of cannibals.",
+          "passes": true,
+          "request_words": [
+            "remote",
+            "island",
+            "friend",
+            "build",
+            "base",
+            "survive"
+          ],
+          "labels_restated": [],
+          "stock_phrases": [],
+          "words": 26
+        },
+        {
+          "title": "Rust",
+          "reason": "Set on a massive remote island, this game focuses on gathering resources and building a fortified base with friends to survive against the environment and other players.",
+          "passes": true,
+          "request_words": [
+            "remote",
+            "island",
+            "base",
+            "friend",
+            "survive"
+          ],
+          "labels_restated": [],
+          "stock_phrases": [],
+          "words": 27
+        }
+      ],
+      "after": [
+        {
+          "title": "Raft",
+          "reason": "You and your friends start on a tiny raft, scavenging debris to build a massive floating base and eventually your own island empire in the middle of the ocean.",
+          "passes": true,
+          "request_words": [
+            "friend",
+            "build",
+            "base",
+            "island"
+          ],
+          "labels_restated": [],
+          "stock_phrases": [],
+          "words": 29
+        },
+        {
+          "title": "The Forest",
+          "reason": "After crashing on a remote island, you and your friends must build a shelter in a dense, unsettling forest to survive against a terrifying tribe of cannibals.",
+          "passes": true,
+          "request_words": [
+            "remote",
+            "island",
+            "friend",
+            "build",
+            "survive"
+          ],
+          "labels_restated": [],
+          "stock_phrases": [],
+          "words": 27
+        },
+        {
+          "title": "Rust",
+          "reason": "In this brutal multiplayer game, you and your friends must survive on a desolate island by building a base and defending it against everyone else on the server.",
+          "passes": true,
+          "request_words": [
+            "friend",
+            "survive",
+            "island",
+            "base"
+          ],
+          "labels_restated": [
+            "Multiplayer"
+          ],
+          "stock_phrases": [],
+          "words": 28
+        }
+      ]
+    }
+  ]
+}

@@ -265,6 +265,13 @@ jobs:
         working-directory: .
         run: python -m pytest api/tests/test_llm.py -v
 
+      # TM11-70. REQ015 explanations answer the request, not restated genre
+      # tags: the prompt rule and the checks behind the before/after review. No
+      # model; the live samples are scripts/eval_explanations.py.
+      - name: Pytest — explanation quality
+        working-directory: .
+        run: python -m pytest api/tests/test_explanation_quality.py -v
+
       # TM11-64. Every query and its results saved, game ids not copied titles,
       # the save never blocking or failing the response. The database is faked.
       - name: Pytest — query history

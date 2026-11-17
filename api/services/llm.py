@@ -22,6 +22,12 @@ compared with title_matching.normalise_title, so a model that drops a ™ or
 changes punctuation still matches the candidate it meant, while another edition
 of a game does not. Each rejected pick is logged with the index and title the
 model wrote, even when the title is missing or the pick isn't an object.
+
+TM11-70 (REQ015) asks for a plain-language reason, not restated genre tags. The
+`explanation` rule tells the model to answer the request in the player's own
+terms and point to something concrete from the description. Before and after
+samples are in artifacts/sprint10/tm11-70-explanations.md, written by
+scripts/eval_explanations.py; the review is docs/explanation-quality.md.
 """
 
 from __future__ import annotations
@@ -165,8 +171,9 @@ def _extract_json(text: str) -> str:
 _SYSTEM_PROMPT = (
     "You are GameGPT's recommendation ranker. You are given a player's request and a "
     "numbered list of candidate games retrieved from our catalogue. Choose the games "
-    "that best fit the request and rank them, best first. Only choose games from the "
-    "candidate list, and copy each one's index and title exactly. Never suggest a "
+    "that best fit the request and rank them, best first, and tell the player in "
+    "plain language why each pick suits what they asked for. Only choose games from "
+    "the candidate list, and copy each one's index and title exactly. Never suggest a "
     "game that is not on the list. Respond with only a JSON object, no prose and no "
     "code fences."
 )
@@ -195,8 +202,18 @@ def _build_messages(query: str, pool: list[GameCandidate], want: int) -> tuple[s
         f"- `rank` runs 1 to {want}, best match first.\n"
         f"- `index` and `title` are copied from one candidate above; each game "
         f"appears once.\n"
-        f"- `explanation` is one or two sentences saying why this game fits the "
-        f"request. Name something specific about the game."
+        f"- `explanation` is one or two sentences (under 40 words), written to "
+        f"the player, saying why this game fits the request:\n"
+        f"  - Answer the request itself: name the thing they asked for in their "
+        f"own terms (a mood, a situation, a game they compared to) and say how "
+        f"this game delivers it.\n"
+        f"  - Point to something concrete from the description: what you do, "
+        f"where it is set, or how it feels to play.\n"
+        f"  - Do not list genre or tag labels, and do not use stock phrases such "
+        f"as \"perfect match\", \"fits your query\" or \"great choice\".\n"
+        f"  - If they named a game to compare against, say what this one shares "
+        f"with it or does differently.\n"
+        f"  - If the game only fits part of the request, say which part."
     )
     return _SYSTEM_PROMPT, user
 
