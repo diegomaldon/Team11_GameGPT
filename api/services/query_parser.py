@@ -210,6 +210,25 @@ _PLATFORMS = _phrase_table(_PLATFORM_PHRASES, plurals=False)
 _PLATFORMS_AT_CLAUSE_END = _phrase_table(_PLATFORM_PHRASES_AT_CLAUSE_END, plurals=False)
 _SIGNAL_FIRST_WORDS = frozenset(t[0] for table in (_GENRES, _MOODS) for t in table)
 
+# "hard" is also "hard to put down" and "hard sci-fi", so on its own it only
+# means difficult after an intensifier ("too hard", "brutally hard") or before a
+# game word or genre ("hard platformers", "hard mode"). PR #64 review.
+_HARD_AFTER = frozenset({"too", "so", "very", "really", "super", "brutally", "insanely",
+                         "punishingly", "genuinely", "incredibly", "extremely", "pretty",
+                         "quite", "seriously", "crazy", "ridiculously"})
+_HARD_BEFORE = frozenset({"game", "games", "mode", "difficulty", "boss", "bosses", "combat",
+                          "one", "ones", "level", "levels", "fights", "challenge"})
+
+
+def _counts_here(words: tuple[str, ...], tokens: Sequence[str | None], i: int) -> bool:
+    """False for a bare "hard" that isn't about the game (see _HARD_AFTER)."""
+    if words != ("hard",):
+        return True
+    before = tokens[i - 1] if i > 0 else None
+    after = tokens[i + 1] if i + 1 < len(tokens) else None
+    return (before in _HARD_AFTER or after in _HARD_BEFORE
+            or (after is not None and after in _SIGNAL_FIRST_WORDS))
+
 
 # ──────────────────────────────── output ────────────────────────────────
 
@@ -619,6 +638,8 @@ def _scan(
         for length in range(min(longest, len(tokens) - i), 0, -1):
             words = tuple(tokens[i:i + length])
             label = table.get(words) if None not in words else None
+            if label is not None and not _counts_here(words, tokens, i):
+                label = None
             if label is None and words in at_clause_end:
                 ends_clause = i + length == len(tokens) or tokens[i + length] == ","
                 label = at_clause_end[words] if ends_clause else None

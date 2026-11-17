@@ -649,3 +649,19 @@ def test_not_with_friends_excludes_both(series):
 def test_a_series_names_words_are_not_read_as_signals():
     only_sequel = TitleIndex([CatalogueGame(uuid4(), "Dark Souls III")])
     assert parse_query("reminds me of Dark Souls", only_sequel).moods == ()
+
+
+@pytest.mark.parametrize("query", [
+    "a game that's hard to put down",
+    "hard sci-fi with a slow-burn story",
+    "something with hard choices",
+])
+def test_hard_not_about_difficulty_is_not_difficult(series, query):
+    # PR #64 review: a bare "hard" only counts next to an intensifier or a game word.
+    assert "difficult" not in parse_query(query, series).moods
+
+
+@pytest.mark.parametrize("query", ["a hard game", "hard roguelikes", "so hard it hurts",
+                                   "hard bosses and tight combat", "play it on hard mode"])
+def test_hard_about_the_game_is_difficult(series, query):
+    assert "difficult" in parse_query(query, series).moods
