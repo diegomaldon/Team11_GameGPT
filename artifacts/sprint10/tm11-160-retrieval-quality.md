@@ -1,6 +1,6 @@
 # TM11-67 retrieval quality: precision at 5 on the benchmark
 
-Run 2026-11-17T15:36:01+00:00 on the `hosted` schema (1005 games) with `sentence-transformers/all-MiniLM-L6-v2`, against the 20 TM11-63 benchmark prompts. Written by `scripts/eval_retrieval_quality.py`; read-only against the database.
+Run 2026-11-17T15:49:49+00:00 on the `hosted` schema (1005 games) with `sentence-transformers/all-MiniLM-L6-v2`, against the 20 TM11-63 benchmark prompts. Written by `scripts/eval_retrieval_quality.py`; read-only against the database.
 
 **Before:** top results by similarity alone (the pipeline before TM11-65). **After:** hybrid retrieval at semantic 0.7 / metadata 0.3, pool 50 (the current pipeline).
 
@@ -8,10 +8,10 @@ P@5 is expected titles in the top 5 divided by 5. Most prompts list four expecte
 
 | | mean P@5 | mean normalised | MRR | prompts with no hit in top 5 |
 |---|---|---|---|---|
-| Before | 0.25 | 0.375 | 0.537 | 7/20 |
+| Before | 0.24 | 0.365 | 0.516 | 8/20 |
 | After | 0.34 | 0.503 | 0.637 | 4/20 |
 
-Per prompt: **6 improved, 1 regressed, 13 unchanged.**
+Per prompt: **6 improved, 0 regressed, 14 unchanged.**
 
 ## By category
 
@@ -19,7 +19,7 @@ Weakest first (after, by mean normalised P@5, then MRR).
 
 | Category | Before P@5 | After P@5 | Change | Before normalised | After normalised | After no-hit prompts |
 |---|---|---|---|---|---|---|
-| comparison | 0.08 | 0.12 | +0.040 | 0.09 | 0.25 | 3/5 |
+| comparison | 0.04 | 0.12 | +0.080 | 0.05 | 0.25 | 3/5 |
 | mood | 0.32 | 0.44 | +0.120 | 0.32 | 0.44 | 1/5 |
 | platform | 0.16 | 0.36 | +0.200 | 0.23 | 0.46 | 0/5 |
 | genre | 0.44 | 0.44 | 0 | 0.86 | 0.86 | 0/5 |
@@ -30,7 +30,7 @@ Mean P@5 at pool 50. Weight 0.0 is similarity order with named and ruled-out gam
 
 | Metadata weight | all | genre | mood | comparison | platform |
 |---|---|---|---|---|---|
-| Before | 0.25 | 0.44 | 0.32 | 0.08 | 0.16 |
+| Before | 0.24 | 0.44 | 0.32 | 0.04 | 0.16 |
 | 0.0 | 0.26 | 0.44 | 0.32 | 0.12 | 0.16 |
 | 0.1 | 0.32 | 0.48 | 0.44 | 0.12 | 0.24 |
 | 0.2 | 0.34 | 0.44 | 0.44 | 0.12 | 0.36 |
@@ -54,7 +54,7 @@ Mean P@5 at pool 50. Weight 0.0 is similarity order with named and ruled-out gam
 | mood-05 | 1.0 | 0.0 | 0.0 | 0 | 8 | Getting Over It with Bennett Foddy, Blasphemous, Beat Saber, Turbo Pug, The Surge |
 | comparison-01 | 0.8 | 0.0 | 0.0 | 0 | - | ASTRONEER, The Planet Crafter, Don't Starve, Craftopia, Star Conflict |
 | comparison-02 | 0.4 | 0.0 | 0.4 | +0.400 | 3 | Yakuza 0, SoulWorker - Anime Action MMO, Sekiro: Shadows Die Twice, Mark of the Ninja, Nioh |
-| comparison-03 | 1.0 | 0.2 | 0.0 | -0.200 | 8 | Vampire Survivors, Neon Abyss, Deathmatch Classic, Spelunky 2, Total War: WARHAMMER III |
+| comparison-03 | 0.8 | 0.0 | 0.0 | 0 | 8 | Vampire Survivors, Neon Abyss, Deathmatch Classic, Spelunky 2, Total War: WARHAMMER III |
 | comparison-04 | 0.2 | 0.0 | 0.0 | 0 | - | BLOCKPOST LEGACY, BLOCKADE 3D, Crysis, Far Cry 3, Crysis 3 Remastered |
 | comparison-05 | 0.8 | 0.2 | 0.2 | 0 | 2 | Stories: The Path of Destinies, Journey, A Story About My Uncle, Mirror's Edge™, Monster Hunter Wilds |
 | platform-01 | 0.8 | 0.2 | 0.4 | +0.200 | 1 | Stardew Valley, Cozy Grove, Unpacking, Spiritfarer, My Time at Portia |

@@ -135,38 +135,38 @@ outside the benchmark.
 ## After the parser fixes (TM11-160)
 
 Rerun on the hosted catalogue (1005 games) on 2026-11-17, same script and
-weights, with TM11-160's parser. Results:
+weights, with TM11-160's parser and **benchmark v2**. Results:
 [`artifacts/sprint10/tm11-160-retrieval-quality.md`](../artifacts/sprint10/tm11-160-retrieval-quality.md).
-"Before TM11-160" below is the *after* column of the TM11-67 run above.
 
-| | Before TM11-160 | After TM11-160 |
+**Benchmark v2.** TM11-160 rules out a named game's sequels with it, but v1
+listed Hades II as an expected answer to comparison-03 ("I finished Hades…"),
+so the first run on v1 showed comparison-03 dropping 0.2 → 0.0 for doing what
+the story asks. v2 removes Hades II from that prompt and changes nothing else
+(PR #64 review). Numbers aren't comparable across versions, so "Before TM11-160"
+below is the TM11-67 run's ranked top 5 (retrieval is deterministic), rescored
+against v2.
+
+| | Before TM11-160 (v2) | After TM11-160 (v2) |
 |---|---|---|
-| mean P@5 | 0.32 | **0.34** |
-| mean normalised | 0.463 | **0.503** |
-| MRR | 0.633 | **0.637** |
-| comparison P@5 | 0.12 | 0.12 |
-| comparison normalised | 0.19 | **0.25** |
+| mean P@5 | 0.31 | **0.34** |
+| comparison P@5 | 0.08 | **0.12** |
 | platform P@5 | 0.28 | **0.36** |
+| genre P@5 | 0.44 | 0.44 |
+| mood P@5 | 0.44 | 0.44 |
 
-Four prompts changed:
+Two prompts improved and **none regressed**:
 
-| Prompt | P@5 | First hit | Why |
-|---|---|---|---|
-| platform-05 "survive on a remote island … with friends, on Steam" | 0.0 → **0.4** | 9 → 3 | "survive" and "with friends" now parse, so the metadata leg filters to Survival/Co-op |
-| comparison-02 "like Dark Souls but with samurai…" | 0.2 → **0.4** | 5 → 3 | Dark Souls II and III are ruled out with the named game, freeing two slots |
-| mood-05 "brutally hard but rewarding…" | 0.0 → 0.0 | 40 → **8** | "brutally hard" now parses as difficult; the first hit moved from 40th to 8th |
-| comparison-03 "I finished Hades, what other…" | 0.2 → **0.0** | 2 → 8 | Hades is now recognised and Hades II is ruled out as its sequel, **but the benchmark lists Hades II as an expected answer** |
+| Prompt | P@5 | Why |
+|---|---|---|
+| platform-05 "survive on a remote island … with friends, on Steam" | 0.0 → **0.4** | "survive" and "with friends" now parse, so the metadata leg filters to Survival/Co-op |
+| comparison-02 "like Dark Souls but with samurai…" | 0.2 → **0.4** | Dark Souls II and III are ruled out with the named game, freeing two slots |
 
-**The comparison category's P@5 is flat (0.12), so TM11-160's last
-acceptance criterion is not fully met.** comparison-02 gained what
-comparison-03 lost. The comparison-03 drop is not a parser bug: the story's
-own criterion rules out a named game's sequels, while TM11-63's benchmark
-counts Hades II as a good answer to "I finished Hades". One of the two has
-to change (see the TM11-160 ticket). The other comparison prompts didn't
-move because their misses are about similarity, not parsing: comparison-01
-still follows "crafting" to survival-crafters, comparison-04 follows "3D" to
-*BLOCKADE 3D*, and comparison-05 follows "story". Follow-up 3 above (using
-the named game's genres and tags as signals) is what those need.
+mood-05 ("brutally hard…") scores 0.0 both times, but its first hit moved from
+40th to 8th now that "brutally hard" parses as difficult. The other comparison
+prompts didn't move because their misses are about similarity, not parsing:
+comparison-01 still follows "crafting" to survival-crafters, comparison-04
+follows "3D" to *BLOCKADE 3D*, and comparison-05 follows "story". Follow-up 3
+above (using the named game's genres and tags as signals) is what those need.
 
 ## Limits
 

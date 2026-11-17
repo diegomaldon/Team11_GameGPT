@@ -1,5 +1,5 @@
 {
-  "run_at": "2026-11-17T15:36:01+00:00",
+  "run_at": "2026-11-17T15:49:49+00:00",
   "schema": "hosted",
   "model": "sentence-transformers/all-MiniLM-L6-v2",
   "catalogue_games": 1005,
@@ -9,10 +9,10 @@
   "benchmark_queries": 20,
   "before": {
     "prompts": 20,
-    "mean_p@5": 0.25,
-    "mean_normalised": 0.375,
-    "mrr": 0.537,
-    "zero_hit_prompts": 7
+    "mean_p@5": 0.24,
+    "mean_normalised": 0.365,
+    "mrr": 0.516,
+    "zero_hit_prompts": 8
   },
   "after": {
     "prompts": 20,
@@ -23,8 +23,8 @@
   },
   "outcomes": {
     "improved": 6,
-    "regressed": 1,
-    "unchanged": 13
+    "regressed": 0,
+    "unchanged": 14
   },
   "by_category": {
     "genre": {
@@ -62,10 +62,10 @@
     "comparison": {
       "before": {
         "prompts": 5,
-        "mean_p@5": 0.08,
-        "mean_normalised": 0.09,
-        "mrr": 0.203,
-        "zero_hit_prompts": 3
+        "mean_p@5": 0.04,
+        "mean_normalised": 0.05,
+        "mrr": 0.121,
+        "zero_hit_prompts": 4
       },
       "after": {
         "prompts": 5,
@@ -726,12 +726,12 @@
       "id": "comparison-03",
       "category": "comparison",
       "prompt": "I finished Hades, what other fast action roguelikes should I try",
-      "attainable": 1.0,
-      "before_p@5": 0.2,
+      "attainable": 0.8,
+      "before_p@5": 0.0,
       "after_p@5": 0.0,
-      "delta": -0.2,
-      "outcome": "regressed",
-      "before_first_hit": 2,
+      "delta": 0.0,
+      "outcome": "unchanged",
+      "before_first_hit": 11,
       "after_first_hit": 8,
       "before_top_5": [
         "Hades",
@@ -748,7 +748,6 @@
         "Total War: WARHAMMER III"
       ],
       "expected_titles": [
-        "Hades II",
         "Dead Cells",
         "Enter the Gungeon",
         "Risk of Rain 2",
