@@ -18,8 +18,8 @@ retries is recorded as failed. The model runs at temperature 0.2, so a rerun
 gives similar but not identical wording.
 
 The free Gemini tier allows 20 requests a day per model and every prompt costs
-two (one per version), so `--ids` runs a subset that fits: the committed
-artifact covers nine prompts, two or three from each category.
+two (one per version), so `--ids` runs a subset that fits. The committed
+artifact covers five prompts; docs/explanation-quality.md says which and why.
 
 Usage (repo root, venv active, GEMINI_API_KEY set):
     python scripts/eval_explanations.py
@@ -40,6 +40,8 @@ from typing import Any, Sequence
 from unittest import mock
 from uuid import NAMESPACE_URL, uuid5
 
+import httpx
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from api.models import GameCandidate, Recommendation  # noqa: E402
@@ -52,7 +54,10 @@ ARTIFACT_NAME = "tm11-70-explanations"
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "games.json"
 CANDIDATES_K = 20  # what retrieval hands the LLM, as in RAGPipeline
 PICKS = 3          # RAGPipeline's n
-ATTEMPTS = 6
+ATTEMPTS = 2
+# LLMService gives Gemini 30 s, which a slower model can need for twelve
+# candidates; a timed-out call still spends quota, so the script waits longer.
+LLM_TIMEOUT_SECONDS = 120.0
 # Seconds between calls, and the first retry's wait (it grows per attempt). Back
 # to back, the free Gemini tier answers most calls with 429 or 503.
 PACE_SECONDS = 5.0
@@ -265,6 +270,13 @@ async def collect(ids: Sequence[str] = ()) -> tuple[list[dict], dict]:
     from api.services.query_parser import TitleIndex, parse_query
     from api.services.title_matching import CatalogueGame
 
+    real_client = httpx.AsyncClient
+
+    def slow_client(*args, **kwargs):
+        return real_client(*args, **{**kwargs, "timeout": LLM_TIMEOUT_SECONDS})
+
+    patcher = mock.patch.object(llm_module.httpx, "AsyncClient", slow_client)
+    patcher.start()
     llm = llm_module.LLMService(anthropic_api_key=None)
     if not llm._gemini_key:
         raise SystemExit("eval_explanations: GEMINI_API_KEY is not set")
