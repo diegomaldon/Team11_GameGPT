@@ -31,8 +31,8 @@ LABELS_FOR_A_TAG_LIST = 2
 
 STOCK_PHRASES = (
     "perfect match", "perfectly match", "perfect fit", "perfectly fit", "great choice",
-    "great pick", "excellent choice", "your query", "what you're looking for", "what you are looking for",
-    "fits the bill", "ticks all the boxes", "checks all the boxes", "look no further",
+    "great pick", "excellent choice", "your query", "what you're looking for",
+    "what you are looking for", "fits the bill", "ticks all the boxes", "checks all the boxes", "look no further",
     "strong match", "quintessential",
 )
 
