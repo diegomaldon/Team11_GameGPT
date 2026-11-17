@@ -23,6 +23,14 @@ also ordinary words. Longer titles ("Stardew Valley") count anywhere. A name
 after a cue that matches no game goes in `unrecognised_references` and
 nothing else happens: an unknown title never fails a query. If the catalogue
 can't be read, title matching is skipped and the other signals still come back.
+"I finished Hades" and "Factorio but in 3D" are comparisons too: a title at
+the start of a clause followed by "but" needs no other cue (TM11-160).
+
+A named game's sequels and editions ("Hades II" for "like Hades") come back
+in `related_titles`, so retrieval can rule out the whole series and not just
+the one entry. When a spelling fits several games of one series ("Dark Souls"
+for both a base game and its remaster), the base entry is the reference;
+across series it is still ambiguous and reported as unrecognised.
 
 Every parse is logged as `query.parsed`. Using the signals to filter or boost
 retrieval is TM11-65.
@@ -42,6 +50,7 @@ from api.services.title_matching import (
     CatalogueGame,
     catalogue_from_rows,
     normalise_title,
+    ownership_key,
     strip_edition,
 )
 
@@ -49,7 +58,7 @@ log = logging.getLogger("gamegpt.query_parser")
 
 # Bumped whenever a vocabulary or rule changes, so logged parses from before
 # and after a change can be told apart.
-PARSER_VERSION = "rules-v3"
+PARSER_VERSION = "rules-v4"
 
 # How long the title index is reused before the catalogue is read again.
 CATALOGUE_CACHE_SECONDS = 600.0
@@ -72,7 +81,7 @@ _GENRE_PHRASES: dict[str, tuple[str, ...]] = {
     "Puzzle": ("puzzle", "puzzler"),
     "Roguelike": ("roguelike", "roguelite", "rogue like", "rogue lite"),
     "Metroidvania": ("metroidvania",),
-    "Survival": ("survival",),
+    "Survival": ("survival", "survive", "surviving"),
     "Horror": ("horror", "survival horror"),
     "Open World": ("open world", "openworld"),
     "Co-op": ("co op", "coop", "cooperative", "co operative"),
@@ -95,6 +104,11 @@ _GENRE_PHRASES: dict[str, tuple[str, ...]] = {
     "Indie": ("indie",),
     "VR": ("vr", "virtual reality"),
 }
+# Phrases that name more than one genre: playing "with friends" can be either.
+_GENRE_GROUP_PHRASES: dict[tuple[str, ...], tuple[str, ...]] = {
+    ("Co-op", "Multiplayer"): ("with friends", "with my friends", "with a friend",
+                               "with buddies", "with my buddies", "with a buddy"),
+}
 
 _MOOD_PHRASES: dict[str, tuple[str, ...]] = {
     "relaxing": ("relaxing", "relaxed", "relax", "chill", "chilled", "calm", "calming",
@@ -102,7 +116,8 @@ _MOOD_PHRASES: dict[str, tuple[str, ...]] = {
                  "meditative"),
     "cozy": ("cozy", "cosy", "comfy", "wholesome", "heartwarming", "comforting", "cute"),
     "atmospheric": ("atmospheric", "immersive", "moody", "haunting"),
-    "difficult": ("difficult", "challenging", "punishing", "brutal", "unforgiving", "tough"),
+    "difficult": ("difficult", "challenging", "punishing", "brutal", "brutally", "unforgiving",
+                  "tough", "hard", "hardcore"),
     "fast-paced": ("fast paced", "frantic", "hectic", "adrenaline", "action packed",
                    "high octane", "twitchy"),
     "tense": ("tense", "scary", "creepy", "spooky", "terrifying", "frightening", "horror",
@@ -146,10 +161,14 @@ _CUES: tuple[tuple[str, ...], ...] = tuple(sorted(
         "like", "similar to", "such as", "reminds me of", "reminiscent of",
         "in the vein of", "in the style of", "along the lines of", "inspired by",
         "fan of", "fans of", "comparable to", "alternative to", "alternatives to",
-        "loved", "enjoyed",
+        "loved", "enjoyed", "finished", "completed", "beat", "beaten", "played through",
     )),
     key=len, reverse=True,
 ))
+# A cue that isn't one before these words: "beat em up" is a genre.
+_CUE_NOT_BEFORE = {("beat",): frozenset({"em", "them", "up"})}
+# A title at the start of a clause followed by this is a comparison: "Factorio but in 3D".
+_LEADING_TITLE_CUE = "but"
 # "like" after one of these is the verb ("I like", "I'd like"), not a comparison.
 _LIKE_AS_VERB_AFTER = frozenset({"i", "id", "we", "wed", "you", "youd", "they", "theyd",
                                  "would", "really", "also", "do", "dont", "didnt",
@@ -183,7 +202,9 @@ def _phrase_table(phrases: dict[Any, tuple[str, ...]], *, plurals: bool) -> dict
     return table
 
 
-_GENRES = _phrase_table(_GENRE_PHRASES, plurals=True)
+_GENRES = _phrase_table({(label,): words for label, words in _GENRE_PHRASES.items()},
+                        plurals=True)
+_GENRES.update(_phrase_table(_GENRE_GROUP_PHRASES, plurals=False))
 _MOODS = _phrase_table(_MOOD_PHRASES, plurals=False)
 _PLATFORMS = _phrase_table(_PLATFORM_PHRASES, plurals=False)
 _PLATFORMS_AT_CLAUSE_END = _phrase_table(_PLATFORM_PHRASES_AT_CLAUSE_END, plurals=False)
@@ -215,6 +236,9 @@ class ParsedQuery:
     reference_titles: tuple[ReferenceTitle, ...] = ()
     # Games the player ruled out: "nothing like Dark Souls", "I don't like Hades".
     excluded_reference_titles: tuple[ReferenceTitle, ...] = ()
+    # Sequels and editions of a named game, wanted or excluded: ruled out with it.
+    # `as_written` is the name they were found from.
+    related_titles: tuple[ReferenceTitle, ...] = ()
     unrecognised_references: tuple[str, ...] = ()
     word_count: int = 0
     # False when the catalogue couldn't be read, so no title was looked for.
@@ -243,6 +267,9 @@ class ParsedQuery:
             "excluded_reference_titles": [
                 {"game_id": str(r.game_id), "title": r.title}
                 for r in self.excluded_reference_titles
+            ],
+            "related_titles": [
+                {"game_id": str(r.game_id), "title": r.title} for r in self.related_titles
             ],
             "unrecognised_reference_count": len(self.unrecognised_references),
             "titles_checked": self.titles_checked,
@@ -300,6 +327,40 @@ def _title_keys(title: str) -> dict[str, bool]:
     return keys
 
 
+def _is_numeral(word: str) -> bool:
+    return word.isdigit() or word in _ROMAN_NUMERALS
+
+
+def _series_base(key: str) -> str:
+    """`key` without a leading "the" or a trailing entry number: "the witcher 3" -> "witcher"."""
+    words = key.split()
+    if len(words) > 1 and words[0] == "the":
+        words = words[1:]
+    if len(words) > 1 and _is_numeral(words[-1]):
+        words = words[:-1]
+    return " ".join(words)
+
+
+def _series_keys(title: str) -> tuple[str, str]:
+    """(series, head) for `title`, each normalised; head is "" without a subtitle.
+
+    Series is the title without its edition, remaster marker or entry number,
+    so "Hades II", "Dark Souls III" and "DARK SOULS: REMASTERED" fall in with
+    "Hades" and "Dark Souls". A numbered entry's subtitle is only its name and
+    goes too ("The Witcher 3: Wild Hunt" -> "witcher"). Any other subtitle is
+    kept, so "Star Wars Jedi: Fallen Order" and "Star Wars Jedi: Survivor" are
+    two series, not every Star Wars game. Its head ("hollow knight" for "Hollow
+    Knight: Silksong", "fallout" for "Fallout: New Vegas") is returned so
+    TitleIndex can still tie it to a game whose series is just that.
+    """
+    whole = ownership_key(title)
+    parts = _SUBTITLE_SPLIT.split(title, maxsplit=1)
+    head = ownership_key(parts[0]) if len(parts) == 2 else ""
+    if head and _is_numeral(head.split()[-1]):
+        whole = head
+    return _series_base(whole), _series_base(head) if head else ""
+
+
 class TitleIndex:
     """Catalogue titles by every key in _title_keys, for longest-match lookup."""
 
@@ -308,6 +369,10 @@ class TitleIndex:
         self._ids_by_key: dict[tuple[str, ...], list[UUID]] = {}
         self._uncued_ids_by_key: dict[tuple[str, ...], list[UUID]] = {}
         self._titles: dict[UUID, str] = {}
+        # _series_keys per game, and games by each, for related().
+        self._series: dict[UUID, tuple[str, str]] = {}
+        self._ids_by_series: dict[str, list[UUID]] = {}
+        self._ids_by_head: dict[str, list[UUID]] = {}
         for game in games:
             self._titles[game.game_id] = game.title
             for key, needs_cue in _title_keys(game.title).items():
@@ -315,13 +380,64 @@ class TitleIndex:
                 _add(self._ids_by_key, words, game.game_id)
                 if not needs_cue:
                     _add(self._uncued_ids_by_key, words, game.game_id)
+            series, head = _series_keys(game.title)
+            if series:
+                self._series[game.game_id] = (series, head)
+                _add(self._ids_by_series, series, game.game_id)
+                if head:
+                    _add(self._ids_by_head, head, game.game_id)
         self._max_words = max((len(k) for k in self._ids_by_key), default=0)
+        self._max_series_words = max(
+            (len(k.split()) for k in (*self._ids_by_series, *self._ids_by_head)), default=0)
 
     def __len__(self) -> int:
         return len(self._titles)
 
     def title(self, game_id: UUID) -> str:
         return self._titles[game_id]
+
+    def series_members(self, series: str) -> list[UUID]:
+        """Games in `series` (a _series_keys series), including ones subtitled from it."""
+        if not series:
+            return []
+        return list(dict.fromkeys(
+            self._ids_by_series.get(series, []) + self._ids_by_head.get(series, [])))
+
+    def related(self, game_id: UUID) -> list[UUID]:
+        """Other games of `game_id`'s series: its sequels, prequels and editions."""
+        series, head = self._series.get(game_id, ("", ""))
+        ids = self.series_members(series) + self._ids_by_series.get(head, [])
+        return [i for i in dict.fromkeys(ids) if i != game_id]
+
+    def base_entry(self, ids: Sequence[UUID]) -> UUID | None:
+        """The one of `ids` the rest are sequels or editions of, else None.
+
+        That is the shortest title ("Hollow Knight" over "Hollow Knight:
+        Silksong") when every other one is related to it. Two games with the
+        same title (both "Prey"s) can't be told apart, so a tie is None.
+        """
+        keyed = sorted((len(t), t, str(i), i)
+                       for i in ids for t in [normalise_title(self._titles[i])])
+        if len(keyed) > 1 and keyed[0][1] == keyed[1][1]:
+            return None
+        base = keyed[0][3]
+        return base if set(ids) - {base} <= set(self.related(base)) else None
+
+    def longest_series(self, tokens: Sequence[str | None], start: int) -> tuple[int, str] | None:
+        """The longest series key starting at `start`, as (end, series), or None.
+
+        For a name that is no catalogue title but names a series that is:
+        "like Dark Souls" when only Dark Souls III is listed.
+        """
+        longest = min(self._max_series_words, len(tokens) - start)
+        for length in range(longest, 0, -1):
+            words = tokens[start:start + length]
+            if None in words or "," in words:
+                continue
+            series = " ".join(words)  # type: ignore[arg-type]
+            if self.series_members(series):
+                return start + length, series
+        return None
 
     def longest_match(
         self, tokens: Sequence[str | None], start: int, *, cued: bool,
@@ -346,7 +462,7 @@ class TitleIndex:
         return None
 
 
-def _add(index: dict[tuple[str, ...], list[UUID]], key: tuple[str, ...], game_id: UUID) -> None:
+def _add(index: dict[Any, list[UUID]], key: Any, game_id: UUID) -> None:
     ids = index.setdefault(key, [])
     if game_id not in ids:
         ids.append(game_id)
@@ -373,6 +489,9 @@ def _clauses(query: str) -> list[list[str]]:
 def _cue_length(tokens: Sequence[str | None], i: int) -> int:
     for cue in _CUES:
         if tuple(tokens[i:i + len(cue)]) == cue:
+            following = tokens[i + len(cue)] if i + len(cue) < len(tokens) else None
+            if following in _CUE_NOT_BEFORE.get(cue, ()):
+                return 0
             if cue == ("like",) and i > 0 and tokens[i - 1] in _LIKE_AS_VERB_AFTER:
                 # "I like Hades" names no comparison, but "I don't like Hades"
                 # rules a game out, so a negated verb still counts (as excluded).
@@ -399,6 +518,8 @@ class _ClauseTitles:
     # (as written, game ids, negated)
     references: list[tuple[str, list[UUID], bool]] = field(default_factory=list)
     unrecognised: list[str] = field(default_factory=list)
+    # Series named after a cue by a name that is no catalogue title ("dark souls").
+    series: list[str] = field(default_factory=list)
 
 
 def _find_titles(tokens: list[str | None], index: TitleIndex) -> _ClauseTitles:
@@ -414,6 +535,14 @@ def _find_titles(tokens: list[str | None], index: TitleIndex) -> _ClauseTitles:
         found.references.append((" ".join(tokens[start:end]), ids, negated))
         tokens[start:end] = [None] * (end - start)
 
+    # "Factorio but in 3D": a leading title followed by "but" is cued by it.
+    hit = index.longest_match(tokens, 0, cued=True) if tokens else None
+    if hit is not None:
+        end, ids = hit
+        rest = [t for t in tokens[end:end + 2] if t != ","]
+        if rest[:1] == [_LEADING_TITLE_CUE]:
+            take(0, end, ids, False)
+
     i = 0
     while i < len(tokens):
         cue = _cue_length(tokens, i)
@@ -426,8 +555,16 @@ def _find_titles(tokens: list[str | None], index: TitleIndex) -> _ClauseTitles:
         while j < len(tokens):
             hit = index.longest_match(tokens, j, cued=True)
             if hit is None:
-                if is_first and (name := _unrecognised_name(tokens, j)):
-                    found.unrecognised.append(name)
+                if is_first:
+                    series = index.longest_series(tokens, j)
+                    if series is not None:
+                        found.series.append(series[1])
+                    # A series name is still no catalogue title, so it is reported.
+                    if name := _unrecognised_name(tokens, j) or (series and series[1]):
+                        found.unrecognised.append(name)
+                    if series is not None:
+                        # Its words were a name, not signals: "dark" in "Dark Souls".
+                        tokens[j:series[0]] = [None] * (series[0] - j)
                 break
             end, ids = hit
             take(j, end, ids, negated)
@@ -515,8 +652,8 @@ def _settle(mentions: Iterable[tuple[Any, bool]]) -> tuple[tuple, tuple]:
     )
 
 
-def _per_platform(mentions: Iterable[tuple[tuple[str, ...], bool]]) -> list[tuple[str, bool]]:
-    """Split "pc" (steam and epic) into one mention per platform."""
+def _per_label(mentions: Iterable[tuple[tuple[str, ...], bool]]) -> list[tuple[str, bool]]:
+    """Split a phrase naming several labels ("pc": steam and epic) into one mention each."""
     return [(p, negated) for group, negated in mentions for p in group]
 
 
@@ -528,6 +665,7 @@ def parse_query(query: str, index: TitleIndex | None) -> ParsedQuery:
     platforms: list[tuple[str, bool]] = []
     references: list[tuple[str, list[UUID], bool]] = []
     unrecognised: list[str] = []
+    named_series: list[str] = []
 
     for words in clauses:
         tokens: list[str | None] = list(words)
@@ -535,9 +673,10 @@ def parse_query(query: str, index: TitleIndex | None) -> ParsedQuery:
             found = _find_titles(tokens, index)
             references += found.references
             unrecognised += found.unrecognised
-        genres += _scan(tokens, _GENRES)
+            named_series += found.series
+        genres += _per_label(_scan(tokens, _GENRES))
         moods += _scan(tokens, _MOODS)
-        platforms += _per_platform(_scan(tokens, _PLATFORMS, _PLATFORMS_AT_CLAUSE_END))
+        platforms += _per_label(_scan(tokens, _PLATFORMS, _PLATFORMS_AT_CLAUSE_END))
 
     # A query that is nothing but a title ("hades") names that game, cue or not.
     if index is not None and not references and len(clauses) == 1:
@@ -548,13 +687,29 @@ def parse_query(query: str, index: TitleIndex | None) -> ParsedQuery:
 
     titles: dict[UUID, ReferenceTitle] = {}
     title_mentions: list[tuple[UUID, bool]] = []
+    ambiguous: list[tuple[str, list[UUID]]] = []
     for as_written, ids, negated in references:
-        if len(ids) > 1:
-            # Two games share the spelling; guessing would compare against the wrong one.
+        game_id = ids[0] if len(ids) == 1 else index.base_entry(ids)
+        if game_id is None:
+            # Unrelated games share the spelling; guessing would compare against
+            # the wrong one. None of them is an answer, though.
             unrecognised.append(as_written)
+            ambiguous.append((as_written, ids))
             continue
-        titles.setdefault(ids[0], ReferenceTitle(ids[0], index.title(ids[0]), as_written))
-        title_mentions.append((ids[0], negated))
+        titles.setdefault(game_id, ReferenceTitle(game_id, index.title(game_id), as_written))
+        title_mentions.append((game_id, negated))
+
+    # The rest of each named game's series. A name that is no title can still
+    # name one: "like Dark Souls" with only Dark Souls III in the catalogue.
+    related: dict[UUID, ReferenceTitle] = {}
+    if index is not None:
+        sources = [(r.as_written, index.related(i)) for i, r in titles.items()]
+        sources += ambiguous
+        sources += [(s, index.series_members(s)) for s in named_series]
+        for as_written, ids in sources:
+            for i in ids:
+                if i not in titles:
+                    related.setdefault(i, ReferenceTitle(i, index.title(i), as_written))
 
     wanted_genres, no_genres = _settle(genres)
     wanted_moods, no_moods = _settle(moods)
@@ -569,6 +724,7 @@ def parse_query(query: str, index: TitleIndex | None) -> ParsedQuery:
         excluded_platforms=no_platforms,
         reference_titles=tuple(titles[i] for i in wanted_titles),
         excluded_reference_titles=tuple(titles[i] for i in no_titles),
+        related_titles=tuple(sorted(related.values(), key=lambda r: (r.title, str(r.game_id)))),
         unrecognised_references=tuple(dict.fromkeys(unrecognised)),
         word_count=sum(1 for words in clauses for w in words if w != ","),
         titles_checked=index is not None,
