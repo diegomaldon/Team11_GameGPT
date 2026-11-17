@@ -239,6 +239,8 @@ jobs:
 
       # TM11-62. The four signals, unknown titles ignored, a log line per query,
       # and one-word to paragraph queries are acceptance criteria. No database.
+      # TM11-160 adds "I finished X" / "X but" cues, series removal and the
+      # hard/survive/with-friends vocabulary, tested off the benchmark prompts.
       - name: Pytest — query parsing
         working-directory: .
         run: python -m pytest api/tests/test_query_parser.py api/tests/test_pipeline.py -v

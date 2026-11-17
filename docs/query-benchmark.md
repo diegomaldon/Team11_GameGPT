@@ -64,3 +64,7 @@ Changing a prompt or its expected titles changes every number measured against
 it. Bump `version` in the fixture and say why in the commit, and don't compare
 recall across versions. The sprint 6/7 artifacts were measured on the older
 TM11-40 query set and are kept as they were.
+
+- **v2 (TM11-160):** Hades II removed from comparison-03's expected titles.
+  TM11-160 rules out a named game's sequels, so "I finished Hades" can't be
+  answered with Hades II by design. Nothing else changed.

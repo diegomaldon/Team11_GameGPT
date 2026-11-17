@@ -19,9 +19,11 @@ parsed platform among its platforms. A query with no signals scores on
 similarity alone, so it ranks exactly as plain semantic search did.
 
 Before scoring, a game is dropped when it carries an excluded genre or mood,
-is only on excluded platforms, or is a reference title. The player ruled the
-first ones out, and a game they named ("like Hades") is the comparison, not
-an answer. TM11-63's benchmark doesn't count it as a hit either.
+is only on excluded platforms, or is a reference title or one of its sequels
+and editions. The player ruled the first ones out, and a game they named
+("like Hades") is the comparison, not an answer. TM11-63's benchmark doesn't
+count it as a hit either. Its series goes with it (TM11-160): "I finished
+Hades" is not answered with Hades II.
 
 Deterministic: the same query and catalogue give the same list. Ties break on
 similarity, then title, then game_id, never on the order the database
@@ -84,9 +86,10 @@ def metadata_match(candidate: GameCandidate, parsed: ParsedQuery) -> float | Non
 
 
 def is_ruled_out(candidate: GameCandidate, parsed: ParsedQuery) -> bool:
-    """Whether the player excluded this game, or named it as the comparison."""
+    """Whether the player excluded this game, or named it or its series as the comparison."""
     named = {r.game_id for r in parsed.reference_titles}
     named |= {r.game_id for r in parsed.excluded_reference_titles}
+    named |= {r.game_id for r in parsed.related_titles}
     if candidate.game_id in named:
         return True
     if _lower(candidate.genres) & _lower(parsed.excluded_genres):

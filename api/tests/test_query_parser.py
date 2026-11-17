@@ -451,3 +451,217 @@ def test_maximum_length_query_parses(index):
 @pytest.mark.parametrize("query", ["", "   ", "...", ",,,", "!!!", "🎮", "like", "not"])
 def test_degenerate_input_does_not_raise(index, query):
     parse_query(query, index)
+
+
+# ───────────── TM11-160: gaps the retrieval benchmark found ─────────────
+# Every phrasing here is new: none is one of the 20 TM11-63 benchmark prompts,
+# so the parser isn't tuned to the benchmark it is measured on.
+
+SERIES_TITLES = [
+    "Portal", "Portal 2", "DARK SOULS™: REMASTERED", "DARK SOULS™ II: Scholar of the First Sin",
+    "DARK SOULS™ III", "Hollow Knight", "Hollow Knight: Silksong", "Fallout 4",
+    "Fallout: New Vegas", "Star Wars Jedi: Fallen Order", "Star Wars Jedi: Survivor",
+    "The Witcher 2: Assassins of Kings", "The Witcher 3: Wild Hunt", "Subnautica",
+    "Subnautica: Below Zero", "Terraria", "Celeste", "Rust",
+]
+SERIES_GAMES = [CatalogueGame(uuid4(), t) for t in SERIES_TITLES]
+
+
+@pytest.fixture(scope="module")
+def series() -> TitleIndex:
+    return TitleIndex(SERIES_GAMES)
+
+
+# AC1: "I finished X" and "X but ..." are comparisons, and X is the reference.
+
+
+@pytest.mark.parametrize("query, title", [
+    ("just finished Celeste, need another platformer", "Celeste"),
+    ("I completed Terraria twice, what next", "Terraria"),
+    ("we beat Rust last weekend", "Rust"),
+    ("played through Celeste and want more", "Celeste"),
+    ("finally beaten Terraria, any ideas", "Terraria"),
+])
+def test_finishing_a_game_names_it_as_the_reference(series, query, title):
+    assert titles(parse_query(query, series)) == [title]
+
+
+@pytest.mark.parametrize("query, title", [
+    ("Terraria but set in space", "Terraria"),
+    ("Celeste, but with a bigger world", "Celeste"),
+    ("Rust but less toxic. On PC", "Rust"),
+])
+def test_a_leading_title_followed_by_but_is_a_comparison(series, query, title):
+    assert titles(parse_query(query, series)) == [title]
+
+
+def test_a_leading_word_followed_by_but_that_is_no_title_is_not_a_reference(series):
+    parsed = parse_query("relaxing but not boring", series)
+    assert parsed.reference_titles == ()
+    assert parsed.unrecognised_references == ()
+
+
+def test_a_single_word_title_mid_sentence_before_but_still_needs_a_cue(series):
+    # Only the start of a clause counts: "rust" here is the ordinary word.
+    assert titles(parse_query("a game about rust but in space", series)) == []
+
+
+def test_beat_em_up_is_a_genre_not_a_finished_game(series):
+    parsed = parse_query("a beat em up for two players", series)
+    assert parsed.genres == ("Fighting",)
+    assert parsed.unrecognised_references == ()
+
+
+def test_a_title_starting_with_a_cue_word_is_the_title_not_a_cue():
+    # PR #64 review: "beat" also starts "Beat Saber", which must not leave "saber" behind.
+    index = TitleIndex([CatalogueGame(uuid4(), "Beat Saber"), CatalogueGame(uuid4(), "Celeste")])
+    parsed = parse_query("I love Beat Saber, want more rhythm games", index)
+    assert titles(parsed) == ["Beat Saber"]
+    assert parsed.unrecognised_references == ()
+    # "beat" is still a cue in front of another title.
+    assert titles(parse_query("just beat Celeste", index)) == ["Celeste"]
+
+
+def test_beat_it_after_a_signal_is_not_an_unrecognised_title(series):
+    parsed = parse_query("tough, but satisfying once you beat it", series)
+    assert parsed.unrecognised_references == ()
+
+
+# AC2: the named game resolves to the right entry, and its series is ruled out.
+
+
+def test_dark_souls_resolves_to_the_first_game_not_a_sequel(series):
+    parsed = parse_query("anything similar to Dark Souls with a fantasy setting", series)
+    assert titles(parsed) == ["DARK SOULS™: REMASTERED"]
+    assert titles_of(parsed.related_titles) == [
+        "DARK SOULS™ II: Scholar of the First Sin", "DARK SOULS™ III"]
+
+
+def test_a_numbered_entry_resolves_to_itself_and_rules_out_the_rest(series):
+    parsed = parse_query("loved Dark Souls 3, want a harder one", series)
+    assert titles(parsed) == ["DARK SOULS™ III"]
+    assert titles_of(parsed.related_titles) == [
+        "DARK SOULS™ II: Scholar of the First Sin", "DARK SOULS™: REMASTERED"]
+
+
+@pytest.mark.parametrize("query, reference, related", [
+    ("I completed Portal", "Portal", ["Portal 2"]),
+    ("similar to Portal 2", "Portal 2", ["Portal"]),
+    ("like The Witcher 3 with better combat", "The Witcher 3: Wild Hunt",
+     ["The Witcher 2: Assassins of Kings"]),
+    ("I finished Hollow Knight", "Hollow Knight", ["Hollow Knight: Silksong"]),
+    ("enjoyed Subnautica: Below Zero", "Subnautica: Below Zero", ["Subnautica"]),
+    ("like Fallout: New Vegas", "Fallout: New Vegas", ["Fallout 4"]),
+])
+def test_sequels_prequels_and_subtitled_follow_ups_are_related(series, query, reference, related):
+    parsed = parse_query(query, series)
+    assert titles(parsed) == [reference]
+    assert titles_of(parsed.related_titles) == related
+
+
+def test_a_subtitled_spin_off_keeps_its_own_series(series):
+    # "Star Wars Jedi" is no game of its own, so Fallen Order and Survivor
+    # aren't tied together, and naming one doesn't rule out every Star Wars game.
+    parsed = parse_query("like Star Wars Jedi: Fallen Order", series)
+    assert titles(parsed) == ["Star Wars Jedi: Fallen Order"]
+    assert parsed.related_titles == ()
+
+
+def test_an_excluded_games_series_is_related_too(series):
+    parsed = parse_query("nothing like Portal, I'm sick of puzzles", series)
+    assert titles_of(parsed.excluded_reference_titles) == ["Portal"]
+    assert titles_of(parsed.related_titles) == ["Portal 2"]
+
+
+def test_an_unlisted_base_game_still_rules_out_its_listed_sequels():
+    # On a catalogue with only the sequel, "Dark Souls" names no game, but the
+    # sequel is still the same series and still not an answer.
+    only_sequel = TitleIndex([CatalogueGame(uuid4(), "Dark Souls III")])
+    parsed = parse_query("something in the vein of Dark Souls but with guns", only_sequel)
+    assert parsed.reference_titles == ()
+    assert parsed.unrecognised_references == ("dark souls",)
+    assert titles_of(parsed.related_titles) == ["Dark Souls III"]
+
+
+def test_a_spelling_shared_within_one_series_picks_the_base_entry():
+    base, edition = uuid4(), uuid4()
+    index = TitleIndex([CatalogueGame(base, "Dark Souls"),
+                        CatalogueGame(edition, "Dark Souls: Remastered")])
+    parsed = parse_query("like Dark Souls", index)
+    assert [r.game_id for r in parsed.reference_titles] == [base]
+    assert [r.game_id for r in parsed.related_titles] == [edition]
+
+
+def test_identical_titles_stay_ambiguous_but_both_are_ruled_out():
+    twins = TitleIndex([CatalogueGame(uuid4(), "Prey"), CatalogueGame(uuid4(), "Prey")])
+    parsed = parse_query("I finished Prey", twins)
+    assert parsed.reference_titles == ()
+    assert titles_of(parsed.related_titles) == ["Prey", "Prey"]
+
+
+def test_related_titles_are_logged_by_catalogue_title(series):
+    fields = parse_query("I completed Portal", series).log_fields()
+    assert [r["title"] for r in fields["related_titles"]] == ["Portal 2"]
+
+
+# AC3: vocabulary for difficulty, survival and playing with friends.
+
+
+@pytest.mark.parametrize("query", [
+    "something really hard",
+    "hard platformers",
+    "a brutally unfair boss rush",
+    "hardcore colony management",
+])
+def test_hard_means_difficult(series, query):
+    assert "difficult" in parse_query(query, series).moods
+
+
+def test_not_too_hard_excludes_difficult(series):
+    parsed = parse_query("a puzzle game that isn't too hard", series)
+    assert parsed.excluded_moods == ("difficult",)
+
+
+@pytest.mark.parametrize("query", [
+    "help me survive a zombie outbreak",
+    "surviving in the arctic",
+    "try to survive the night in a haunted mall",
+])
+def test_survive_means_survival(series, query):
+    assert "Survival" in parse_query(query, series).genres
+
+
+@pytest.mark.parametrize("query", [
+    "a racing game to play with friends",
+    "something to play with my friends online",
+    "tower defense with a buddy",
+])
+def test_with_friends_means_co_op_or_multiplayer(series, query):
+    genres = parse_query(query, series).genres
+    assert "Co-op" in genres and "Multiplayer" in genres
+
+
+def test_not_with_friends_excludes_both(series):
+    parsed = parse_query("a strategy game, not with friends, just me", series)
+    assert set(parsed.excluded_genres) == {"Co-op", "Multiplayer"}
+
+
+def test_a_series_names_words_are_not_read_as_signals():
+    only_sequel = TitleIndex([CatalogueGame(uuid4(), "Dark Souls III")])
+    assert parse_query("reminds me of Dark Souls", only_sequel).moods == ()
+
+
+@pytest.mark.parametrize("query", [
+    "a game that's hard to put down",
+    "hard sci-fi with a slow-burn story",
+    "something with hard choices",
+])
+def test_hard_not_about_difficulty_is_not_difficult(series, query):
+    # PR #64 review: a bare "hard" only counts next to an intensifier or a game word.
+    assert "difficult" not in parse_query(query, series).moods
+
+
+@pytest.mark.parametrize("query", ["a hard game", "hard roguelikes", "so hard it hurts",
+                                   "hard bosses and tight combat", "play it on hard mode"])
+def test_hard_about_the_game_is_difficult(series, query):
+    assert "difficult" in parse_query(query, series).moods
