@@ -171,7 +171,8 @@ Incremental runs (TM11-41): each run re-embeds only new games and games whose
 ### Query parsing (`QueryParser`, TM11-62)
 - REQ011: a player types a description, not filters. `QueryParser.parse(query)`
   reads it for **genres** (catalogue genre names: "jrpg" → `RPG`, "roguelites" →
-  `Roguelike`), **moods** (catalogue tag names: "chill" → `relaxing`, "spooky" →
+  `Roguelike`, "survive" → `Survival`; "with friends" is both `Co-op` and
+  `Multiplayer`), **moods** (catalogue tag names: "chill" → `relaxing`, "spooky" →
   `tense`), **platforms** (`steam`, `xbox`, `epic`; "pc" is both PC stores; "on
   epic" only at the end of a clause, so "on epic adventures" isn't a store) and
   **reference titles** (catalogue games after a cue: "like Hades", "similar to
@@ -192,10 +193,22 @@ Incremental runs (TM11-41): each run re-embeds only new games and games whose
   after it ("like skyrim"). A one-word title needs a cue or must be the whole
   query, since "rust" and "control" are also words; multi-word titles count
   anywhere. Words used by a title are not read as signals ("Dark Souls" is not
-  a dark mood).
+  a dark mood). Finishing a game is a cue too ("I finished Hades", "beat",
+  "completed", "played through"), and so is a title that opens a clause and is
+  followed by "but" ("Factorio but in 3D"). TM11-160.
+- **A named game's series is ruled out with it** (TM11-160). Its sequels,
+  prequels and editions come back in `related_titles` ("I finished Hades" →
+  Hades II), and hybrid retrieval drops them like the reference itself. A series
+  is the title without its edition, remaster marker, entry number or a numbered
+  entry's subtitle; any other subtitle makes a series of its own, so naming
+  *Star Wars Jedi: Fallen Order* doesn't rule out every Star Wars game. A
+  spelling shared by a base game and its follow-ups ("Hollow Knight" for
+  *Hollow Knight: Silksong* too) resolves to the base game, and a name that is
+  no catalogue title but names a listed series ("like Dark Souls" with only
+  *Dark Souls III*) still rules that series out.
 - **Unrecognised titles never fail a query.** A name after a cue that matches no
-  game, or matches two, goes in `unrecognised_references` and nothing else
-  happens. If the catalogue can't be read (no DB, DB down) titles are skipped,
+  game, or matches two unrelated ones, goes in `unrecognised_references` and
+  nothing else happens. If the catalogue can't be read (no DB, DB down) titles are skipped,
   `titles_checked` is false, and the other signals still come back. The
   catalogue's title index is cached for 10 minutes per process. `parse()` never
   raises: a parser bug logs `query.parse_failed` and returns an empty parse, so

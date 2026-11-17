@@ -114,7 +114,9 @@ largest loss in the benchmark.
 ## What would improve it
 
 These are candidate follow-up stories. None are fitted to these 20 prompts.
-Fixing them should be measured by re-running the script.
+Fixing them should be measured by re-running the script. Items 1, 2 and 4 are
+TM11-160 (parser cues, series removal, vocabulary), unit-tested on phrasings
+outside the benchmark.
 
 1. **Comparison cues in the parser (TM11-62):** recognise "I finished X",
    "X but …" and "something like X". This fixes comparison-03 and -04 outright.
