@@ -16,6 +16,12 @@ which are the columns of a recommendations row.
 Token usage is logged for every provider attempt (`llm.usage`), including one
 whose answer then fails to parse, since those tokens were still spent. One
 `llm.ranked` line per call says which provider answered and the call's total.
+
+TM11-71 (REQ015) hardens that check into a hallucination guard. Titles are
+compared with title_matching.normalise_title, so a model that drops a ™ or
+changes punctuation still matches the candidate it meant, while another edition
+of a game does not. Each rejected pick is logged with the index and title the
+model wrote, even when the title is missing or the pick isn't an object.
 """
 
 from __future__ import annotations
@@ -31,6 +37,7 @@ import httpx
 from api.config import get_settings
 from api.models import GameCandidate, Recommendation
 from api.observability.upstream import raise_for_status_safe
+from api.services.title_matching import normalise_title
 
 log = logging.getLogger("gamegpt.llm")
 
@@ -50,8 +57,9 @@ MAX_RECOMMENDATIONS = 5
 MAX_EXPLANATION_SENTENCES = 2
 MAX_EXPLANATION_CHARS = 320
 
-# Rejected titles are model output; cap what one log line can carry.
-MAX_LOGGED_TITLE_CHARS = 100
+# Rejected picks are model output; cap what one log line can carry (TM11-71).
+MAX_LOGGED_PICK_CHARS = 100
+MAX_LOGGED_REJECTIONS = 5
 
 # A sentence ends at . ! or ? (optionally followed by a closing quote or bracket)
 # and then whitespace. Good enough for short English explanations.
@@ -193,10 +201,6 @@ def _build_messages(query: str, pool: list[GameCandidate], want: int) -> tuple[s
     return _SYSTEM_PROMPT, user
 
 
-def _title_key(title: str) -> str:
-    return " ".join(title.split()).casefold()
-
-
 def _as_index(value: object) -> int | None:
     """An int index, or None. Rejects bools and non-numeric strings."""
     if isinstance(value, bool):
@@ -214,6 +218,10 @@ def _resolve_pick(pick: object, pool: list[GameCandidate]) -> int | None:
     to a real title still meant that title. A title that matches no candidate
     is a game the model made up or remembered, and is rejected even if its
     index is valid, since its explanation is about a different game.
+
+    Titles are compared by normalise_title (TM11-71): "Dark Souls II - Scholar of
+    the First Sin" matches "DARK SOULS™ II: Scholar of the First Sin", but
+    "Dark Souls Remastered" does not match "Dark Souls III".
     """
     if not isinstance(pick, dict):
         return None
@@ -221,14 +229,43 @@ def _resolve_pick(pick: object, pool: list[GameCandidate]) -> int | None:
     in_range = idx is not None and 0 <= idx < len(pool)
     title = pick.get("title")
     if isinstance(title, str) and title.strip():
-        key = _title_key(title)
-        if in_range and _title_key(pool[idx].title) == key:
+        key = normalise_title(title)
+        if not key:
+            return None  # only symbols, so there is no title to check
+        if in_range and normalise_title(pool[idx].title) == key:
             return idx
         for i, c in enumerate(pool):
-            if _title_key(c.title) == key:
+            if normalise_title(c.title) == key:
                 return i
         return None
     return idx if in_range else None
+
+
+def _describe_rejected_pick(pick: object) -> dict[str, int | str | None]:
+    """What a rejected pick said, for the log (TM11-71).
+
+    The index and title as the model wrote them, each capped. The explanation is
+    left out: it is free text that can repeat the player's request, and
+    docs/OBSERVABILITY.md keeps request and response bodies out of the logs.
+    """
+    if not isinstance(pick, dict):
+        return {"pick": _capped(pick)}
+    return {"index": _logged_index(pick.get("index")), "title": _capped(pick.get("title"))}
+
+
+def _logged_index(index: object) -> int | str | None:
+    """A whole-number index stays a number, so log queries can filter on it.
+
+    Anything else the model put there (a bool, "7", a word) is logged as capped text.
+    """
+    is_whole_number = isinstance(index, int) and not isinstance(index, bool)
+    if is_whole_number and len(str(index)) <= MAX_LOGGED_PICK_CHARS:
+        return index
+    return _capped(index)
+
+
+def _capped(value: object) -> str | None:
+    return None if value is None else str(value)[:MAX_LOGGED_PICK_CHARS]
 
 
 def _in_model_order(picks: list) -> list:
@@ -255,14 +292,13 @@ def _picks_to_recs(
 
     chosen: list[tuple[int, str]] = []
     seen: set[int] = set()
-    rejected: list[str] = []
+    rejected: list[dict[str, str | None]] = []
     for pick in _in_model_order(picks):
         if len(chosen) == want:
             break
         idx = _resolve_pick(pick, pool)
         if idx is None:
-            title = pick.get("title", "") if isinstance(pick, dict) else ""
-            rejected.append(str(title)[:MAX_LOGGED_TITLE_CHARS])
+            rejected.append(_describe_rejected_pick(pick))
             continue
         if idx in seen:
             continue
@@ -275,7 +311,10 @@ def _picks_to_recs(
     if rejected:
         log.warning(
             "llm.picks_rejected",
-            extra={"rejected_count": len(rejected), "rejected_titles": rejected[:5]},
+            extra={
+                "rejected_count": len(rejected),
+                "rejected_picks": rejected[:MAX_LOGGED_REJECTIONS],
+            },
         )
     if not chosen:
         raise ValueError("no recommendation matched a retrieved candidate")

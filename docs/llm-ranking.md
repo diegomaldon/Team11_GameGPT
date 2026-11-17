@@ -80,14 +80,42 @@ remembers instead of one it was shown. `_resolve_pick` decides which candidate a
 pick means:
 
 - **Title and index agree**: that candidate.
-- **The title matches a different candidate** (case and spacing ignored): the title
-  wins. A model that copies the wrong index next to a real title still meant the
-  title.
+- **The title matches a different candidate**: the title wins. A model that copies
+  the wrong index next to a real title still meant the title.
 - **The title matches no candidate**: rejected, even if the index is valid, because
-  the explanation is about a game we didn't retrieve. Rejections are logged as
-  `llm.picks_rejected` with the count and up to five of the titles.
+  the explanation is about a game we didn't retrieve.
 - **No title**: the index, if it is an integer in range. Bools, strings that aren't
   numbers, and non-objects are rejected.
+
+### Hallucination guard — TM11-71
+
+Titles are compared with `title_matching.normalise_title`, the same key the library
+import uses. It ignores case, punctuation, accents and trademark symbols, so a model
+that writes "Dark Souls II - Scholar of the First Sin" for the Steam title
+"DARK SOULS™ II: Scholar of the First Sin" still gets that game. It does not strip
+editions, so "Dark Souls Remastered" is not taken for "Dark Souls III".
+
+Every rejected pick is logged in one `llm.picks_rejected` warning, with the count
+and up to five of the picks as the model wrote them:
+
+```json
+{"logger":"gamegpt.llm","msg":"llm.picks_rejected","rejected_count":2,
+ "rejected_picks":[{"index":1,"title":"Hollow Knight: Silksong"},{"pick":"Elden Ring"}]}
+```
+
+A pick that is an object is logged by its `index` and `title` (null when missing).
+A whole-number index stays a number, so log queries can filter on it; anything else
+the model put there is logged as text. A pick that isn't an object is logged whole
+under `pick`. Each text value is capped at 100 characters.
+The explanation is never logged: it is free text that can repeat the player's
+request, and request and response bodies stay out of the logs
+([OBSERVABILITY.md](OBSERVABILITY.md#rules)).
+
+| AC | What meets it | Tests |
+|---|---|---|
+| Titles not in the candidate set are rejected | `_resolve_pick` with `normalise_title` | `test_a_made_up_title_*`, `test_another_edition_*`, `test_a_game_filtered_out_before_ranking_*` |
+| Rejections logged with the offending output | `_describe_rejected_pick` in `llm.picks_rejected` | `test_a_rejected_pick_without_a_usable_title_*`, `test_a_rejected_picks_explanation_*` |
+| A fabricated title fed through the parser | `_picks_to_recs`, and `LLMService.rank` end to end | `test_a_made_up_title_*`, `test_a_game_filtered_out_before_ranking_*` |
 
 So every `game_id` returned is one of the candidates passed in, whichever path
 produced it. `test_every_result_comes_from_the_candidates_given` checks this for the
