@@ -1120,6 +1120,19 @@
               }
             ],
             "title": "Steam Appid"
+          },
+          "generated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated At",
+            "description": "When the result was saved, from the recommendations row."
           }
         },
         "type": "object",
@@ -1678,6 +1691,19 @@
               }
             ],
             "title": "Review Score"
+          },
+          "generated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated At",
+            "description": "When the ranking that produced this result was parsed (UTC). Every result of one call shares it (TM11-69)."
           }
         },
         "type": "object",

@@ -92,6 +92,16 @@ def test_a_saved_query_reads_back_with_its_ranked_results(catalogue_games, saved
     ]
 
 
+def test_saved_results_read_back_with_generated_at(catalogue_games, saved_queries):
+    # TM11-69 AC-02: the row's own time comes back with each result.
+    query_id = save(saved_queries, "tm11-69 generated at", catalogue_games)
+
+    entry = next(e for e in history(DEV_USER) if e.query_id == query_id)
+
+    assert entry.recommendations
+    assert all(r.generated_at is not None for r in entry.recommendations)
+
+
 def test_history_is_newest_first(catalogue_games, saved_queries):
     first = save(saved_queries, "tm11-64 first", catalogue_games)
     second = save(saved_queries, "tm11-64 second", catalogue_games)
