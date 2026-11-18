@@ -28,6 +28,13 @@ TM11-70 (REQ015) asks for a plain-language reason, not restated genre tags. The
 terms and point to something concrete from the description. Before and after
 samples are in artifacts/sprint10/tm11-70-explanations.md, written by
 scripts/eval_explanations.py; the review is docs/explanation-quality.md.
+
+TM11-72 (REQ040): a provider's malformed or failed answer is retried once, then
+the next provider is tried. When every configured provider has failed, the
+deterministic ranker's retrieval-order results are returned as a degraded
+ranking: rank_outcome() says so, the pipeline adds a `ranking_degraded` notice,
+and `llm.degraded` is logged. With no key configured at all (local dev, CI) the
+deterministic ranker is the expected path, not a failure, so it isn't degraded.
 """
 
 from __future__ import annotations
@@ -384,6 +391,17 @@ class _UsageTally:
         return self.input_tokens + self.output_tokens
 
 
+@dataclass(frozen=True)
+class RankOutcome:
+    """One rank() call's results, and whether they came from a real model (TM11-72)."""
+
+    recommendations: list[Recommendation]
+    provider: str  # "gemini", "anthropic" or "deterministic"
+    # True when a provider was configured but every attempt failed, so these are
+    # retrieval-order results the model never ranked.
+    degraded: bool = False
+
+
 def _stamp(recs: list[Recommendation]) -> list[Recommendation]:
     """Give one call's results the same generated_at (TM11-69 AC-02)."""
     generated_at = datetime.now(timezone.utc)
@@ -421,10 +439,23 @@ class LLMService:
 
         `n` is clamped to 3-5 (REQ015). Returns Recommendations ranked 1..n, each
         with a non-empty `reason`; fewer only when there are fewer candidates.
-        Falls back to a deterministic ranking if no provider succeeds.
+        Falls back to a deterministic ranking if no provider succeeds. Use
+        rank_outcome() to also learn whether that fallback was a failure.
+        """
+        return (await self.rank_outcome(query, candidates, n)).recommendations
+
+    async def rank_outcome(
+        self, query: str, candidates: list[GameCandidate], n: int = 3
+    ) -> RankOutcome:
+        """rank(), plus which provider answered and whether ranking degraded (TM11-72).
+
+        Each provider gets one attempt and one retry, so a malformed answer is
+        retried once before the next provider is tried. If every configured
+        provider fails, the deterministic ranker's retrieval-order picks come
+        back with `degraded=True` and `llm.degraded` is logged.
         """
         if not candidates:
-            return []
+            return RankOutcome(recommendations=[], provider="none")
         n = clamp_recommendation_count(n)
 
         providers = []
@@ -434,22 +465,35 @@ class LLMService:
             providers.append(("anthropic", self._rank_with_anthropic))
 
         tally = _UsageTally()
+        failures: list[dict[str, str]] = []
         for name, provider in providers:
             for _ in range(2):  # one attempt + one retry
                 try:
                     recs = await provider(query, candidates, n, tally=tally)
                 except Exception as exc:
                     # Type only: an httpx or SDK message can carry the request URL.
-                    log.warning(
-                        "llm.attempt_failed",
-                        extra={"provider": name, "error_type": type(exc).__name__},
-                    )
+                    failure = {"provider": name, "error_type": type(exc).__name__}
+                    failures.append(failure)
+                    log.warning("llm.attempt_failed", extra=failure)
                     continue
                 self._log_ranked(name, tally, len(recs))
-                return _stamp(recs)
+                return RankOutcome(recommendations=_stamp(recs), provider=name)
         recs = _deterministic_rank(query, candidates, n)
         self._log_ranked("deterministic", tally, len(recs))
-        return _stamp(recs)
+        degraded = bool(providers)
+        if degraded:
+            log.warning(
+                "llm.degraded",
+                extra={
+                    "providers": [name for name, _ in providers],
+                    "attempts": len(failures),
+                    "error_types": sorted({f["error_type"] for f in failures}),
+                    "result_count": len(recs),
+                },
+            )
+        return RankOutcome(
+            recommendations=_stamp(recs), provider="deterministic", degraded=degraded,
+        )
 
     @staticmethod
     def _log_ranked(provider: str, tally: _UsageTally, result_count: int) -> None:

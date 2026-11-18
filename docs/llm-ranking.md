@@ -148,6 +148,28 @@ provider and the exception type only. httpx error messages can contain the reque
 URL, and Gemini's key is in its query string. The tests run these lines through the
 JSON formatter to check that the counts survive redaction and the key never appears.
 
+### When ranking fails (TM11-72)
+
+Each provider gets one attempt and one retry, so a malformed answer is retried
+once before the next provider is tried. When every configured provider has
+failed, the deterministic ranker's picks (the top unowned games in retrieval
+order) are returned, and one warning says ranking degraded:
+
+```json
+{"logger":"gamegpt.llm","msg":"llm.degraded","providers":["gemini"],"attempts":2,
+ "error_types":["UpstreamError","ValueError"],"result_count":3}
+```
+
+`LLMService.rank_outcome()` returns the results with `provider` and `degraded`,
+and the pipeline turns `degraded` into a `ranking_degraded` notice on the
+response (see [API.md](API.md)). No key at all (local dev, CI) is the expected
+offline path, so it logs `llm.ranked` with `provider: "deterministic"` and no
+`llm.degraded`. To see how often it happens in production:
+
+```bash
+jq -s 'map(select(.msg == "llm.degraded")) | length' render.log
+```
+
 To total a day's spend from Render's logs:
 
 ```bash
