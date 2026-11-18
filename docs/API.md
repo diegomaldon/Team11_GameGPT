@@ -185,6 +185,13 @@ query and its results to the user's history in the background (TM11-64).
   games, and the token usage log lines are in [llm-ranking.md](llm-ranking.md).
 - Latency: ~7s on the first call after boot (model warm-up), then dominated by
   LLM latency; **< 10 s** warm.
+- **Repeated queries are cached** (TM11-73). The same query from the same user,
+  ignoring case and extra spaces, against an unchanged library is answered from
+  memory for up to 10 minutes, without searching or calling the LLM. Any change
+  to the library (import, sync, adding or removing a game, unlinking a platform)
+  changes the cache key, so it's never answered from an older library. A cached
+  answer still gets its own `query_id` and history row; `generated_at` is when
+  that ranking was first made. A `ranking_degraded` answer is never cached.
 - A 200 carries a `Server-Timing` header with each stage's time in ms (TM11-68), for
   example `parse;dur=0.2, embed;dur=48.1, retrieve;dur=402.7, filter;dur=180.3,
   rank;dur=2310.5, total;dur=2941.8`. Per-stage budgets are in
