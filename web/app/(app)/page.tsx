@@ -1,26 +1,23 @@
 "use client";
 
 // Discover (TM11-142 layout; recommend + feedback from REQ011/REQ015). A rotating
-// spotlight and a strip of popular games up top, then "Describe a vibe" with grouped
-// suggested prompts, then the ranked picks. Any featured game can start a search for
-// games like it; the page then scrolls to the results.
+// spotlight and a strip of popular games up top, then "Describe a vibe" with the search
+// field and three example prompts (TM11-74), then the ranked picks. Any featured game
+// can start a search for games like it; the page then scrolls to the results.
+//
+// The query that was searched stays on screen above its results, loading state, error
+// or notice (TM11-74), even after the player starts typing a new one. With
+// NEXT_PUBLIC_USE_FIXTURES=1 the page runs against canned results, no API needed.
 
 import { useEffect, useRef, useState } from "react";
 import { recommend, sendFeedback } from "@/lib/api/client";
 import type { Recommendation, RecommendResponse, Vote } from "@/lib/api/types";
-import { PROMPT_GROUPS, promptLike } from "@/lib/discover/featured";
-import {
-  ArrowRight,
-  External,
-  Search,
-  Spinner,
-  Star,
-  ThumbDown,
-  ThumbUp,
-} from "@/components/icons";
+import { NO_RESULTS_MESSAGE, promptLike } from "@/lib/discover/featured";
+import { External, Star, ThumbDown, ThumbUp } from "@/components/icons";
 import { cx } from "@/components/ui";
 import { GameArt } from "@/components/discover/GameArt";
 import { PopularStrip } from "@/components/discover/PopularStrip";
+import { SearchBox, type SearchBoxHandle } from "@/components/discover/SearchBox";
 import { Spotlight } from "@/components/discover/Spotlight";
 
 function scorePct(score?: number | null): number | null {
@@ -30,6 +27,10 @@ function scorePct(score?: number | null): number | null {
 
 export default function DiscoverPage() {
   const [query, setQuery] = useState("");
+  // The query the results on screen are for. Separate from `query`, which is
+  // whatever is in the field right now.
+  const [submitted, setSubmitted] = useState<string | null>(null);
+  const searchRef = useRef<SearchBoxHandle>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RecommendResponse | null>(null);
@@ -47,8 +48,9 @@ export default function DiscoverPage() {
 
   async function run(q: string) {
     const trimmed = q.trim();
-    if (!trimmed) return;
+    if (!trimmed || loading) return;
     setQuery(trimmed);
+    setSubmitted(trimmed);
     setLoading(true);
     setError(null);
     setResult(null);
@@ -98,61 +100,14 @@ export default function DiscoverPage() {
           out what you already own.
         </p>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void run(query);
-          }}
-          className="mt-8 flex items-center gap-2 rounded-full border border-[var(--border-input)] bg-[var(--surface)] p-2 pl-5 text-left focus-within:border-[var(--accent)] sm:pl-6"
-        >
-          <Search className="hidden h-5 w-5 shrink-0 text-[var(--ink-faint)] sm:block" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={wide ? "A cozy farming game I can play on Xbox…" : "A cozy farming game…"}
-            aria-label="Describe the game you want"
-            enterKeyHint="search"
-            className="h-12 min-w-0 flex-1 bg-transparent text-[17px] text-[var(--ink)] outline-none"
-          />
-          <button
-            type="submit"
-            disabled={loading || !query.trim()}
-            className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 text-[15px] font-semibold text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-40 sm:px-6"
-          >
-            {loading ? (
-              <>
-                <Spinner className="h-4 w-4" /> Thinking
-              </>
-            ) : (
-              <>
-                Find games <ArrowRight className="h-4 w-4" />
-              </>
-            )}
-          </button>
-        </form>
-
-        <div className="mt-10 grid gap-x-8 gap-y-6 text-left sm:grid-cols-2">
-          {PROMPT_GROUPS.map((group) => (
-            <div key={group.label}>
-              <p className="mb-2.5 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--label)]">
-                {group.label}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {group.prompts.map((ex) => (
-                  <button
-                    key={ex}
-                    type="button"
-                    onClick={() => void run(ex)}
-                    disabled={loading}
-                    className="min-h-11 rounded-full border border-[var(--border-strong)] bg-[var(--surface)] px-4 text-left text-sm text-[var(--ink)] transition-colors hover:bg-[var(--raised-2)] disabled:opacity-50"
-                  >
-                    {ex}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        <SearchBox
+          ref={searchRef}
+          value={query}
+          onChange={setQuery}
+          onSubmit={(q) => void run(q)}
+          loading={loading}
+          placeholder={wide ? "A cozy farming game I can play on Xbox…" : "A cozy farming game…"}
+        />
       </section>
 
       <section
@@ -161,6 +116,27 @@ export default function DiscoverPage() {
         aria-label="Recommendations"
         className="mx-auto mt-14 max-w-[880px] scroll-mt-6"
       >
+        {submitted && (
+          <div
+            data-testid="searched-query"
+            className="mb-5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1"
+          >
+            <p className="min-w-0 break-words text-[15px] text-[var(--ink-soft)]">
+              {loading ? "Searching for " : "You searched for "}
+              <q className="font-semibold text-[var(--ink)]">{submitted}</q>
+            </p>
+            {!loading && submitted !== query && (
+              <button
+                type="button"
+                onClick={() => searchRef.current?.fill(submitted)}
+                className="min-h-11 shrink-0 text-sm font-semibold text-[var(--heading)] underline-offset-4 hover:underline"
+              >
+                Edit this search
+              </button>
+            )}
+          </div>
+        )}
+
         {error && (
           <div
             role="alert"
@@ -198,16 +174,22 @@ export default function DiscoverPage() {
           </div>
         )}
 
+        {result && !loading && !result.notice && result.recommendations.length === 0 && (
+          // An empty list the API didn't explain (e.g. a guard dropped every pick).
+          // Never a blank page. TM11-77 owns the full no-results state.
+          <div
+            role="status"
+            className="mb-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 text-sm text-[var(--ink-soft)]"
+          >
+            {NO_RESULTS_MESSAGE}
+          </div>
+        )}
+
         {result && !loading && result.recommendations.length > 0 && (
           <>
-            <div className="mb-5 flex items-baseline justify-between gap-4">
-              <h2 className="font-display text-[28px]">
-                {result.recommendations.length} picks for your vibe
-              </h2>
-              <span className="max-w-[50%] truncate text-sm text-[var(--ink-faint)]">
-                &ldquo;{result.query}&rdquo;
-              </span>
-            </div>
+            <h2 className="mb-5 font-display text-[28px]">
+              {result.recommendations.length} picks for your vibe
+            </h2>
 
             <ul className="flex flex-col gap-4">
               {result.recommendations.map((rec, i) => {

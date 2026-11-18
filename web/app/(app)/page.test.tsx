@@ -1,0 +1,277 @@
+// @vitest-environment jsdom
+
+// TM11-74 (REQ011): the natural-language search on Discover. Each describe block is
+// one acceptance criterion. The API is mocked; AC-04 answers with the same canned
+// response NEXT_PUBLIC_USE_FIXTURES serves, so the page is proven against the stub.
+
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { recommend } from "@/lib/api/client";
+import { fixtureRecommend } from "@/lib/api/fixtures";
+import { EXAMPLE_PROMPTS, NO_RESULTS_MESSAGE } from "@/lib/discover/featured";
+import type { RecommendResponse } from "@/lib/api/types";
+import DiscoverPage from "./page";
+
+vi.mock("@/lib/api/client", async (importActual) => ({
+  ...(await importActual<typeof import("@/lib/api/client")>()),
+  recommend: vi.fn(),
+  sendFeedback: vi.fn(),
+}));
+// The featured strips and cover art aren't under test and pull in next/image.
+vi.mock("@/components/discover/Spotlight", () => ({ Spotlight: () => null }));
+vi.mock("@/components/discover/PopularStrip", () => ({ PopularStrip: () => null }));
+vi.mock("@/components/discover/GameArt", () => ({ GameArt: () => null }));
+
+const field = () => screen.getByRole("textbox", { name: "Describe the game you want" });
+const submit = () => screen.getByRole("button", { name: /find games|thinking/i });
+const searched = () => screen.queryByTestId("searched-query");
+
+/** A promise the test resolves itself, to look at the page mid-search. */
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((r) => (resolve = r));
+  return { promise, resolve };
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(recommend).mockImplementation(async (q) => fixtureRecommend(q));
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: query === "(min-width: 640px)",
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }));
+  Element.prototype.scrollIntoView = vi.fn();
+});
+afterEach(cleanup);
+
+describe("AC-01: prominent freeform input with submit and keyboard support", () => {
+  it("has a labelled text field and a submit button inside a search landmark", () => {
+    render(<DiscoverPage />);
+    const form = screen.getByRole("search", { name: "Find games" });
+    expect(within(form).getByRole("textbox", { name: "Describe the game you want" })).toBeTruthy();
+    expect(within(form).getByRole("button", { name: /find games/i })).toBeTruthy();
+  });
+
+  it("keeps submit disabled until something other than spaces is typed", async () => {
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    expect((submit() as HTMLButtonElement).disabled).toBe(true);
+    await user.type(field(), "   ");
+    expect((submit() as HTMLButtonElement).disabled).toBe(true);
+    await user.type(field(), "roguelike");
+    expect((submit() as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("searches when the button is clicked", async () => {
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await user.type(field(), "a chill puzzle game");
+    await user.click(submit());
+    expect(recommend).toHaveBeenCalledWith("a chill puzzle game");
+  });
+
+  it("searches on Enter, trimmed", async () => {
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await user.type(field(), "  metroidvania with a big map  {Enter}");
+    expect(recommend).toHaveBeenCalledWith("metroidvania with a big map");
+  });
+
+  it("does not start a second search when Enter is pressed again mid-search", async () => {
+    const pending = deferred<RecommendResponse>();
+    vi.mocked(recommend).mockReturnValueOnce(pending.promise);
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await user.type(field(), "cozy{Enter}");
+    await user.type(field(), "{Enter}");
+    expect(recommend).toHaveBeenCalledTimes(1);
+    await act(async () => pending.resolve(fixtureRecommend("cozy")));
+  });
+
+  it("clears the field on Escape", async () => {
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await user.type(field(), "something scary");
+    await user.keyboard("{Escape}");
+    expect((field() as HTMLInputElement).value).toBe("");
+  });
+
+  it("jumps to the field when / is pressed elsewhere on the page", async () => {
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    (document.activeElement as HTMLElement | null)?.blur();
+    await user.keyboard("/");
+    expect(document.activeElement).toBe(field());
+    // The slash is a shortcut, not typed into the field.
+    expect((field() as HTMLInputElement).value).toBe("");
+  });
+
+  it("types a / normally when already in the field", async () => {
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await user.type(field(), "PC/Xbox co-op");
+    expect((field() as HTMLInputElement).value).toBe("PC/Xbox co-op");
+  });
+
+  it("limits the query to the API's 500 characters", () => {
+    render(<DiscoverPage />);
+    expect((field() as HTMLInputElement).maxLength).toBe(500);
+  });
+});
+
+describe("AC-02: three example prompts that populate the field on click", () => {
+  it("shows exactly three examples", () => {
+    render(<DiscoverPage />);
+    const list = screen.getByRole("list", { name: "Example searches" });
+    expect(within(list).getAllByRole("button")).toHaveLength(3);
+  });
+
+  it.each(EXAMPLE_PROMPTS.map((e) => [e.label, e.prompt]))(
+    "%s: clicking it fills the field and focuses it without searching",
+    async (_label, prompt) => {
+      const user = userEvent.setup();
+      render(<DiscoverPage />);
+      await user.click(screen.getByRole("button", { name: new RegExp(prompt) }));
+      expect((field() as HTMLInputElement).value).toBe(prompt);
+      expect(document.activeElement).toBe(field());
+      expect(recommend).not.toHaveBeenCalled();
+    },
+  );
+
+  it("replaces whatever was typed, and Enter then searches the example", async () => {
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await user.type(field(), "half-typed");
+    const [first] = EXAMPLE_PROMPTS;
+    await user.click(screen.getByRole("button", { name: new RegExp(first.prompt) }));
+    await user.keyboard("{Enter}");
+    expect(recommend).toHaveBeenCalledWith(first.prompt);
+  });
+});
+
+describe("AC-03: the previous query stays visible with the results", () => {
+  it("shows the searched query above the results", async () => {
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await user.type(field(), "a chill game for a podcast night{Enter}");
+    await screen.findByText(/picks for your vibe/);
+    expect(searched()?.textContent).toContain("a chill game for a podcast night");
+  });
+
+  it("shows it while the search is still running", async () => {
+    const pending = deferred<RecommendResponse>();
+    vi.mocked(recommend).mockReturnValueOnce(pending.promise);
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await user.type(field(), "space sim{Enter}");
+    expect(searched()?.textContent).toMatch(/Searching for.*space sim/);
+    await act(async () => pending.resolve(fixtureRecommend("space sim")));
+    expect(searched()?.textContent).toMatch(/You searched for.*space sim/);
+  });
+
+  it("keeps showing what was searched while a new query is typed", async () => {
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await user.type(field(), "horror{Enter}");
+    await screen.findByText(/picks for your vibe/);
+    await user.clear(field());
+    await user.type(field(), "something else");
+    expect(searched()?.textContent).toContain("horror");
+    expect(searched()?.textContent).not.toContain("something else");
+  });
+
+  it("puts the previous query back in the field from Edit this search", async () => {
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await user.type(field(), "horror{Enter}");
+    await screen.findByText(/picks for your vibe/);
+    await user.clear(field());
+    await user.click(screen.getByRole("button", { name: "Edit this search" }));
+    expect((field() as HTMLInputElement).value).toBe("horror");
+    expect(document.activeElement).toBe(field());
+  });
+
+  it("shows it next to an error, too", async () => {
+    vi.mocked(recommend).mockRejectedValueOnce(new Error("down"));
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await user.type(field(), "racing{Enter}");
+    await screen.findByRole("alert");
+    expect(searched()?.textContent).toContain("racing");
+  });
+
+  it("shows it next to a TM11-66 all-owned notice with no results", async () => {
+    vi.mocked(recommend).mockResolvedValueOnce({
+      query_id: "q-1",
+      query: "cozy farming",
+      recommendations: [],
+      notice: { code: "all_owned", message: "You already own every game that matches." },
+    });
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await user.type(field(), "cozy farming{Enter}");
+    await screen.findByText("You already own every game that matches.");
+    expect(searched()?.textContent).toContain("cozy farming");
+    expect(screen.queryByText(/picks for your vibe/)).toBeNull();
+  });
+
+  it("says so when the API returns no results and no notice", async () => {
+    vi.mocked(recommend).mockResolvedValueOnce({
+      query_id: "q-2",
+      query: "obscure thing",
+      recommendations: [],
+      notice: null,
+    });
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await user.type(field(), "obscure thing{Enter}");
+    await screen.findByText(NO_RESULTS_MESSAGE);
+    expect(searched()?.textContent).toContain("obscure thing");
+    expect(screen.queryByText(/picks for your vibe/)).toBeNull();
+  });
+
+  it("shows the API's notice instead of the generic message when there is one", async () => {
+    vi.mocked(recommend).mockResolvedValueOnce({
+      query_id: "q-3",
+      query: "cozy farming",
+      recommendations: [],
+      notice: { code: "all_owned", message: "You already own every game that matches." },
+    });
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await user.type(field(), "cozy farming{Enter}");
+    await screen.findByText("You already own every game that matches.");
+    expect(screen.queryByText(NO_RESULTS_MESSAGE)).toBeNull();
+  });
+
+  it("shows nothing before the first search", () => {
+    render(<DiscoverPage />);
+    expect(searched()).toBeNull();
+  });
+});
+
+describe("AC-04: works against the stubbed response", () => {
+  it("renders the fixture's ranked picks with their reasons", async () => {
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await user.type(field(), "a chill game{Enter}");
+    const expected = fixtureRecommend("a chill game");
+    await screen.findByText(`${expected.recommendations.length} picks for your vibe`);
+    for (const rec of expected.recommendations) {
+      expect(screen.getByRole("heading", { name: new RegExp(rec.title) })).toBeTruthy();
+      expect(screen.getByText(rec.reason)).toBeTruthy();
+    }
+  });
+
+  it("re-enables the field's submit once the stub answers", async () => {
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await user.type(field(), "a chill game{Enter}");
+    await waitFor(() => expect(submit().textContent).toMatch(/find games/i));
+    fireEvent.change(field(), { target: { value: "next one" } });
+    expect((submit() as HTMLButtonElement).disabled).toBe(false);
+  });
+});

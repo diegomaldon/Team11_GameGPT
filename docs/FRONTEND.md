@@ -9,6 +9,7 @@ surfaces, one cream accent, serif headings — no gradients.
 - [What's live vs mocked](#whats-live-vs-mocked)
 - [Design system](#design-system)
 - [UI overhaul (TM11-142)](#ui-overhaul-tm11-142)
+- [Search input (TM11-74)](#search-input-tm11-74)
 - [Structure](#structure)
 - [API client & types](#api-client--types)
 - [Mock store](#mock-store)
@@ -108,6 +109,34 @@ import, search, sort, filters and Refresh, and every Settings action work as bef
 **Not live data:** the spotlight and popular strip are a curated list of catalogue
 games in `lib/discover/featured.ts`, because the API has no popularity endpoint yet.
 Replace that list with an API call when one exists.
+
+---
+
+## Search input (TM11-74)
+
+The "Describe a vibe" search on Discover is `components/discover/SearchBox.tsx` (REQ011).
+
+- **Keyboard:** Enter searches, Esc clears the field, and `/` anywhere on the page
+  (outside another text field) jumps to it. Enter does nothing while a search is
+  running, so it can't start a second one. The field is capped at the API's 500
+  characters.
+- **Three example prompts** (`EXAMPLE_PROMPTS` in `lib/discover/featured.ts`): one each
+  for a mood, a game you love and where you play. Clicking one **fills the field and
+  focuses it** without searching, so the player can tweak it, then press Enter. These
+  replace TM11-142's eight grouped prompts, which searched straight away. The
+  spotlight and popular strip's "Find games like this" still search on click.
+- **The searched query stays visible** above the results as "You searched for …",
+  in full, not truncated. It also shows while loading ("Searching for …"), next to an
+  error, and next to a TM11-66 `all_owned` notice. It doesn't change while the player
+  types a new query, and **Edit this search** puts it back in the field.
+- **Never blank:** if a search comes back with no results and no `notice` from the
+  API (for example, a guard dropped every pick), the page shows a plain "Nothing
+  came back for that search" message (`NO_RESULTS_MESSAGE`). An API `notice` always
+  wins. TM11-77 owns the full no-results state and should build on this.
+- **Without the API:** run with `NEXT_PUBLIC_USE_FIXTURES=1` (see
+  [Fixture mode](#fixture-mode-run-without-an-api)). The tests in
+  `app/(app)/page.test.tsx` cover each acceptance criterion against the same canned
+  response.
 
 ---
 
