@@ -114,7 +114,9 @@ largest loss in the benchmark.
 ## What would improve it
 
 These are candidate follow-up stories. None are fitted to these 20 prompts.
-Fixing them should be measured by re-running the script.
+Fixing them should be measured by re-running the script. Items 1, 2 and 4 are
+TM11-160 (parser cues, series removal, vocabulary), unit-tested on phrasings
+outside the benchmark.
 
 1. **Comparison cues in the parser (TM11-62):** recognise "I finished X",
    "X but …" and "something like X". This fixes comparison-03 and -04 outright.
@@ -129,6 +131,42 @@ Fixing them should be measured by re-running the script.
    drawn from the 167-game fixture, so several reasonable answers from the
    larger catalogue count as misses. That needs a `version` bump (see
    `docs/query-benchmark.md`).
+
+## After the parser fixes (TM11-160)
+
+Rerun on the hosted catalogue (1005 games) on 2026-11-17, same script and
+weights, with TM11-160's parser and **benchmark v2**. Results:
+[`artifacts/sprint10/tm11-160-retrieval-quality.md`](../artifacts/sprint10/tm11-160-retrieval-quality.md).
+
+**Benchmark v2.** TM11-160 rules out a named game's sequels with it, but v1
+listed Hades II as an expected answer to comparison-03 ("I finished Hades…"),
+so the first run on v1 showed comparison-03 dropping 0.2 → 0.0 for doing what
+the story asks. v2 removes Hades II from that prompt and changes nothing else
+(PR #64 review). Numbers aren't comparable across versions, so "Before TM11-160"
+below is the TM11-67 run's ranked top 5 (retrieval is deterministic), rescored
+against v2.
+
+| | Before TM11-160 (v2) | After TM11-160 (v2) |
+|---|---|---|
+| mean P@5 | 0.31 | **0.34** |
+| comparison P@5 | 0.08 | **0.12** |
+| platform P@5 | 0.28 | **0.36** |
+| genre P@5 | 0.44 | 0.44 |
+| mood P@5 | 0.44 | 0.44 |
+
+Two prompts improved and **none regressed**:
+
+| Prompt | P@5 | Why |
+|---|---|---|
+| platform-05 "survive on a remote island … with friends, on Steam" | 0.0 → **0.4** | "survive" and "with friends" now parse, so the metadata leg filters to Survival/Co-op |
+| comparison-02 "like Dark Souls but with samurai…" | 0.2 → **0.4** | Dark Souls II and III are ruled out with the named game, freeing two slots |
+
+mood-05 ("brutally hard…") scores 0.0 both times, but its first hit moved from
+40th to 8th now that "brutally hard" parses as difficult. The other comparison
+prompts didn't move because their misses are about similarity, not parsing:
+comparison-01 still follows "crafting" to survival-crafters, comparison-04
+follows "3D" to *BLOCKADE 3D*, and comparison-05 follows "story". Follow-up 3
+above (using the named game's genres and tags as signals) is what those need.
 
 ## Limits
 

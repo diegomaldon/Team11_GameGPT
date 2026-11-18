@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "story": "TM11-63",
   "catalogue": "scripts/fixtures/games.json",
   "queries": [
@@ -153,14 +153,13 @@
       "prompt": "I finished Hades, what other fast action roguelikes should I try",
       "filters": {"platforms": [], "genres": []},
       "expected_titles": [
-        "Hades II",
         "Dead Cells",
         "Enter the Gungeon",
         "Risk of Rain 2",
         "The Binding of Isaac: Rebirth"
       ],
       "reference_titles": ["Hades"],
-      "note": "Fast-paced action roguelikes. Slay the Spire and Balatro are roguelikes but not action."
+      "note": "Fast-paced action roguelikes. Slay the Spire and Balatro are roguelikes but not action. Hades II is left out since v2: it's the named game's sequel, which TM11-160 rules out with it."
     },
     {
       "id": "comparison-04",

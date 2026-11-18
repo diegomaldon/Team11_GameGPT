@@ -156,6 +156,18 @@ def test_the_named_game_and_ruled_out_games_are_never_answers():
     assert titles(merge_and_score([games], parsed)) == ["Dead Cells"]
 
 
+def test_a_named_games_sequels_and_editions_are_never_answers():
+    # TM11-160: "I completed Portal" isn't answered with Portal 2.
+    portal, portal_2, other = uuid4(), uuid4(), uuid4()
+    parsed = ParsedQuery(
+        reference_titles=(ReferenceTitle(portal, "Portal", "portal"),),
+        related_titles=(ReferenceTitle(portal_2, "Portal 2", "portal"),),
+    )
+    games = [game("Portal 2", 0.95, game_id=portal_2), game("Portal", 0.9, game_id=portal),
+             game("The Talos Principle", 0.85, game_id=other)]
+    assert titles(merge_and_score([games], parsed)) == ["The Talos Principle"]
+
+
 # ───── AC: candidate count tuned and recorded ─────
 
 
