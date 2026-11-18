@@ -320,7 +320,8 @@ automatically; restart the API to pick up changes. Verify:
 ```bash
 curl -s -X POST http://localhost:8000/api/recommend \
   -H "Content-Type: application/json" -d '{"query":"cozy game"}'
-# reasons should be natural sentences, not the "A strong match for…" template
+# with a key: reasons are the model's own sentences. Without one (deterministic
+# stub) each reason starts "For \"cozy game\": …" and quotes the description (TM11-166)
 ```
 
 ---

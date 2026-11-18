@@ -52,8 +52,15 @@ sentence before the JSON doesn't break it. Then `_picks_to_recs`:
    full stop after a common abbreviation ("Mr.", "Dr.", "vs.", "e.g.") or an
    initial doesn't end a sentence, so "Inspired by Mr. Robot. Very tense." stays
    whole. "etc." and "No." still do, since they end a sentence as often as not. A
-   blank explanation gets a synthesized one that names the query and the game's
-   genres. The older `reason` key is still read.
+   blank explanation gets a synthesized one (TM11-166): it quotes the request and
+   says what the game is from the first sentence of its description, for example
+   *For "a story-driven game with clever puzzles": Half-Life 2 is a physics-driven
+   sci-fi shooter where you fight an alien occupation with the gravity gun.* No
+   genre list and no stock phrases, so it meets REQ015 like the model's own
+   reasons. A game with no description gets *For "…": Celeste came out closest to
+   what you described in the catalogue search.* The same text is used for the
+   top-up in step 4 and by the deterministic ranker. The older `reason` key is
+   still read.
 4. If at least one pick survived but fewer than `n` did, it fills the list from the
    unpicked candidates in retrieval order and logs `llm.picks_filled`.
 5. If no pick survived, it raises `ValueError`. The provider then gets its one
