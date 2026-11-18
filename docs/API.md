@@ -175,6 +175,24 @@ query and its results to the user's history in the background (TM11-64).
   `message` is safe to show as is. New codes may be added, so treat an unknown
   code as "show the message".
 
+**200, ranking failed** (TM11-72)
+```json
+{
+  "query_id": "9b2f4c1e-7d3a-4e8b-a6f0-2c5d8e1b4a73",
+  "query": "something calm to unwind",
+  "recommendations": [ { "rank": 1, "title": "Unpacking", "reason": "…" } ],
+  "notice": {
+    "code": "ranking_degraded",
+    "message": "Our ranking model is unavailable right now, so these are the closest matches from search, not a ranked list. Try again shortly for ranked picks."
+  }
+}
+```
+- If the LLM's answer is malformed or the call fails, it's retried once, then the
+  next configured provider is tried. If they all fail, the API still answers 200
+  with the top unowned search results in retrieval order (each with a reason)
+  and `notice.code = "ranking_degraded"`, never a 502. The results are shown with
+  the notice above them; nothing else changes for the client.
+
 - The response is sent first. The query and its results are then saved in one
   transaction as a background task, so a slow or failed write never delays or
   breaks a recommendation; a failed save is logged with the `query_id`. The id
