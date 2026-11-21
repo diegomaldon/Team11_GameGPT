@@ -17,6 +17,9 @@
 //
 // TM11-142: games show as cover cards in a virtual grid (VirtualGrid), with Steam art
 // where there is an app id and an initials tile otherwise.
+//
+// TM11-76: while the library loads, a placeholder toolbar and cover grid (LibrarySkeleton)
+// sit where the real ones will, on the same GRID_SHAPE, so nothing moves when they arrive.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -49,6 +52,7 @@ import {
 import { AddGameModal } from "@/components/library/AddGameModal";
 import { CsvImportModal } from "@/components/library/CsvImportModal";
 import { RefreshStatus } from "@/components/library/RefreshStatus";
+import { LibrarySkeleton } from "@/components/Skeletons";
 import { VirtualGrid, type GridShape } from "@/components/library/VirtualGrid";
 import { GameArt } from "@/components/discover/GameArt";
 import { Button, PageHeader, Select, TextInput, cx } from "@/components/ui";
@@ -234,13 +238,7 @@ export default function LibraryPage() {
       )}
 
       {loading ? (
-        <div
-          role="status"
-          className="flex items-center justify-center gap-2 rounded-3xl border border-[var(--border)] bg-[var(--surface)] px-6 py-14 text-sm text-[var(--ink-faint)]"
-        >
-          <Spinner className="h-4 w-4" />
-          Loading your library…
-        </div>
+        <LibrarySkeleton shape={GRID_SHAPE} />
       ) : rows.length === 0 ? (
         // A failed load is not an empty library: the banner above says so,
         // and telling the user to link a platform they may have linked is wrong.
