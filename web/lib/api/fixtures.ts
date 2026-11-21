@@ -12,6 +12,7 @@ import type {
   CsvRowResult,
   FeedbackRequest,
   GameSearchResponse,
+  HistoryResponse,
   LibraryItem,
   LibraryResponse,
   LibrarySyncJob,
@@ -60,6 +61,25 @@ export function fixtureRecommend(query: string): RecommendResponse {
       },
     ],
   };
+}
+
+/** GET /api/history: one past search, built from the recommend fixture (TM11-77). */
+export function fixtureGetHistory(limit = 20): HistoryResponse {
+  const past = fixtureRecommend("a chill game I can play while listening to a podcast");
+  const entry = {
+    query_id: past.query_id,
+    query: past.query,
+    created_at: "2026-11-03T15:00:00Z",
+    recommendations: past.recommendations.map(({ rank, game_id, title, reason, steam_appid }) => ({
+      rank,
+      game_id,
+      title,
+      reason,
+      steam_appid,
+      generated_at: "2026-11-03T15:00:00Z",
+    })),
+  };
+  return { items: [entry].slice(0, limit) };
 }
 
 export function fixtureFeedback(body: FeedbackRequest): void {

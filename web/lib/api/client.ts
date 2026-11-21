@@ -13,10 +13,16 @@
 // `x-request-id` and attaches the current Supabase access token. Both exist so a
 // server log line can name the user and be traced back to the click that caused
 // it. A fetch added outside `request()` silently loses both.
+//
+// TIME LIMITS (TM11-77): recommend, the library read and the history read give up
+// after RECOMMEND_TIMEOUT_MS / READ_TIMEOUT_MS and throw ApiError with
+// REQUEST_TIMEOUT_CODE, so a hung database or LLM ends in a "try again" state
+// instead of loading forever. Syncs and uploads have no limit; they can run long.
 import {
   fixtureAddManualGame,
   fixtureCommitCsv,
   fixtureFeedback,
+  fixtureGetHistory,
   fixtureGetLibrary,
   fixtureGetSyncJob,
   fixturePreviewCsv,
@@ -26,7 +32,7 @@ import {
   fixtureStartSync,
   fixtureSyncLibrary,
 } from "./fixtures";
-import { ApiError, readErrorDetail } from "./apiError";
+import { ApiError, readErrorDetail, REQUEST_TIMEOUT_CODE } from "./apiError";
 import { getAccessToken } from "../auth/token";
 import { newRequestId, setLastRequestId } from "../observability";
 import type {
@@ -35,6 +41,7 @@ import type {
   CsvPreviewResponse,
   FeedbackRequest,
   GameSearchResponse,
+  HistoryResponse,
   LibraryResponse,
   LibrarySyncJob,
   LibrarySyncResponse,
@@ -49,13 +56,19 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const USE_FIXTURES = process.env.NEXT_PUBLIC_USE_FIXTURES === "1";
 
 // Re-exported so existing `import { ApiError } from "./client"` keeps working.
-export { ApiError };
+export { ApiError, REQUEST_TIMEOUT_CODE };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** REQ040's 10 second budget plus room for the network. */
+export const RECOMMEND_TIMEOUT_MS = 15_000;
+/** A plain database read. */
+export const READ_TIMEOUT_MS = 10_000;
 
 async function request<TResponse>(
   path: string,
   init: RequestInit = {},
+  { timeoutMs }: { timeoutMs?: number } = {},
 ): Promise<TResponse | null> {
   const requestId = newRequestId();
   setLastRequestId(requestId);
@@ -64,15 +77,32 @@ async function request<TResponse>(
   // and publishes here on every change, including TOKEN_REFRESHED.
   const token = getAccessToken();
 
-  const res = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      "x-request-id": requestId,
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init.headers ?? {}),
-    },
-  });
+  // A call with a time limit never also passes its own signal, so one controller is enough.
+  const timeout = timeoutMs === undefined ? null : new AbortController();
+  const timer = timeout && setTimeout(() => timeout.abort(), timeoutMs);
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...init,
+      ...(timeout ? { signal: timeout.signal } : {}),
+      headers: {
+        "Content-Type": "application/json",
+        "x-request-id": requestId,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(init.headers ?? {}),
+      },
+    });
+  } catch (err) {
+    if (timeout?.signal.aborted) {
+      const method = init.method ?? "GET";
+      throw new ApiError(`${method} ${path} timed out`, 0, requestId, REQUEST_TIMEOUT_CODE);
+    }
+    throw err;
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
 
   // Prefer the server's id: on a proxy hop or a retry they can differ, and the
   // one in the logs is the server's.
@@ -97,10 +127,11 @@ export async function recommend(query: string): Promise<RecommendResponse> {
     await sleep(1500); // mirror the API's real ~1.5s latency
     return fixtureRecommend(query);
   }
-  return (await request<RecommendResponse>("/api/recommend", {
-    method: "POST",
-    body: JSON.stringify({ query }),
-  })) as RecommendResponse;
+  return (await request<RecommendResponse>(
+    "/api/recommend",
+    { method: "POST", body: JSON.stringify({ query }) },
+    { timeoutMs: RECOMMEND_TIMEOUT_MS },
+  )) as RecommendResponse;
 }
 
 /** POST /api/feedback — persist a thumbs up/down. Returns 204 (no body). */
@@ -121,7 +152,24 @@ export async function getLibrary(): Promise<LibraryResponse> {
     await sleep(300);
     return fixtureGetLibrary();
   }
-  return (await request<LibraryResponse>("/api/library")) as LibraryResponse;
+  return (await request<LibraryResponse>(
+    "/api/library",
+    {},
+    { timeoutMs: READ_TIMEOUT_MS },
+  )) as LibraryResponse;
+}
+
+/** GET /api/history — the user's past searches, newest first (REQ037). */
+export async function getHistory(limit = 20): Promise<HistoryResponse> {
+  if (USE_FIXTURES) {
+    await sleep(300);
+    return fixtureGetHistory(limit);
+  }
+  return (await request<HistoryResponse>(
+    `/api/history?limit=${encodeURIComponent(limit)}`,
+    {},
+    { timeoutMs: READ_TIMEOUT_MS },
+  )) as HistoryResponse;
 }
 
 /**

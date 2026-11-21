@@ -11,15 +11,22 @@
 //
 // While a search runs, placeholder cards hold the results' place and a message says how
 // far it has likely got (TM11-76, lib/discover/searchProgress.ts).
+//
+// TM11-77 (CIS453 search rainy-day scenario): an empty result suggests rephrasing and
+// offers the example queries; a failed or timed-out search says so, with an estimated
+// retry time and a Try again that re-runs the same query.
 
 import { useEffect, useRef, useState } from "react";
 import { recommend, sendFeedback } from "@/lib/api/client";
 import type { Recommendation, RecommendResponse, Vote } from "@/lib/api/types";
+import { describeFailure, type FailureState } from "@/lib/api/failureState";
 import { NO_RESULTS_MESSAGE, promptLike } from "@/lib/discover/featured";
 import { searchProgressMessage } from "@/lib/discover/searchProgress";
 import { External, Star, ThumbDown, ThumbUp } from "@/components/icons";
 import { cx } from "@/components/ui";
 import { ResultsSkeleton } from "@/components/Skeletons";
+import { ServiceError } from "@/components/ServiceError";
+import { NoResults } from "@/components/discover/NoResults";
 import { GameArt } from "@/components/discover/GameArt";
 import { PopularStrip } from "@/components/discover/PopularStrip";
 import { SearchBox, type SearchBoxHandle } from "@/components/discover/SearchBox";
@@ -37,7 +44,7 @@ export default function DiscoverPage() {
   const [submitted, setSubmitted] = useState<string | null>(null);
   const searchRef = useRef<SearchBoxHandle>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<FailureState | null>(null);
   const [result, setResult] = useState<RecommendResponse | null>(null);
   const [voted, setVoted] = useState<Record<number, Vote>>({});
   const [progressMessage, setProgressMessage] = useState(() => searchProgressMessage(0));
@@ -73,15 +80,15 @@ export default function DiscoverPage() {
     setQuery(trimmed);
     setSubmitted(trimmed);
     setLoading(true);
-    setError(null);
+    setFailure(null);
     setResult(null);
     setVoted({});
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     resultsRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
     try {
       setResult(await recommend(trimmed));
-    } catch {
-      setError("Couldn't reach the recommender. Is the API running?");
+    } catch (err) {
+      setFailure(describeFailure(err, "search"));
     } finally {
       setLoading(false);
     }
@@ -158,19 +165,14 @@ export default function DiscoverPage() {
           </div>
         )}
 
-        {error && (
-          <div
-            role="alert"
-            className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700"
-          >
-            {error}
-          </div>
+        {failure && submitted && (
+          <ServiceError failure={failure} onRetry={() => void run(submitted)} />
         )}
 
         {loading && <ResultsSkeleton message={progressMessage} />}
 
-        {result && !loading && result.notice && (
-          // TM11-66: e.g. every match is already in the library. Said, never a blank list.
+        {result && !loading && result.notice && result.recommendations.length > 0 && (
+          // E.g. TM11-72's unranked fallback. With no results, NoResults shows the notice.
           <div
             role="status"
             className="mb-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 text-sm text-[var(--ink-soft)]"
@@ -179,15 +181,13 @@ export default function DiscoverPage() {
           </div>
         )}
 
-        {result && !loading && !result.notice && result.recommendations.length === 0 && (
-          // An empty list the API didn't explain (e.g. a guard dropped every pick).
-          // Never a blank page. TM11-77 owns the full no-results state.
-          <div
-            role="status"
-            className="mb-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 text-sm text-[var(--ink-soft)]"
-          >
-            {NO_RESULTS_MESSAGE}
-          </div>
+        {result && !loading && result.recommendations.length === 0 && (
+          // Never a blank page. The API's notice (e.g. TM11-66 all_owned) says why when it
+          // knows; otherwise, e.g. when a guard dropped every pick, the generic tip does.
+          <NoResults
+            message={result.notice?.message ?? NO_RESULTS_MESSAGE}
+            onPick={(prompt) => searchRef.current?.fill(prompt)}
+          />
         )}
 
         {result && !loading && result.recommendations.length > 0 && (

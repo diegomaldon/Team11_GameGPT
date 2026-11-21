@@ -61,11 +61,12 @@ export const EXAMPLE_PROMPTS: readonly { label: string; prompt: string }[] = [
 ];
 
 /**
- * Shown when a search comes back empty and the API sent no notice saying why
- * (TM11-74), so the page is never blank. TM11-77 owns the full no-results state.
+ * Shown under "No matches found" when a search comes back empty and the API sent no
+ * notice saying why (TM11-74), so the page is never blank. TM11-77 adds the example
+ * queries under it (components/discover/NoResults.tsx).
  */
 export const NO_RESULTS_MESSAGE =
-  "Nothing came back for that search. Try describing it differently.";
+  "Try describing it differently, or more broadly: a mood, a genre or a game you like.";
 
 /** The prompt a featured game's "Find games like this" sends. */
 export function promptLike(title: string): string {
