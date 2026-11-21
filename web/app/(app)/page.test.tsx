@@ -7,7 +7,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { recommend } from "@/lib/api/client";
+import { ApiError, recommend, REQUEST_TIMEOUT_CODE } from "@/lib/api/client";
 import { fixtureRecommend } from "@/lib/api/fixtures";
 import { EXAMPLE_PROMPTS, NO_RESULTS_MESSAGE } from "@/lib/discover/featured";
 import type { RecommendResponse } from "@/lib/api/types";
@@ -317,5 +317,85 @@ describe("TM11-76: the search's loading state", () => {
     fireEvent.click(submit());
     expect(screen.getByText("Reading your request…")).toBeTruthy();
     await act(async () => second.resolve(fixtureRecommend("racing")));
+  });
+});
+
+describe("TM11-77: no-results and error states from the rainy-day scenarios", () => {
+  const empty = (notice: RecommendResponse["notice"] = null): RecommendResponse => ({
+    query_id: "q-9",
+    query: "obscure thing",
+    recommendations: [],
+    notice,
+  });
+  const noResults = () =>
+    screen.getByRole("heading", { name: "No matches found" }).closest<HTMLElement>("[role=status]")!;
+
+  it("suggests rephrasing and offers example queries when nothing matches", async () => {
+    vi.mocked(recommend).mockResolvedValueOnce(empty());
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await user.type(field(), "obscure thing{Enter}");
+
+    await screen.findByRole("heading", { name: "No matches found" });
+    expect(noResults().textContent).toContain(NO_RESULTS_MESSAGE);
+    for (const { prompt } of EXAMPLE_PROMPTS) {
+      expect(within(noResults()).getByRole("button", { name: prompt })).toBeTruthy();
+    }
+  });
+
+  it("fills the field from an example without searching, ready to tweak", async () => {
+    vi.mocked(recommend).mockResolvedValueOnce(empty());
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await user.type(field(), "obscure thing{Enter}");
+    await screen.findByRole("heading", { name: "No matches found" });
+
+    const example = EXAMPLE_PROMPTS[1].prompt;
+    await user.click(within(noResults()).getByRole("button", { name: example }));
+    expect((field() as HTMLInputElement).value).toBe(example);
+    expect(document.activeElement).toBe(field());
+    expect(recommend).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers the same examples when everything that matched is already owned", async () => {
+    const message = "You already own every game that matches.";
+    vi.mocked(recommend).mockResolvedValueOnce(empty({ code: "all_owned", message }));
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await user.type(field(), "cozy farming{Enter}");
+
+    await screen.findByRole("heading", { name: "No matches found" });
+    expect(noResults().textContent).toContain(message);
+    expect(noResults().textContent).not.toContain(NO_RESULTS_MESSAGE);
+  });
+
+  it("says search is unavailable, gives a retry time and retries the same query", async () => {
+    vi.mocked(recommend).mockRejectedValueOnce(
+      new ApiError("POST /api/recommend failed", 502, "req-1", "recommendation_failed"),
+    );
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await user.type(field(), "racing{Enter}");
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Search is unavailable right now");
+    expect(alert.textContent).toMatch(/Try again in about \d+ seconds/);
+    await user.clear(field());
+    await user.click(within(alert).getByRole("button", { name: "Try again" }));
+
+    expect(recommend).toHaveBeenLastCalledWith("racing");
+    expect(await screen.findByText(/picks for your vibe/)).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("says when the search timed out", async () => {
+    vi.mocked(recommend).mockRejectedValueOnce(
+      new ApiError("POST /api/recommend timed out", 0, null, REQUEST_TIMEOUT_CODE),
+    );
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await user.type(field(), "racing{Enter}");
+
+    expect((await screen.findByRole("alert")).textContent).toContain("Search timed out");
   });
 });

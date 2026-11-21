@@ -11,6 +11,7 @@ surfaces, one cream accent, serif headings — no gradients.
 - [UI overhaul (TM11-142)](#ui-overhaul-tm11-142)
 - [Search input (TM11-74)](#search-input-tm11-74)
 - [Loading states (TM11-76)](#loading-states-tm11-76)
+- [No-results and error states (TM11-77)](#no-results-and-error-states-tm11-77)
 - [Structure](#structure)
 - [API client & types](#api-client--types)
 - [Mock store](#mock-store)
@@ -130,10 +131,9 @@ The "Describe a vibe" search on Discover is `components/discover/SearchBox.tsx` 
   in full, not truncated. It also shows while loading ("Searching for …"), next to an
   error, and next to a TM11-66 `all_owned` notice. It doesn't change while the player
   types a new query, and **Edit this search** puts it back in the field.
-- **Never blank:** if a search comes back with no results and no `notice` from the
-  API (for example, a guard dropped every pick), the page shows a plain "Nothing
-  came back for that search" message (`NO_RESULTS_MESSAGE`). An API `notice` always
-  wins. TM11-77 owns the full no-results state and should build on this.
+- **Never blank:** if a search comes back with no results, the page shows the
+  TM11-77 no-results state (see below). An API `notice` always wins over the generic
+  tip (`NO_RESULTS_MESSAGE`).
 - **Without the API:** run with `NEXT_PUBLIC_USE_FIXTURES=1` (see
   [Fixture mode](#fixture-mode-run-without-an-api)). The tests in
   `app/(app)/page.test.tsx` cover each acceptance criterion against the same canned
@@ -166,6 +166,44 @@ in the shape of what's coming (`components/Skeletons.tsx`).
   results to be pushed down.
 - **Detail panel:** when TM11-78 lands, match `DetailSkeleton`'s boxes to the panel's.
 - The shimmer stops under `prefers-reduced-motion` (see `globals.css`).
+
+---
+
+## No-results and error states (TM11-77)
+
+These follow the rainy-day scenarios from our CIS453 use cases (Search Games by Natural
+Language, View Past Recommendations, View Game Details).
+
+- **No results** (`components/discover/NoResults.tsx`): "No matches found", a tip to
+  rephrase or broaden the search, and the three example queries. Picking one fills the
+  search field without searching, like the examples under it. When the API sent a
+  `notice` (for example TM11-66 `all_owned`), its message replaces the tip. A notice
+  that comes with results (TM11-72 `ranking_degraded`) still shows above them.
+- **Service unavailable** (`components/ServiceError.tsx`): a title, a message with an
+  estimated retry time, and **Try again**, which re-runs the same query. The wording
+  comes from `describeFailure()` in `lib/api/failureState.ts`, never from the error, so
+  no host, URL or key reaches the screen.
+
+  | Surface | Unavailable or 5xx | Timed out |
+  |---|---|---|
+  | Search | "Search is unavailable right now" + "Try again in about 30 seconds." | "Search timed out" + the same retry time |
+  | History | "History is temporarily unavailable" + "Try again shortly." | Same, since the database already retried |
+  | Detail | "Couldn't load this game's details" + "Try again in about 30 seconds." | Same |
+
+- **Timeouts:** `request()` in `lib/api/client.ts` gives up after
+  `RECOMMEND_TIMEOUT_MS` (15 s, REQ040's 10 s plus network) for recommend and
+  `READ_TIMEOUT_MS` (10 s) for the library and history reads. It throws `ApiError` with
+  `code = REQUEST_TIMEOUT_CODE`. Syncs, CSV uploads and feedback have no limit. A
+  library read that times out shows the existing "Couldn't load your imported games"
+  banner with Try again.
+- **History and detail:** there's no history page (TM11-84) or detail panel (TM11-78)
+  on main yet. `getHistory()` is in the client, with its time limit, and those screens
+  should show `<ServiceError failure={describeFailure(err, "history" | "detail")} />`
+  on a failed load, and `DetailSkeleton` while loading.
+- **30 seconds** is `RETRY_ESTIMATE_SECONDS`, a fixed estimate, because the API sends no
+  `Retry-After` header.
+- Not done: the scenario also mentions "popular categories" next to the examples. The
+  ticket's AC asks only for example queries, so they're left out.
 
 ---
 
@@ -203,8 +241,9 @@ web/
 ## API client & types
 
 - `lib/api/client.ts` — typed fetch wrapper: `recommend()`, `sendFeedback()`,
-  `getLibrary()`, `syncLibrary()`. Base URL from `NEXT_PUBLIC_API_URL`
-  (default `http://localhost:8000`). Throws `ApiError` on non-2xx.
+  `getLibrary()`, `getHistory()`, `syncLibrary()`. Base URL from `NEXT_PUBLIC_API_URL`
+  (default `http://localhost:8000`). Throws `ApiError` on non-2xx, and on a timeout for
+  recommend, library and history (TM11-77).
 - `lib/api/schema.d.ts` — generated from `openapi.json` via `npm run gen:api`
   (`openapi-typescript`). Regenerate whenever the API contract changes.
 - `lib/api/types.ts` — convenience aliases over the generated schema.

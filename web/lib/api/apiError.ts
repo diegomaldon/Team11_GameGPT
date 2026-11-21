@@ -3,6 +3,9 @@
 // Its own module so fixtures.ts can throw the same error as the real client
 // without importing client.ts, which imports fixtures.ts.
 
+/** `ApiError.code` when the client gave up waiting (TM11-77). The server never sends it. */
+export const REQUEST_TIMEOUT_CODE = "request_timeout";
+
 export class ApiError extends Error {
   constructor(
     message: string,
