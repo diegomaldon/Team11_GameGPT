@@ -275,3 +275,47 @@ describe("AC-04: works against the stubbed response", () => {
     expect((submit() as HTMLButtonElement).disabled).toBe(false);
   });
 });
+
+describe("TM11-76: the search's loading state", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("shows placeholder cards and says how far the search has got", async () => {
+    vi.useFakeTimers();
+    const pending = deferred<RecommendResponse>();
+    vi.mocked(recommend).mockReturnValueOnce(pending.promise);
+    render(<DiscoverPage />);
+    fireEvent.change(field(), { target: { value: "space sim" } });
+    fireEvent.click(submit());
+
+    expect(screen.getAllByTestId("result-skeleton-card")).toHaveLength(3);
+    expect(screen.getByText("Reading your request…")).toBeTruthy();
+    act(() => vi.advanceTimersByTime(1000));
+    expect(screen.getByText("Searching the catalogue…")).toBeTruthy();
+    act(() => vi.advanceTimersByTime(1000));
+    expect(screen.getByText("Ranking the best matches…")).toBeTruthy();
+    act(() => vi.advanceTimersByTime(8000));
+    expect(screen.getByText("This is taking longer than usual. Still working…")).toBeTruthy();
+
+    await act(async () => pending.resolve(fixtureRecommend("space sim")));
+    expect(screen.queryByTestId("result-skeleton-card")).toBeNull();
+    expect(screen.getByText(/picks for your vibe/)).toBeTruthy();
+  });
+
+  it("starts the progress message over for the next search", async () => {
+    vi.useFakeTimers();
+    const first = deferred<RecommendResponse>();
+    const second = deferred<RecommendResponse>();
+    vi.mocked(recommend).mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+    render(<DiscoverPage />);
+    fireEvent.change(field(), { target: { value: "space sim" } });
+    fireEvent.click(submit());
+    act(() => vi.advanceTimersByTime(3000));
+    expect(screen.getByText("Ranking the best matches…")).toBeTruthy();
+    await act(async () => first.resolve(fixtureRecommend("space sim")));
+
+    fireEvent.change(field(), { target: { value: "racing" } });
+    fireEvent.click(submit());
+    expect(screen.getByText("Reading your request…")).toBeTruthy();
+    await act(async () => second.resolve(fixtureRecommend("racing")));
+  });
+});

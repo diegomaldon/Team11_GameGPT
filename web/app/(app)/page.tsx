@@ -8,13 +8,18 @@
 // The query that was searched stays on screen above its results, loading state, error
 // or notice (TM11-74), even after the player starts typing a new one. With
 // NEXT_PUBLIC_USE_FIXTURES=1 the page runs against canned results, no API needed.
+//
+// While a search runs, placeholder cards hold the results' place and a message says how
+// far it has likely got (TM11-76, lib/discover/searchProgress.ts).
 
 import { useEffect, useRef, useState } from "react";
 import { recommend, sendFeedback } from "@/lib/api/client";
 import type { Recommendation, RecommendResponse, Vote } from "@/lib/api/types";
 import { NO_RESULTS_MESSAGE, promptLike } from "@/lib/discover/featured";
+import { searchProgressMessage } from "@/lib/discover/searchProgress";
 import { External, Star, ThumbDown, ThumbUp } from "@/components/icons";
 import { cx } from "@/components/ui";
+import { ResultsSkeleton } from "@/components/Skeletons";
 import { GameArt } from "@/components/discover/GameArt";
 import { PopularStrip } from "@/components/discover/PopularStrip";
 import { SearchBox, type SearchBoxHandle } from "@/components/discover/SearchBox";
@@ -35,6 +40,7 @@ export default function DiscoverPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RecommendResponse | null>(null);
   const [voted, setVoted] = useState<Record<number, Vote>>({});
+  const [progressMessage, setProgressMessage] = useState(() => searchProgressMessage(0));
   const resultsRef = useRef<HTMLElement>(null);
   // The full example is cut mid-word behind the button on phones, so they get a shorter one.
   const [wide, setWide] = useState(false);
@@ -45,6 +51,21 @@ export default function DiscoverPage() {
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
   }, []);
+
+  // Restarts with every search, so each one's progress message starts from the top.
+  // Setting the same message again doesn't re-render.
+  useEffect(() => {
+    if (!loading) {
+      return;
+    }
+    const startedAt = Date.now();
+    setProgressMessage(searchProgressMessage(0));
+    const timer = window.setInterval(
+      () => setProgressMessage(searchProgressMessage(Date.now() - startedAt)),
+      250,
+    );
+    return () => window.clearInterval(timer);
+  }, [loading]);
 
   async function run(q: string) {
     const trimmed = q.trim();
@@ -146,23 +167,7 @@ export default function DiscoverPage() {
           </div>
         )}
 
-        {loading && (
-          <ul className="flex flex-col gap-4">
-            {[0, 1, 2].map((i) => (
-              <li
-                key={i}
-                className="shimmer flex gap-5 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5"
-              >
-                <div className="h-[126px] w-[84px] shrink-0 rounded-xl bg-[var(--raised-2)]" />
-                <div className="flex-1 space-y-3 py-1">
-                  <div className="h-5 w-1/3 rounded bg-[var(--raised-2)]" />
-                  <div className="h-3 w-full rounded bg-[var(--raised-2)]" />
-                  <div className="h-3 w-4/5 rounded bg-[var(--raised-2)]" />
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+        {loading && <ResultsSkeleton message={progressMessage} />}
 
         {result && !loading && result.notice && (
           // TM11-66: e.g. every match is already in the library. Said, never a blank list.

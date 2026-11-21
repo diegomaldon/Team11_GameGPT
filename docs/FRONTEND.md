@@ -10,6 +10,7 @@ surfaces, one cream accent, serif headings — no gradients.
 - [Design system](#design-system)
 - [UI overhaul (TM11-142)](#ui-overhaul-tm11-142)
 - [Search input (TM11-74)](#search-input-tm11-74)
+- [Loading states (TM11-76)](#loading-states-tm11-76)
 - [Structure](#structure)
 - [API client & types](#api-client--types)
 - [Mock store](#mock-store)
@@ -140,6 +141,34 @@ The "Describe a vibe" search on Discover is `components/discover/SearchBox.tsx` 
 
 ---
 
+## Loading states (TM11-76)
+
+A search can take up to REQ040's 10 seconds, so every async surface shows a placeholder
+in the shape of what's coming (`components/Skeletons.tsx`).
+
+| Surface | Placeholder | Progress |
+|---|---|---|
+| Discover search | `ResultsSkeleton`: three cards built like a result card | The heading's place holds a message from `lib/discover/searchProgress.ts` |
+| Library | `LibrarySkeleton`: the toolbar's three controls and a cover grid on the page's `GRID_SHAPE` | Announced as "Loading your library…" |
+| Game detail | `DetailSkeleton`: cover, title, tags and description lines, for the TM11-78 panel | Announced as "Loading game details…" |
+| Library import and Refresh | Unchanged: `SyncProgress` (TM11-49) and `RefreshStatus` (TM11-60) already show per-title and per-platform progress | |
+
+- **Search progress:** the API answers in one response, so the browser can't see which
+  stage is running. The message follows the elapsed time against the API's stage budgets
+  (`STAGE_BUDGET_MS`): "Reading your request…", then "Searching the catalogue…" from
+  500 ms, "Ranking the best matches…" from 1,750 ms, and "This is taking longer than
+  usual. Still working…" from 10 s. Each search starts it over.
+- **No layout shift:** the placeholders copy the real boxes. Measured in Chromium in
+  fixture mode, the library skeleton's toolbar and first card sit at the same position
+  and size as the real ones at 1440px and 375px, with a layout-shift score of 0. The
+  search heading and the first card start at the same place. A real card can be taller
+  than its placeholder when the explanation runs long, but nothing sits below the
+  results to be pushed down.
+- **Detail panel:** when TM11-78 lands, match `DetailSkeleton`'s boxes to the panel's.
+- The shimmer stops under `prefers-reduced-motion` (see `globals.css`).
+
+---
+
 ## Structure
 
 ```
@@ -160,6 +189,7 @@ web/
     ui.tsx                UI primitives
     icons.tsx             SVG icon set (incl. platform glyphs)
     auth/AuthLayout.tsx   signed-out split layout with the cover wall
+    Skeletons.tsx         loading placeholders: results, library, detail (TM11-76)
     discover/             Spotlight, PopularStrip, GameArt
     library/VirtualGrid.tsx  virtualised cover grid for the library
   lib/
