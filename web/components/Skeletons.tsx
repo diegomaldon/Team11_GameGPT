@@ -31,9 +31,14 @@ export function ResultsSkeleton({ message, count = 3 }: { message: string; count
             )}
           >
             <div className={`h-[126px] w-[84px] shrink-0 rounded-xl ${BLOCK}`} />
-            {/* Title line, two lines of explanation, then the 44px action row. */}
+            {/* Title line, the platform pills (TM11-75: 22px, mt-2), two lines of
+                explanation, then the 44px action row. */}
             <div className="min-w-0 flex-1">
               <div className={`h-[30px] w-1/3 ${BLOCK}`} />
+              <div className="mt-2 flex gap-1.5">
+                <div className={`h-[22px] w-14 rounded-full ${BLOCK}`} />
+                <div className={`h-[22px] w-12 rounded-full ${BLOCK}`} />
+              </div>
               <div className="mt-2 space-y-2 py-1">
                 <div className={`h-4 w-full ${BLOCK}`} />
                 <div className={`h-4 w-4/5 ${BLOCK}`} />

@@ -12,6 +12,7 @@ surfaces, one cream accent, serif headings — no gradients.
 - [Search input (TM11-74)](#search-input-tm11-74)
 - [Loading states (TM11-76)](#loading-states-tm11-76)
 - [No-results and error states (TM11-77)](#no-results-and-error-states-tm11-77)
+- [Result cards (TM11-75)](#result-cards-tm11-75)
 - [Structure](#structure)
 - [API client & types](#api-client--types)
 - [Mock store](#mock-store)
@@ -204,6 +205,29 @@ Language, View Past Recommendations, View Game Details).
   `Retry-After` header.
 - Not done: the scenario also mentions "popular categories" next to the examples. The
   ticket's AC asks only for example queries, so they're left out.
+
+---
+
+## Result cards (TM11-75)
+
+Each pick on Discover is a `components/discover/RecommendationCard.tsx` (REQ015).
+
+- **What a card shows:** rank, cover art, title, the stores it's on (`platforms` from
+  `POST /api/recommend`, labelled in the library's badge order), the review score and
+  the explanation, plus the Steam link and thumbs up/down.
+- **Order:** `rankedCards()` in `lib/discover/recommendations.ts` sorts by the
+  pipeline's `rank`, not array order, and shows at most 5.
+- **Detail panel:** the title is a button that opens `GameDetailPanel`. Esc or Close
+  shuts it and focus goes back to the title. The panel only shows what the recommend
+  response carries. **TM11-78** owns the full panel and should replace its body while
+  keeping the `rec` / `onClose` props.
+- **Missing data:** no art shows the title's initials (`GameArt`), no score says
+  "No score yet", no platforms says "Platforms not listed", and no Steam app id drops
+  the store link.
+- **Size:** the card keeps TM11-142's box (84×126 art, `p-5`), which TM11-76's
+  `ResultsSkeleton` is drawn to. Change both together.
+- Tests: `RecommendationCard.test.tsx`, `recommendations.test.ts` and the TM11-75
+  block in `app/(app)/page.test.tsx`, grouped by acceptance criterion.
 
 ---
 

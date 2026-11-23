@@ -1692,6 +1692,14 @@
             ],
             "title": "Review Score"
           },
+          "platforms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Platforms",
+            "description": "Stores the game is on, lower case (steam, xbox, epic). Empty when the catalogue doesn't say (TM11-75)."
+          },
           "generated_at": {
             "anyOf": [
               {

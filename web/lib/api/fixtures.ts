@@ -40,6 +40,7 @@ export function fixtureRecommend(query: string): RecommendResponse {
           "A relaxed farming sim with no fail state — easy to play with one hand while a podcast runs in the background.",
         steam_appid: 413150,
         review_score: 0.98,
+        platforms: ["steam", "xbox"],
       },
       {
         rank: 2,
@@ -49,6 +50,7 @@ export function fixtureRecommend(query: string): RecommendResponse {
           "A calm tile-placement puzzler. Quiet, low-stakes, and pauses whenever you need to focus on what you're listening to.",
         steam_appid: 1455840,
         review_score: 0.96,
+        platforms: ["steam"],
       },
       {
         rank: 3,
@@ -58,6 +60,7 @@ export function fixtureRecommend(query: string): RecommendResponse {
           "Turn-based deckbuilding means you set the pace, so it fits comfortably around a podcast without demanding constant attention.",
         steam_appid: 646570,
         review_score: 0.97,
+        platforms: ["steam", "xbox"],
       },
     ],
   };

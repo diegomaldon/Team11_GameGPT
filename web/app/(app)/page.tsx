@@ -15,6 +15,9 @@
 // TM11-77 (CIS453 search rainy-day scenario): an empty result suggests rephrasing and
 // offers the example queries; a failed or timed-out search says so, with an estimated
 // retry time and a Try again that re-runs the same query.
+//
+// Each pick is a RecommendationCard (TM11-75) in the pipeline's rank order; its title
+// opens GameDetailPanel, and closing the panel returns focus to that title.
 
 import { useEffect, useRef, useState } from "react";
 import { recommend, sendFeedback } from "@/lib/api/client";
@@ -22,20 +25,15 @@ import type { Recommendation, RecommendResponse, Vote } from "@/lib/api/types";
 import { describeFailure, type FailureState } from "@/lib/api/failureState";
 import { NO_RESULTS_MESSAGE, promptLike } from "@/lib/discover/featured";
 import { searchProgressMessage } from "@/lib/discover/searchProgress";
-import { External, Star, ThumbDown, ThumbUp } from "@/components/icons";
-import { cx } from "@/components/ui";
 import { ResultsSkeleton } from "@/components/Skeletons";
 import { ServiceError } from "@/components/ServiceError";
 import { NoResults } from "@/components/discover/NoResults";
-import { GameArt } from "@/components/discover/GameArt";
+import { rankedCards } from "@/lib/discover/recommendations";
+import { GameDetailPanel } from "@/components/discover/GameDetailPanel";
 import { PopularStrip } from "@/components/discover/PopularStrip";
+import { RecommendationCard } from "@/components/discover/RecommendationCard";
 import { SearchBox, type SearchBoxHandle } from "@/components/discover/SearchBox";
 import { Spotlight } from "@/components/discover/Spotlight";
-
-function scorePct(score?: number | null): number | null {
-  if (score == null) return null;
-  return Math.round(score <= 1 ? score * 100 : score);
-}
 
 export default function DiscoverPage() {
   const [query, setQuery] = useState("");
@@ -48,6 +46,10 @@ export default function DiscoverPage() {
   const [result, setResult] = useState<RecommendResponse | null>(null);
   const [voted, setVoted] = useState<Record<number, Vote>>({});
   const [progressMessage, setProgressMessage] = useState(() => searchProgressMessage(0));
+  // TM11-75: the pick whose detail panel is open, and the button that opened it,
+  // so focus can go back there when the panel closes.
+  const [detail, setDetail] = useState<Recommendation | null>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
   const resultsRef = useRef<HTMLElement>(null);
   // The full example is cut mid-word behind the button on phones, so they get a shorter one.
   const [wide, setWide] = useState(false);
@@ -110,6 +112,16 @@ export default function DiscoverPage() {
     } catch {
       /* optimistic */
     }
+  }
+
+  function openDetail(rec: Recommendation, opener: HTMLElement) {
+    openerRef.current = opener;
+    setDetail(rec);
+  }
+
+  function closeDetail() {
+    setDetail(null);
+    openerRef.current?.focus();
   }
 
   return (
@@ -193,128 +205,26 @@ export default function DiscoverPage() {
         {result && !loading && result.recommendations.length > 0 && (
           <>
             <h2 className="mb-5 font-display text-[28px]">
-              {result.recommendations.length} picks for your vibe
+              {rankedCards(result.recommendations).length} picks for your vibe
             </h2>
 
             <ul className="flex flex-col gap-4">
-              {result.recommendations.map((rec, i) => {
-                const pct = scorePct(rec.review_score);
-                return (
-                  <li
-                    key={`${rec.rank}-${rec.title}`}
-                    className="animate-fade-up rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5"
-                    style={{ animationDelay: `${i * 60}ms` }}
-                  >
-                    <div className="flex gap-5">
-                      <div className="relative h-[126px] w-[84px] shrink-0 overflow-hidden rounded-xl border border-[var(--border)]">
-                        <GameArt appId={rec.steam_appid} title={rec.title} sizes="84px" decorative />
-                        <span
-                          aria-hidden
-                          className={cx(
-                            "absolute left-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-semibold",
-                            rec.rank === 1
-                              ? "bg-[var(--accent)] text-[var(--on-accent)]"
-                              : "bg-[rgb(5_10_24/0.85)] text-[var(--heading)]",
-                          )}
-                        >
-                          {rec.rank}
-                        </span>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                          <h3 className="font-display text-2xl leading-tight">
-                            <span className="sr-only">{rec.rank}. </span>
-                            {rec.title}
-                          </h3>
-                          {pct != null && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--raised-2)] px-2.5 py-0.5 text-xs font-semibold text-[var(--ink-soft)]">
-                              <Star className="h-3 w-3 text-amber-500" />
-                              {pct}%
-                            </span>
-                          )}
-                        </div>
-                        <p className="mt-2 text-[15px] leading-relaxed text-[var(--ink-soft)]">
-                          {rec.reason}
-                        </p>
-                        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                          {rec.steam_appid ? (
-                            <a
-                              href={`https://store.steampowered.com/app/${rec.steam_appid}`}
-                              target="_blank"
-                              rel="noreferrer noopener"
-                              className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-[var(--heading)] underline-offset-4 hover:underline"
-                            >
-                              View on Steam <External className="h-3.5 w-3.5" />
-                            </a>
-                          ) : (
-                            <span />
-                          )}
-                          <div className="flex items-center gap-1.5">
-                            <span className="mr-1 hidden text-xs text-[var(--ink-faint)] sm:inline">
-                              Good pick?
-                            </span>
-                            <VoteButton
-                              label={`Thumbs up ${rec.title}`}
-                              active={voted[rec.rank] === "up"}
-                              tone="up"
-                              onClick={() => void vote(rec, "up")}
-                            >
-                              <ThumbUp className="h-[18px] w-[18px]" />
-                            </VoteButton>
-                            <VoteButton
-                              label={`Thumbs down ${rec.title}`}
-                              active={voted[rec.rank] === "down"}
-                              tone="down"
-                              onClick={() => void vote(rec, "down")}
-                            >
-                              <ThumbDown className="h-[18px] w-[18px]" />
-                            </VoteButton>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
+              {rankedCards(result.recommendations).map((rec, i) => (
+                <RecommendationCard
+                  key={`${rec.rank}-${rec.title}`}
+                  rec={rec}
+                  index={i}
+                  vote={voted[rec.rank]}
+                  onVote={(r, v) => void vote(r, v)}
+                  onOpen={openDetail}
+                />
+              ))}
             </ul>
           </>
         )}
       </section>
-    </>
-  );
-}
 
-function VoteButton({
-  label,
-  active,
-  tone,
-  onClick,
-  children,
-}: {
-  label: string;
-  active: boolean;
-  tone: "up" | "down";
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  const activeCls =
-    tone === "up"
-      ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)]"
-      : "border-rose-300 bg-rose-50 text-rose-600";
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      aria-pressed={active}
-      className={cx(
-        "flex h-11 w-11 items-center justify-center rounded-full border transition-colors",
-        active
-          ? activeCls
-          : "border-[var(--border-strong)] text-[var(--ink-faint)] hover:bg-[var(--raised-2)] hover:text-[var(--heading)]",
-      )}
-    >
-      {children}
-    </button>
+      <GameDetailPanel rec={detail} onClose={closeDetail} />
+    </>
   );
 }
