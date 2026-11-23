@@ -7,8 +7,10 @@ the integration test needs no model, database or network.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+import time
 from uuid import uuid4
 
 import httpx
@@ -21,7 +23,7 @@ from api.models import GameCandidate
 from api.routers import recommend as recommend_router
 from api.services import llm as llm_module
 from api.services import query_parser
-from api.services.llm import LLMService
+from api.services.llm import RANK_DEADLINE_SECONDS, LLMService
 from api.services.rag_pipeline import RANKING_DEGRADED_NOTICE, RAGPipeline
 
 GEMINI_KEY = "test-gemini-key-not-real"
@@ -273,3 +275,58 @@ async def test_the_pipeline_adds_the_notice_only_when_ranking_degraded(monkeypat
 
     assert degraded.notice == RANKING_DEGRADED_NOTICE
     assert ranked.notice is None
+
+
+# ───── A hung provider degrades within one deadline (TM11-72 + TM11-77) ─────
+
+
+def _hanging_gemini(monkeypatch, calls: list[str]) -> None:
+    async def hang(self, query, candidates, n, *, tally):
+        calls.append("gemini")
+        await asyncio.sleep(60)  # never answers in time
+
+    monkeypatch.setattr(LLMService, "_rank_with_gemini", hang)
+
+
+@pytest.mark.asyncio
+async def test_a_hung_provider_degrades_at_the_deadline_not_after_its_own_timeout(
+    monkeypatch, caplog,
+):
+    caplog.set_level(logging.INFO, logger="gamegpt.llm")
+    calls: list[str] = []
+    _hanging_gemini(monkeypatch, calls)
+    llm = LLMService(gemini_api_key=GEMINI_KEY, anthropic_api_key=None,
+                     rank_deadline_seconds=0.2)
+
+    started = time.monotonic()
+    outcome = await llm.rank_outcome("something calm", _candidates(), n=3)
+    elapsed = time.monotonic() - started
+
+    assert outcome.degraded is True
+    assert [r.title for r in outcome.recommendations] == TITLES[:3]
+    assert elapsed < 1.0
+    # The first attempt used up the deadline, so no retry was started.
+    assert calls == ["gemini"]
+    [degraded] = _records(caplog, "llm.degraded")
+    assert degraded.error_types == ["TimeoutError"]
+
+
+@pytest.mark.asyncio
+async def test_a_fast_failure_still_gets_its_retry_inside_the_deadline(monkeypatch):
+    candidates = _candidates()
+    seen = _fake_gemini(monkeypatch, httpx.Response(503, json={}),
+                        httpx.Response(200, json=_valid_body(candidates)))
+
+    outcome = await _gemini_llm().rank_outcome("something calm", candidates, n=3)
+
+    assert len(seen) == 2
+    assert outcome.degraded is False
+
+
+def test_the_default_deadline_fits_inside_the_web_clients_timeout():
+    # Retrieval's stage budgets end at 1.75 s (STAGE_BUDGET_MS) and the web client
+    # gives up at 15 s (TM11-77's RECOMMEND_TIMEOUT_MS), so ranking gets what's left.
+    from api.observability.stage_timings import STAGE_BUDGET_MS
+
+    before_rank_s = sum(v for k, v in STAGE_BUDGET_MS.items() if k != "rank") / 1000
+    assert before_rank_s + RANK_DEADLINE_SECONDS < 15

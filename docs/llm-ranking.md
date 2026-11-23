@@ -151,7 +151,11 @@ JSON formatter to check that the counts survive redaction and the key never appe
 ### When ranking fails (TM11-72)
 
 Each provider gets one attempt and one retry, so a malformed answer is retried
-once before the next provider is tried. When every configured provider has
+once before the next provider is tried. All attempts share one deadline,
+`RANK_DEADLINE_SECONDS` (9 s): each gets only the time left, and once it's spent
+no more are started. A hung provider therefore degrades in about 9 s rather than
+after Gemini's 30 s client timeout twice over, which keeps a recommend inside the
+web client's 15 s limit (TM11-77, PR #70). When every configured provider has
 failed, the deterministic ranker's picks (the top unowned games in retrieval
 order) are returned, and one warning says ranking degraded:
 

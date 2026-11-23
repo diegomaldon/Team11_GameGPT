@@ -35,12 +35,17 @@ deterministic ranker's retrieval-order results are returned as a degraded
 ranking: rank_outcome() says so, the pipeline adds a `ranking_degraded` notice,
 and `llm.degraded` is logged. With no key configured at all (local dev, CI) the
 deterministic ranker is the expected path, not a failure, so it isn't degraded.
+The whole LLM step shares one deadline (RANK_DEADLINE_SECONDS): each attempt
+gets only the time left, so a hung provider degrades in about 9 s instead of
+after 30 s per attempt, inside the web client's 15 s limit (TM11-77).
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+import time
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -55,6 +60,11 @@ from api.services.title_matching import normalise_title
 log = logging.getLogger("gamegpt.llm")
 
 _UNSET = object()
+
+# Every provider attempt of one rank() call must finish within this (TM11-72).
+# Retrieval's p95 budget ends at 1.75 s, so this keeps a recommend under the web
+# client's 15 s timeout (TM11-77, RECOMMEND_TIMEOUT_MS) even when a provider hangs.
+RANK_DEADLINE_SECONDS = 9.0
 
 _GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
@@ -416,8 +426,10 @@ class LLMService:
         gemini_model=_UNSET,
         anthropic_api_key=_UNSET,
         anthropic_model=_UNSET,
+        rank_deadline_seconds: float = RANK_DEADLINE_SECONDS,
     ) -> None:
         s = get_settings()
+        self._rank_deadline = rank_deadline_seconds
         self._gemini_key = s.gemini_api_key if gemini_api_key is _UNSET else gemini_api_key
         self._gemini_model = s.gemini_model if gemini_model is _UNSET else gemini_model
         self._anthropic_key = (
@@ -466,10 +478,16 @@ class LLMService:
 
         tally = _UsageTally()
         failures: list[dict[str, str]] = []
+        deadline = time.monotonic() + self._rank_deadline
         for name, provider in providers:
             for _ in range(2):  # one attempt + one retry
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    break
                 try:
-                    recs = await provider(query, candidates, n, tally=tally)
+                    recs = await asyncio.wait_for(
+                        provider(query, candidates, n, tally=tally), timeout=remaining,
+                    )
                 except Exception as exc:
                     # Type only: an httpx or SDK message can carry the request URL.
                     failure = {"provider": name, "error_type": type(exc).__name__}
