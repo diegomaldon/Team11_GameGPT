@@ -17,6 +17,20 @@ from api.models import GameCandidate
 pytestmark = pytest.mark.asyncio
 
 
+@pytest.fixture(autouse=True)
+def _empty_response_cache():
+    """No test sees another's cached recommend answer (TM11-73).
+
+    With a database configured the library fingerprint can be read, so two tests
+    sending the same query for the dev user would otherwise share an entry.
+    """
+    from api.routers.recommend import RESPONSE_CACHE
+
+    RESPONSE_CACHE.clear()
+    yield
+    RESPONSE_CACHE.clear()
+
+
 def make_candidate(
     title: str,
     *,
