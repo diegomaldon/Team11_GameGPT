@@ -256,6 +256,12 @@ Each pick on Discover is a `components/discover/RecommendationCard.tsx` (REQ015)
   It isn't treated as an error.
 - **Loading and errors:** TM11-76's `DetailSkeleton` while the fetch runs. A failed or
   timed-out read shows TM11-77's "Couldn't load this game's details" with Try again.
+- **Cache and prefetch:** fetched details stay in memory for the session
+  (`lib/discover/gameDetailCache.ts`, 10-minute expiry, 100 games). A game opened again
+  shows at once with no skeleton, and Discover prefetches every pick's details as soon as
+  results arrive, so the first open is usually instant too. The library page clears the
+  cache whenever it reads the library, because "In your library" may have changed. A
+  failed read is never cached, so Try again really retries.
 - **Keyboard:** Esc closes it. The Discover search's `/` shortcut does nothing while a
   dialog is open, so it can't start a search behind the panel.
 - **Not here:** page-view logging is TM11-79, ownership and availability badges are

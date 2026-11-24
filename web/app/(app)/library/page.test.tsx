@@ -10,6 +10,7 @@ import { fixtureGetGame } from "@/lib/api/fixtures";
 import { useMock } from "@/lib/mock/store";
 import { useLibraryRefresh, type LibraryRefresh } from "@/lib/library/useLibraryRefresh";
 import LibraryPage from "./page";
+import { clearGameCache, loadGame, peekGame } from "@/lib/discover/gameDetailCache";
 
 vi.mock("@/lib/api/client", () => ({ getLibrary: vi.fn(), getGame: vi.fn() }));
 vi.mock("@/lib/mock/store", () => ({ useMock: vi.fn() }));
@@ -61,6 +62,7 @@ const rowFor = (title: string) => screen.getByText(title).closest("li")!;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  clearGameCache(); // fetched details persist for the session (TM11-78)
   refreshState();
   // The page saves its view per tab; don't let one test's sort leak into the next.
   window.sessionStorage.clear();
@@ -493,6 +495,17 @@ describe("TM11-78 AC2: a library game opens the detail panel", () => {
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(document.activeElement).toBe(cover);
+  });
+
+  it("forgets cached details when the library is read, since owned_on may have changed", async () => {
+    vi.mocked(getGame).mockImplementation(async (id) => fixtureGetGame(id));
+    await loadGame(RUST_ID);
+    expect(peekGame(RUST_ID)).toBeDefined();
+
+    setup({ imported: [] });
+    await waitFor(() => expect(getLibrary).toHaveBeenCalled());
+
+    expect(peekGame(RUST_ID)).toBeUndefined();
   });
 
   it("shows a hand-added game with no catalogue id as unavailable, without a fetch", async () => {

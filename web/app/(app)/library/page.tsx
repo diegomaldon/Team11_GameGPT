@@ -60,6 +60,7 @@ import { VirtualGrid, type GridShape } from "@/components/library/VirtualGrid";
 import { GameArt } from "@/components/discover/GameArt";
 import { GameDetailPanel } from "@/components/discover/GameDetailPanel";
 import { targetFromLibrary, type DetailTarget } from "@/lib/discover/gameDetail";
+import { clearGameCache } from "@/lib/discover/gameDetailCache";
 import { Button, PageHeader, Select, TextInput, cx } from "@/components/ui";
 import {
   Check,
@@ -136,6 +137,9 @@ export default function LibraryPage() {
 
   useEffect(() => {
     let live = true;
+    // The library may have changed (an add, an import, a refresh), so cached game
+    // details may say the wrong "In your library" (TM11-78).
+    clearGameCache();
     getLibrary().then(
       (res) => live && setRemote({ status: "ready", items: res.items }),
       // A failed re-read after a refresh keeps the list already on screen.

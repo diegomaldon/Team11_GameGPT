@@ -12,6 +12,7 @@ import { fixtureGetGame, fixtureGetHistory, fixtureRecommend } from "@/lib/api/f
 import { EXAMPLE_PROMPTS, NO_RESULTS_MESSAGE } from "@/lib/discover/featured";
 import type { RecommendResponse } from "@/lib/api/types";
 import DiscoverPage from "./page";
+import { clearGameCache } from "@/lib/discover/gameDetailCache";
 
 vi.mock("@/lib/api/client", async (importActual) => ({
   ...(await importActual<typeof import("@/lib/api/client")>()),
@@ -38,6 +39,7 @@ function deferred<T>() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  clearGameCache(); // fetched details persist for the session (TM11-78)
   vi.mocked(recommend).mockImplementation(async (q) => fixtureRecommend(q));
   vi.mocked(getHistory).mockImplementation(async (limit) => fixtureGetHistory(limit));
   vi.mocked(getGame).mockImplementation(async (id) => fixtureGetGame(id));
@@ -540,6 +542,20 @@ describe("TM11-78 AC2: the detail panel opens from a card and from history", () 
     expect(alert.textContent).toContain("History is temporarily unavailable");
     await user.click(within(alert).getByRole("button", { name: "Try again" }));
     expect(await within(recent).findByText(fixtureGetHistory(1).items[0].query)).toBeTruthy();
+  });
+
+  it("prefetches every pick's details with the results, so a card opens at once", async () => {
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await search(user);
+    const picks = fixtureRecommend("x").recommendations;
+    await waitFor(() => expect(getGame).toHaveBeenCalledTimes(picks.length));
+    expect(vi.mocked(getGame).mock.calls.map(([id]) => id)).toEqual(picks.map((p) => p.game_id));
+
+    await user.click(screen.getByRole("button", { name: `${picks[1].title}, open details` }));
+
+    expect(screen.getByTestId("game-detail")).toBeTruthy(); // no skeleton in between
+    expect(getGame).toHaveBeenCalledTimes(picks.length); // and no new request
   });
 
   it("a click anywhere on a card opens its panel too", async () => {

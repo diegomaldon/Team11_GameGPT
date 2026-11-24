@@ -11,6 +11,7 @@ import { ApiError, getGame, REQUEST_TIMEOUT_CODE } from "@/lib/api/client";
 import { fixtureGetGame } from "@/lib/api/fixtures";
 import type { DetailTarget } from "@/lib/discover/gameDetail";
 import { GameDetailPanel } from "./GameDetailPanel";
+import { clearGameCache, loadGame } from "@/lib/discover/gameDetailCache";
 
 vi.mock("@/lib/api/client", async (importActual) => ({
   ...(await importActual<typeof import("@/lib/api/client")>()),
@@ -49,6 +50,7 @@ function fact(label: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  clearGameCache(); // fetched details persist for the session (TM11-78)
   vi.mocked(getGame).mockImplementation(async (id) => fixtureGetGame(id));
 });
 afterEach(cleanup);
@@ -107,6 +109,17 @@ describe("AC1: shows description, genre tags, platforms, user and critic scores"
     pending.resolve(fixtureGetGame(STARDEW));
     await screen.findByTestId("game-detail");
     expect(screen.queryByRole("status", { name: "Loading game details…" })).toBeNull();
+  });
+
+  it("shows a game it already has at once, with no skeleton and no new request", async () => {
+    await loadGame(STARDEW);
+    vi.mocked(getGame).mockClear();
+
+    open({ gameId: STARDEW, title: "Stardew Valley" });
+
+    expect(screen.getByTestId("game-detail")).toBeTruthy(); // no await: already there
+    expect(screen.queryByRole("status", { name: "Loading game details…" })).toBeNull();
+    expect(getGame).not.toHaveBeenCalled();
   });
 
   it("fetches again when another game is opened in its place", async () => {

@@ -9,12 +9,14 @@
 // includes a game with no catalogue id or one the API doesn't know (404): the same
 // layout shows, every field unavailable, rather than an error.
 //
-// While the fetch runs, TM11-76's DetailSkeleton holds the panel's shape; a failed
+// Fetches go through lib/discover/gameDetailCache.ts, so a game opened before (or
+// prefetched with Discover's results) shows at once. While a fetch runs, TM11-76's
+// DetailSkeleton holds the panel's shape; a failed
 // read shows TM11-77's "detail" ServiceError with a retry. Store links come only from
 // the API's purchase_links; the contract says never to build one client-side.
 
 import { useEffect, useState } from "react";
-import { getGame } from "@/lib/api/client";
+import { loadGame, peekGame } from "@/lib/discover/gameDetailCache";
 import { ApiError } from "@/lib/api/apiError";
 import type { GameDetail } from "@/lib/api/types";
 import { describeFailure, type FailureState } from "@/lib/api/failureState";
@@ -59,17 +61,22 @@ export function GameDetailPanel({
 }
 
 function DetailBody({ target }: { target: DetailTarget }) {
-  const [load, setLoad] = useState<Load>(() =>
-    target.gameId ? { status: "loading" } : { status: "missing" },
-  );
+  // Details already in the cache (opened before, or prefetched with the results) show
+  // straight away, with no skeleton.
+  const [load, setLoad] = useState<Load>(() => {
+    if (!target.gameId) return { status: "missing" };
+    const cached = peekGame(target.gameId);
+    return cached ? { status: "ready", detail: cached } : { status: "loading" };
+  });
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     const gameId = target.gameId;
     if (!gameId) return;
+    if (attempt === 0 && peekGame(gameId)) return;
     let cancelled = false;
     setLoad({ status: "loading" });
-    getGame(gameId).then(
+    loadGame(gameId).then(
       (detail) => !cancelled && setLoad({ status: "ready", detail }),
       (err: unknown) => {
         if (cancelled) return;

@@ -34,6 +34,7 @@ import { NoResults } from "@/components/discover/NoResults";
 import { rankedCards } from "@/lib/discover/recommendations";
 import { GameDetailPanel } from "@/components/discover/GameDetailPanel";
 import { targetFromRecommendation, type DetailTarget } from "@/lib/discover/gameDetail";
+import { prefetchGames } from "@/lib/discover/gameDetailCache";
 import { PopularStrip } from "@/components/discover/PopularStrip";
 import { RecentSearches } from "@/components/discover/RecentSearches";
 import { RecommendationCard } from "@/components/discover/RecommendationCard";
@@ -95,8 +96,11 @@ export default function DiscoverPage() {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     resultsRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
     try {
-      setResult(await recommend(trimmed));
+      const res = await recommend(trimmed);
+      setResult(res);
       setHistoryKey((k) => k + 1);
+      // Load each pick's details now, so opening a card is usually instant (TM11-78).
+      prefetchGames(rankedCards(res.recommendations).map((r) => r.game_id));
     } catch (err) {
       setFailure(describeFailure(err, "search"));
     } finally {
