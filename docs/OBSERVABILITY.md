@@ -293,6 +293,9 @@ provider that answered (`deterministic` when no key is set) and the call's summe
 tokens. The field names and a `jq` one-liner to total spend are in
 [llm-ranking.md](llm-ranking.md#token-usage). `llm.attempt_failed` carries the
 exception type only, because an httpx message can carry Gemini's keyed URL.
+When every configured provider fails, one `llm.degraded` warning (TM11-72) lists
+the providers tried, the attempt count and the error types, and the user gets
+search-order results with a `ranking_degraded` notice instead of an error.
 
 ## Verifying it
 

@@ -16,6 +16,11 @@ only the games the first pass hadn't checked go back through the ownership
 filter. If every match is still owned, the pipeline skips the LLM and returns
 an `all_owned` notice the client can show, never a bare empty list.
 
+If ranking fails on every configured LLM provider (TM11-72, REQ040), the user
+still gets results: the top unowned games in retrieval order, with a
+`ranking_degraded` notice saying they weren't ranked. A provider hiccup never
+fails the recommend call.
+
 Each stage is timed (TM11-68, REQ040) and logged as one `recommend.timings` line,
 including when a stage fails, so the line shows how far the request got. A
 refill adds to the retrieve and filter times rather than replacing them.
@@ -32,7 +37,7 @@ from api.observability.stage_timings import TIMING_LOG_MESSAGE, StageTimings
 from api.services.deduplication import DeduplicationService
 from api.services.embedding import EmbeddingService
 from api.services.hybrid_retrieval import HybridRetriever
-from api.services.llm import LLMService
+from api.services.llm import LLMService, RankOutcome
 from api.services.query_parser import ParsedQuery, QueryParser
 from api.services.vector_store import VectorStore
 
@@ -48,6 +53,14 @@ ALL_OWNED_NOTICE = RecommendNotice(
     message=(
         "You already own every game that matches this search. "
         "Try describing it differently or widening the genre."
+    ),
+)
+
+RANKING_DEGRADED_NOTICE = RecommendNotice(
+    code="ranking_degraded",
+    message=(
+        "Our ranking model is unavailable right now, so these are the closest "
+        "matches from search, not a ranked list. Try again shortly for ranked picks."
     ),
 )
 
@@ -122,10 +135,22 @@ class RAGPipeline:
                 return RecommendOutcome(recommendations=[], notice=ALL_OWNED_NOTICE)
 
             with timings.stage("rank"):
-                recommendations = await self.llm.rank(query, unowned, n=self.n)
-            return RecommendOutcome(recommendations=recommendations)
+                ranked = await self._rank(query, unowned)
+            notice = RANKING_DEGRADED_NOTICE if ranked.degraded else None
+            return RecommendOutcome(recommendations=ranked.recommendations, notice=notice)
         finally:
             log.info(TIMING_LOG_MESSAGE, extra=timings.log_fields())
+
+    async def _rank(self, query: str, candidates: list[GameCandidate]) -> RankOutcome:
+        """The LLM's ranking, and whether it degraded (TM11-72).
+
+        A stand-in LLM that only implements rank() (test doubles) is never degraded.
+        """
+        rank_outcome = getattr(self.llm, "rank_outcome", None)
+        if rank_outcome is not None:
+            return await rank_outcome(query, candidates, n=self.n)
+        recs = await self.llm.rank(query, candidates, n=self.n)
+        return RankOutcome(recommendations=recs, provider="unknown")
 
     async def _refill(
         self,
