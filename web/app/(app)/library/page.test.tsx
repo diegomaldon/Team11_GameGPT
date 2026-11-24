@@ -5,12 +5,13 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import type { LibraryItem } from "@/lib/api/types";
 import type { OwnedGame } from "@/lib/mock/data";
-import { getLibrary } from "@/lib/api/client";
+import { getGame, getLibrary } from "@/lib/api/client";
+import { fixtureGetGame } from "@/lib/api/fixtures";
 import { useMock } from "@/lib/mock/store";
 import { useLibraryRefresh, type LibraryRefresh } from "@/lib/library/useLibraryRefresh";
 import LibraryPage from "./page";
 
-vi.mock("@/lib/api/client", () => ({ getLibrary: vi.fn() }));
+vi.mock("@/lib/api/client", () => ({ getLibrary: vi.fn(), getGame: vi.fn() }));
 vi.mock("@/lib/mock/store", () => ({ useMock: vi.fn() }));
 vi.mock("@/lib/library/useLibraryRefresh", () => ({ useLibraryRefresh: vi.fn() }));
 
@@ -125,7 +126,8 @@ describe("Library page: owned titles with per-platform badges", () => {
       manual: [{ id: "g1", title: "Halo Infinite", platform: "xbox" }],
     });
     await screen.findByRole("list", { name: "Owned games" });
-    expect(within(rowFor("Rust")).queryByRole("button")).toBeNull();
+    // Its cover opens the detail panel (TM11-78), but there's nothing to remove.
+    expect(within(rowFor("Rust")).queryByRole("button", { name: /^Remove/ })).toBeNull();
 
     await userEvent.click(screen.getByRole("button", { name: "Remove Halo Infinite" }));
     expect(removeGame).toHaveBeenCalledWith("g1");
@@ -467,5 +469,41 @@ describe("Library page: TM11-60 manual refresh", () => {
     setup({ imported: [RUST] });
 
     expect(await screen.findByText(note)).toBeTruthy();
+  });
+});
+
+describe("TM11-78 AC2: a library game opens the detail panel", () => {
+  const RUST_ID = "44444444-4444-4444-8444-444444444444";
+
+  it("fetches the game by its catalogue id and returns focus to the cover on close", async () => {
+    vi.mocked(getGame).mockImplementation(async (id) => fixtureGetGame(id));
+    const user = userEvent.setup();
+    setup({
+      imported: [
+        { game_id: RUST_ID, title: "Rust", steam_appid: 252490, platform: "steam", playtime_minutes: 60 },
+      ],
+    });
+    const cover = await screen.findByRole("button", { name: "Rust, open details" });
+
+    await user.click(cover);
+
+    const dialog = screen.getByRole("dialog", { name: "Rust" });
+    expect(getGame).toHaveBeenCalledWith(RUST_ID);
+    expect(await within(dialog).findByText(/brutal multiplayer survival game/)).toBeTruthy();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.activeElement).toBe(cover);
+  });
+
+  it("shows a hand-added game with no catalogue id as unavailable, without a fetch", async () => {
+    const user = userEvent.setup();
+    setup({ manual: [{ id: "g1", title: "Halo Infinite", platform: "xbox" }] });
+
+    await user.click(await screen.findByRole("button", { name: "Halo Infinite, open details" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Halo Infinite" });
+    expect(getGame).not.toHaveBeenCalled();
+    expect(dialog.textContent).toContain("isn't in our catalogue yet");
+    expect(within(dialog).getAllByText("Unavailable").length).toBeGreaterThanOrEqual(5);
   });
 });

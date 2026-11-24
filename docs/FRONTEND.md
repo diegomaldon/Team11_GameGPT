@@ -13,6 +13,7 @@ surfaces, one cream accent, serif headings — no gradients.
 - [Loading states (TM11-76)](#loading-states-tm11-76)
 - [No-results and error states (TM11-77)](#no-results-and-error-states-tm11-77)
 - [Result cards (TM11-75)](#result-cards-tm11-75)
+- [Game detail panel (TM11-78)](#game-detail-panel-tm11-78)
 - [Structure](#structure)
 - [API client & types](#api-client--types)
 - [Mock store](#mock-store)
@@ -43,6 +44,7 @@ the account button) and redirects to `/signin` when signed out.
 | Feature | Backing |
 |---------|---------|
 | **Discover** (recommend + feedback) | 🟢 **Live** — calls the real API at `NEXT_PUBLIC_API_URL` |
+| **Game detail panel** and recent searches | 🟢 **Live** — `GET /api/games/{game_id}` and `GET /api/history` (TM11-78) |
 | Sign-in / sign-out | 🟡 Mock — sets a flag in `localStorage` |
 | Library (list / add / remove) | 🟡 Mock — `localStorage` store |
 | Linked accounts (Steam/Xbox/Epic/PlayStation) | 🟢 **Live** — `platform_accounts` via supabase-js, under RLS (TM11-52). Steam and Xbox sign in for real; Epic links by typed account name; PlayStation is shown but can't be linked (no `platform_type` value) |
@@ -218,9 +220,8 @@ Each pick on Discover is a `components/discover/RecommendationCard.tsx` (REQ015)
 - **Order:** `rankedCards()` in `lib/discover/recommendations.ts` sorts by the
   pipeline's `rank`, not array order, and shows at most 5.
 - **Detail panel:** the title is a button that opens `GameDetailPanel`. Esc or Close
-  shuts it and focus goes back to the title. The panel only shows what the recommend
-  response carries. **TM11-78** owns the full panel and should replace its body while
-  keeping the `rec` / `onClose` props.
+  shuts it and focus goes back to the title. See [Game detail panel
+  (TM11-78)](#game-detail-panel-tm11-78) for what the panel shows.
 - **Missing data:** no art shows the title's initials (`GameArt`), no score says
   "No score yet", no platforms says "Platforms not listed", and no Steam app id drops
   the store link.
@@ -228,6 +229,38 @@ Each pick on Discover is a `components/discover/RecommendationCard.tsx` (REQ015)
   `ResultsSkeleton` is drawn to. Change both together.
 - Tests: `RecommendationCard.test.tsx`, `recommendations.test.ts` and the TM11-75
   block in `app/(app)/page.test.tsx`, grouped by acceptance criterion.
+
+---
+
+## Game detail panel (TM11-78)
+
+`components/discover/GameDetailPanel.tsx` (REQ009) shows one game in a wide `Modal`.
+
+- **Where it opens:** a result card's title, a library game's cover, and any game
+  under **Recent searches** on Discover (`components/discover/RecentSearches.tsx`, the
+  last 3 queries from `GET /api/history`, reloaded after each search). Each surface
+  hands the panel a `DetailTarget` (`lib/discover/gameDetail.ts`): the game's id,
+  title and art, plus the explanation when there is one. Closing returns focus to the
+  button that opened it.
+- **What it shows:** fetched from `GET /api/games/{game_id}` (`getGame()` in the
+  client): user and critic scores, platforms, release year, developer, which platforms
+  the player owns it on, genres then up to 8 tags, the explanation ("Why it fits"),
+  the description, and store links.
+- **Store links** come only from the API's `purchase_links`. The contract says never
+  to build one client-side, so a game without them says so.
+- **Missing data:** every missing field reads **Unavailable**, faded. A game with no
+  catalogue id (an unmatched import) or one the API answers 404 for shows the same
+  layout with every field unavailable and a note that it isn't in the catalogue yet.
+  It isn't treated as an error.
+- **Loading and errors:** TM11-76's `DetailSkeleton` while the fetch runs. A failed or
+  timed-out read shows TM11-77's "Couldn't load this game's details" with Try again.
+- **Keyboard:** Esc closes it. The Discover search's `/` shortcut does nothing while a
+  dialog is open, so it can't start a search behind the panel.
+- **Not here:** page-view logging is TM11-79, ownership and availability badges are
+  TM11-80, and the full history page is TM11-84.
+- Tests: `GameDetailPanel.test.tsx` and `gameDetail.test.ts`, grouped by acceptance
+  criterion, plus the TM11-78 blocks in `app/(app)/page.test.tsx` and
+  `app/(app)/library/page.test.tsx` for each surface. API: `api/tests/test_game_detail.py`.
 
 ---
 

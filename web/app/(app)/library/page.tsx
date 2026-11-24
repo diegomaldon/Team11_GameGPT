@@ -20,8 +20,11 @@
 //
 // TM11-76: while the library loads, a placeholder toolbar and cover grid (LibrarySkeleton)
 // sit where the real ones will, on the same GRID_SHAPE, so nothing moves when they arrive.
+//
+// TM11-78: a game's cover opens the game detail panel. Closing it returns focus to
+// that cover, if it's still on screen (the grid only renders what's visible).
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useMock } from "@/lib/mock/store";
 import {
@@ -55,6 +58,8 @@ import { RefreshStatus } from "@/components/library/RefreshStatus";
 import { LibrarySkeleton } from "@/components/Skeletons";
 import { VirtualGrid, type GridShape } from "@/components/library/VirtualGrid";
 import { GameArt } from "@/components/discover/GameArt";
+import { GameDetailPanel } from "@/components/discover/GameDetailPanel";
+import { targetFromLibrary, type DetailTarget } from "@/lib/discover/gameDetail";
 import { Button, PageHeader, Select, TextInput, cx } from "@/components/ui";
 import {
   Check,
@@ -116,6 +121,18 @@ export default function LibraryPage() {
   const [open, setOpen] = useState(false);
   const [isCsvOpen, setIsCsvOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [detail, setDetail] = useState<DetailTarget | null>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+
+  function openDetail(row: UnifiedGame, opener: HTMLElement) {
+    openerRef.current = opener;
+    setDetail(targetFromLibrary(row));
+  }
+
+  function closeDetail() {
+    setDetail(null);
+    if (openerRef.current?.isConnected) openerRef.current.focus();
+  }
 
   useEffect(() => {
     let live = true;
@@ -340,10 +357,14 @@ export default function LibraryPage() {
             shape={GRID_SHAPE}
             getKey={(r) => r.key}
             label="Owned games"
-            renderCard={(r) => <GameCard row={r} onRemove={() => remove(r)} />}
+            renderCard={(r) => (
+              <GameCard row={r} onRemove={() => remove(r)} onOpen={(el) => openDetail(r, el)} />
+            )}
           />
         </>
       )}
+
+      <GameDetailPanel target={detail} onClose={closeDetail} />
 
       <AddGameModal
         open={open}
@@ -373,15 +394,29 @@ function matchNoun(count: number): string {
   return count === 1 ? "game matches" : "games match";
 }
 
-function GameCard({ row, onRemove }: { row: UnifiedGame; onRemove: () => void }) {
+function GameCard({
+  row,
+  onRemove,
+  onOpen,
+}: {
+  row: UnifiedGame;
+  onRemove: () => void;
+  onOpen: (opener: HTMLElement) => void;
+}) {
   const playtime = row.imported
     ? (formatPlaytime(row.playtimeMinutes) ?? "Not played yet")
     : null;
   return (
     <div className="group flex h-full flex-col">
-      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--raised-2)]">
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        aria-label={`${row.title}, open details`}
+        onClick={(e) => onOpen(e.currentTarget)}
+        className="relative aspect-[2/3] w-full overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--raised-2)] transition-transform hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+      >
         <GameArt appId={row.appid} title={row.title} sizes="(min-width: 640px) 200px, 45vw" decorative />
-      </div>
+      </button>
       {/* Exactly GRID_SHAPE.captionHeight tall: VirtualGrid's row maths depends on it.
           The remove button sits here, not on the cover, so it never hides the art. */}
       <div className="flex h-16 items-center gap-1.5 overflow-hidden">
