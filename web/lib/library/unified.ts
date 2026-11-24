@@ -15,6 +15,8 @@ export type UnifiedGame = {
   key: string;
   title: string;
   appid?: number;
+  /** The catalogue game, when an imported or API-added copy names one. Opens the detail panel (TM11-78). */
+  gameId?: string;
   /** Platforms this title is owned on, in PLATFORM_ORDER. */
   platforms: GamePlatform[];
   /** Lifetime minutes from an import. Manual entries carry none. */
@@ -58,6 +60,7 @@ type Entry = {
   title: string;
   platform: GamePlatform;
   appid?: number;
+  gameId?: string;
   playtimeMinutes: number;
   imported: boolean;
   manualId?: string;
@@ -79,6 +82,7 @@ export function mergeLibrary(imported: LibraryItem[], manual: OwnedGame[]): Unif
       title: i.title,
       platform: toPlatform(i.platform),
       appid: i.steam_appid ?? undefined,
+      gameId: i.game_id ?? undefined,
       playtimeMinutes: Math.max(0, i.playtime_minutes ?? 0),
       imported: true,
     })),
@@ -125,6 +129,7 @@ export function mergeLibrary(imported: LibraryItem[], manual: OwnedGame[]): Unif
         key,
         title: e.title || (e.appid !== undefined ? `App ${e.appid}` : "Untitled"),
         appid: e.appid,
+        gameId: e.gameId,
         platforms: [],
         playtimeMinutes: 0,
         imported: false,
@@ -138,6 +143,7 @@ export function mergeLibrary(imported: LibraryItem[], manual: OwnedGame[]): Unif
     row.imported ||= e.imported;
     if (e.manualId) row.manualIds.push(e.manualId);
     if (row.appid === undefined && e.appid !== undefined) row.appid = e.appid;
+    if (row.gameId === undefined && e.gameId !== undefined) row.gameId = e.gameId;
 
     if (row.appid !== undefined) keyByAppid.set(row.appid, row.key);
     if (norm && !keyByTitle.has(norm)) keyByTitle.set(norm, row.key);

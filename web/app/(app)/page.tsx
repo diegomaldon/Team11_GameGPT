@@ -18,6 +18,9 @@
 //
 // Each pick is a RecommendationCard (TM11-75) in the pipeline's rank order; its title
 // opens GameDetailPanel, and closing the panel returns focus to that title.
+//
+// TM11-78: below the results, Recent searches lists the last few queries with the
+// games they found, and each of those opens the same detail panel.
 
 import { useEffect, useRef, useState } from "react";
 import { recommend, sendFeedback } from "@/lib/api/client";
@@ -30,7 +33,9 @@ import { ServiceError } from "@/components/ServiceError";
 import { NoResults } from "@/components/discover/NoResults";
 import { rankedCards } from "@/lib/discover/recommendations";
 import { GameDetailPanel } from "@/components/discover/GameDetailPanel";
+import { targetFromRecommendation, type DetailTarget } from "@/lib/discover/gameDetail";
 import { PopularStrip } from "@/components/discover/PopularStrip";
+import { RecentSearches } from "@/components/discover/RecentSearches";
 import { RecommendationCard } from "@/components/discover/RecommendationCard";
 import { SearchBox, type SearchBoxHandle } from "@/components/discover/SearchBox";
 import { Spotlight } from "@/components/discover/Spotlight";
@@ -46,9 +51,11 @@ export default function DiscoverPage() {
   const [result, setResult] = useState<RecommendResponse | null>(null);
   const [voted, setVoted] = useState<Record<number, Vote>>({});
   const [progressMessage, setProgressMessage] = useState(() => searchProgressMessage(0));
-  // TM11-75: the pick whose detail panel is open, and the button that opened it,
+  // TM11-75/78: the game whose detail panel is open, and the button that opened it,
   // so focus can go back there when the panel closes.
-  const [detail, setDetail] = useState<Recommendation | null>(null);
+  const [detail, setDetail] = useState<DetailTarget | null>(null);
+  // Bumped after each search so Recent searches reloads and shows it.
+  const [historyKey, setHistoryKey] = useState(0);
   const openerRef = useRef<HTMLElement | null>(null);
   const resultsRef = useRef<HTMLElement>(null);
   // The full example is cut mid-word behind the button on phones, so they get a shorter one.
@@ -89,6 +96,7 @@ export default function DiscoverPage() {
     resultsRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
     try {
       setResult(await recommend(trimmed));
+      setHistoryKey((k) => k + 1);
     } catch (err) {
       setFailure(describeFailure(err, "search"));
     } finally {
@@ -114,9 +122,9 @@ export default function DiscoverPage() {
     }
   }
 
-  function openDetail(rec: Recommendation, opener: HTMLElement) {
+  function openDetail(target: DetailTarget, opener: HTMLElement) {
     openerRef.current = opener;
-    setDetail(rec);
+    setDetail(target);
   }
 
   function closeDetail() {
@@ -216,7 +224,7 @@ export default function DiscoverPage() {
                   index={i}
                   vote={voted[rec.rank]}
                   onVote={(r, v) => void vote(r, v)}
-                  onOpen={openDetail}
+                  onOpen={(r, opener) => openDetail(targetFromRecommendation(r), opener)}
                 />
               ))}
             </ul>
@@ -224,7 +232,9 @@ export default function DiscoverPage() {
         )}
       </section>
 
-      <GameDetailPanel rec={detail} onClose={closeDetail} />
+      <RecentSearches refreshKey={historyKey} onOpen={openDetail} />
+
+      <GameDetailPanel target={detail} onClose={closeDetail} />
     </>
   );
 }

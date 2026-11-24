@@ -57,6 +57,9 @@ export const SearchBox = forwardRef<
     function onKeyDown(e: KeyboardEvent) {
       if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
       if (isTypingTarget(e.target)) return;
+      // Not while a dialog (e.g. the game detail panel) is open: the field is behind
+      // it, and a search from there would change the page under the dialog (TM11-78).
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
       e.preventDefault();
       inputRef.current?.focus();
     }

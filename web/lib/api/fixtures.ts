@@ -11,6 +11,7 @@ import type {
   CsvPreviewResponse,
   CsvRowResult,
   FeedbackRequest,
+  GameDetail,
   GameSearchResponse,
   HistoryResponse,
   LibraryItem,
@@ -66,6 +67,121 @@ export function fixtureRecommend(query: string): RecommendResponse {
   };
 }
 
+// ── GET /api/games/{game_id} (TM11-78) ──
+// The three recommend picks, plus two library games, so the panel opens with real
+// content from every surface in fixture mode. Firewatch has no critic score, tags,
+// platforms or store link, to show what "unavailable" looks like. Any other id is a
+// 404, like a game that isn't in the catalogue.
+
+const FIXTURE_RUST_ID = "44444444-4444-4444-8444-444444444444";
+const FIXTURE_FIREWATCH_ID = "55555555-5555-4555-8555-555555555555";
+
+const FIXTURE_GAMES_DETAIL: Record<string, GameDetail> = {
+  "11111111-1111-4111-8111-111111111111": {
+    game_id: "11111111-1111-4111-8111-111111111111",
+    title: "Stardew Valley",
+    description:
+      "You've inherited your grandfather's old farm plot in Stardew Valley. Armed with hand-me-down tools and a few coins, you set out to begin your new life.",
+    genres: ["Simulation", "RPG"],
+    tags: ["Farming Sim", "Cozy", "Life Sim", "Pixel Graphics", "Multiplayer"],
+    release_date: "2016-02-26",
+    developers: ["ConcernedApe"],
+    publishers: ["ConcernedApe"],
+    header_image_url: null,
+    review_score: 0.98,
+    critic_score: 0.89,
+    steam_appid: 413150,
+    available_platforms: ["steam", "xbox"],
+    purchase_links: { steam: "https://store.steampowered.com/app/413150" },
+    owned_on: [],
+  },
+  "22222222-2222-4222-8222-222222222222": {
+    game_id: "22222222-2222-4222-8222-222222222222",
+    title: "Dorfromantik",
+    description:
+      "A peaceful building strategy and puzzle game where you create a beautiful and ever-growing village landscape by placing tiles.",
+    genres: ["Strategy", "Puzzle"],
+    tags: ["Relaxing", "Tile-Laying", "Building"],
+    release_date: "2022-04-28",
+    developers: ["Toukana Interactive"],
+    publishers: ["Toukana Interactive"],
+    header_image_url: null,
+    review_score: 0.96,
+    critic_score: 0.84,
+    steam_appid: 1455840,
+    available_platforms: ["steam"],
+    purchase_links: { steam: "https://store.steampowered.com/app/1455840" },
+    owned_on: [],
+  },
+  "33333333-3333-4333-8333-333333333333": {
+    game_id: "33333333-3333-4333-8333-333333333333",
+    title: "Slay the Spire",
+    description:
+      "We fused card games and roguelikes together to make the best single player deckbuilder we could. Craft a unique deck, encounter bizarre creatures and discover relics of immense power.",
+    genres: ["Strategy", "Roguelike"],
+    tags: ["Deckbuilding", "Card Game", "Turn-Based"],
+    release_date: "2019-01-23",
+    developers: ["Mega Crit"],
+    publishers: ["Humble Games"],
+    header_image_url: null,
+    review_score: 0.97,
+    critic_score: 0.89,
+    steam_appid: 646570,
+    available_platforms: ["steam", "xbox"],
+    purchase_links: { steam: "https://store.steampowered.com/app/646570" },
+    owned_on: [],
+  },
+  [FIXTURE_RUST_ID]: {
+    game_id: FIXTURE_RUST_ID,
+    title: "Rust",
+    description: "A brutal multiplayer survival game where trust is the scarcest resource.",
+    genres: ["Survival", "Multiplayer"],
+    tags: ["PvP", "Open World", "Crafting", "Base Building"],
+    release_date: "2018-02-08",
+    developers: ["Facepunch Studios"],
+    publishers: ["Facepunch Studios"],
+    header_image_url: null,
+    review_score: 0.85,
+    critic_score: 0.69,
+    steam_appid: 252490,
+    available_platforms: ["steam"],
+    purchase_links: { steam: "https://store.steampowered.com/app/252490" },
+    owned_on: ["steam"],
+  },
+  [FIXTURE_FIREWATCH_ID]: {
+    game_id: FIXTURE_FIREWATCH_ID,
+    title: "Firewatch",
+    description:
+      "A single-player first-person mystery set in the Wyoming wilderness, in the summer of 1989.",
+    genres: ["Adventure"],
+    tags: [],
+    release_date: "2016-02-09",
+    developers: ["Campo Santo"],
+    publishers: [],
+    header_image_url: null,
+    review_score: 0.92,
+    critic_score: null,
+    steam_appid: 383870,
+    available_platforms: [],
+    purchase_links: {},
+    owned_on: ["steam"],
+  },
+};
+
+export function fixtureGetGame(gameId: string): GameDetail {
+  const game = FIXTURE_GAMES_DETAIL[gameId];
+  if (!game) {
+    throw new ApiError(
+      `GET /api/games/${gameId} failed`,
+      404,
+      null,
+      "game_not_found",
+      "We couldn't find that game in the catalogue.",
+    );
+  }
+  return game;
+}
+
 /** GET /api/history: one past search, built from the recommend fixture (TM11-77). */
 export function fixtureGetHistory(limit = 20): HistoryResponse {
   const past = fixtureRecommend("a chill game I can play while listening to a podcast");
@@ -109,7 +225,13 @@ export function fixtureSyncLibrary(steamId: string): LibrarySyncResponse {
 const IMPORTED_KEY = "gamegpt.fixture.imported";
 
 const FIXTURE_LIBRARY: LibraryItem[] = [
-  { title: "Rust", steam_appid: 252490, platform: "steam", playtime_minutes: 129351 },
+  {
+    game_id: FIXTURE_RUST_ID,
+    title: "Rust",
+    steam_appid: 252490,
+    platform: "steam",
+    playtime_minutes: 129351,
+  },
   { title: "Counter-Strike 2", steam_appid: 730, platform: "steam", playtime_minutes: 72815 },
   {
     title: "The Witcher 3: Wild Hunt \u2014 Remastered",
@@ -119,7 +241,13 @@ const FIXTURE_LIBRARY: LibraryItem[] = [
   },
   { title: "Forza Horizon 5", steam_appid: 1551360, platform: "steam", playtime_minutes: 4577 },
   { title: "Rocket League", steam_appid: 252950, platform: "steam", playtime_minutes: 4559 },
-  { title: "Firewatch", steam_appid: 383870, platform: "steam", playtime_minutes: 679 },
+  {
+    game_id: FIXTURE_FIREWATCH_ID,
+    title: "Firewatch",
+    steam_appid: 383870,
+    platform: "steam",
+    playtime_minutes: 679,
+  },
   { title: "Balatro", steam_appid: 2379780, platform: "steam", playtime_minutes: 671 },
   { title: "Papers, Please", steam_appid: 239030, platform: "steam", playtime_minutes: 139 },
   { title: "Wallpaper Engine", steam_appid: 431960, platform: "steam", playtime_minutes: 0 },
