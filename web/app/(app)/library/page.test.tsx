@@ -181,6 +181,25 @@ describe("Library page: empty state prompts linking a platform", () => {
     expect(screen.queryByText("Your library is empty")).toBeNull();
   });
 
+  it("shows a placeholder grid while loading, then swaps in the games (TM11-76)", async () => {
+    let finish!: (res: { items: LibraryItem[] }) => void;
+    vi.mocked(useMock).mockReturnValue({
+      state: { games: [] },
+      hydrated: true,
+      addGame: vi.fn(),
+      removeGame,
+    } as unknown as ReturnType<typeof useMock>);
+    vi.mocked(getLibrary).mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    render(<LibraryPage />);
+    expect(screen.getByTestId("library-skeleton-grid")).toBeTruthy();
+
+    finish({
+      items: [{ title: "Rust", steam_appid: 252490, platform: "steam", playtime_minutes: 60 }],
+    });
+    expect(await screen.findByRole("list", { name: "Owned games" })).toBeTruthy();
+    expect(screen.queryByTestId("library-skeleton-grid")).toBeNull();
+  });
+
   it("waits for saved hand-added games before deciding the library is empty", async () => {
     setup({ hydrated: false });
     await waitFor(() => expect(getLibrary).toHaveBeenCalled());
