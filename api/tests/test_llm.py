@@ -696,3 +696,31 @@ async def test_a_game_filtered_out_before_ranking_is_rejected_when_the_model_nam
     assert recs[0].title == "Dorfromantik"
     [record] = _records(caplog, "llm.picks_rejected")
     assert record.rejected_picks == [{"index": 0, "title": owned.title}]
+
+
+@pytest.mark.parametrize("title, description", [
+    ("Rust", "A brutal multiplayer survival game where trust is the scarcest resource."),
+    ("Portal", "A portal-based puzzle game with a sarcastic AI."),
+    ("Unpacking", "A zen puzzle game about unpacking boxes into a new home."),
+])
+async def test_fallback_reason_names_the_game_when_its_title_is_only_part_of_a_word(
+    title, description,
+):
+    # PR #66 review: "Rust" isn't named by "trust", nor "Unpacking" by "unpacking".
+    game = GameCandidate(game_id=uuid4(), title=title, description=description)
+    reason = _synthesize_reason("q", game)
+    assert reason.startswith(f'For "q": {title} is ')
+
+
+async def test_fallback_reason_keeps_a_sentence_that_already_names_the_game():
+    game = GameCandidate(game_id=uuid4(), title="Portal 2",
+                         description="Portal 2 pairs you with a robot partner.")
+    assert _synthesize_reason("q", game) == 'For "q": Portal 2 pairs you with a robot partner.'
+
+
+async def test_fallback_reason_is_capped_even_with_a_very_long_title():
+    # PR #66 review: Steam names can run to 300 characters.
+    game = GameCandidate(game_id=uuid4(), title="T" * 120 + " Deluxe",
+                         description="word " * 200)
+    reason = _synthesize_reason("very long request " * 40, game)
+    assert len(reason) <= MAX_EXPLANATION_CHARS

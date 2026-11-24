@@ -111,18 +111,32 @@ def _synthesize_reason(query: str, candidate: GameCandidate) -> str:
     sentences = _split_sentences(" ".join((candidate.description or "").split()))
     first = _clip(sentences[0], MAX_FALLBACK_SENTENCE_CHARS) if sentences else ""
     if not first:
-        return (
+        reason = (
             f"For \"{request}\": {candidate.title} came out closest to what you "
             f"described in the catalogue search."
         )
-    if not first.endswith((".", "!", "?", "…")):
-        first += "."
-    if candidate.title.casefold() in first.casefold():
-        return f"For \"{request}\": {first}"
-    if _LEADING_ARTICLE.match(first):
-        # "A physics-driven shooter where…" reads as "Half-Life 2 is a physics-driven…".
-        return f"For \"{request}\": {candidate.title} is {first[0].lower()}{first[1:]}"
-    return f"For \"{request}\": {candidate.title}. {first}"
+    else:
+        if not first.endswith((".", "!", "?", "…")):
+            first += "."
+        if _names_title(first, candidate.title):
+            reason = f"For \"{request}\": {first}"
+        elif _LEADING_ARTICLE.match(first):
+            # "A physics-driven shooter where…" reads as "Half-Life 2 is a physics-driven…".
+            reason = f"For \"{request}\": {candidate.title} is {first[0].lower()}{first[1:]}"
+        else:
+            reason = f"For \"{request}\": {candidate.title}. {first}"
+    # A long Steam title can push it past the cap a model's explanation is held to.
+    return _clip(reason, MAX_EXPLANATION_CHARS)
+
+
+def _names_title(sentence: str, title: str) -> bool:
+    """Whether `sentence` names the game: whole words, same case (PR #66 review).
+
+    A case-insensitive substring would say "Rust" is named in "where trust is
+    scarce" and "Portal" in "portal-based", so the reason would never say which
+    game it is.
+    """
+    return re.search(rf"(?<!\w){re.escape(title)}(?!\w)", sentence) is not None
 
 
 def _ends_with_abbreviation(part: str) -> bool:
