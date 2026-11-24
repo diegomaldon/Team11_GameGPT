@@ -26,6 +26,7 @@ from api.db import connection
 from api.db.schema import catalogue_shape
 from api.models import (
     FeedbackRequest,
+    GameDetail,
     HistoryEntry,
     HistoryRecommendation,
     LibraryItem,
@@ -574,6 +575,90 @@ async def get_catalogue_game(game_id: UUID) -> dict[str, Any] | None:
     if row is None:
         return None
     return {"game_id": row[0], "title": row[1], "steam_appid": row[2]}
+
+
+# One game for the detail panel (TM11-78, REQ009), shaped as docs/API.md's
+# GET /api/games/{game_id} contract. Hosted scores are 0-100 smallints; the
+# local slice has one 0-1 review score, a single developer, and no platforms,
+# critic score, header image or purchase links.
+_GAME_DETAIL_SQL = {
+    "hosted": (
+        "select game_id, title, description, genres, tags, release_date, developers, "
+        "publishers, header_image_url, review_score, critic_score, steam_appid, "
+        "available_platforms::text[], purchase_links "
+        "from public.games where game_id = %s"
+    ),
+    "legacy": (
+        "select id, title, description, genres, tags, release_date, "
+        "case when developer is null then '{}'::text[] else array[developer] end, "
+        "'{}'::text[], null::text, review_score, null::smallint, steam_appid, "
+        "'{}'::text[], '{}'::jsonb "
+        "from games where id = %s"
+    ),
+}
+
+
+def _text_list(value: Any) -> list[str]:
+    """A text[] as clean strings. An enum array can arrive as "{STEAM,XBOX}"."""
+    if not value:
+        return []
+    if isinstance(value, str):
+        value = value.strip("{}").split(",")
+    return [s for s in (str(v).strip().strip('"') for v in value) if s]
+
+
+def _fraction(value: Any, *, stored_out_of_100: bool) -> float | None:
+    """A score as 0-1, the scale every score in this API uses, or None."""
+    if value is None:
+        return None
+    score = float(value) / 100 if stored_out_of_100 else float(value)
+    return min(1.0, max(0.0, score))
+
+
+def _purchase_links(value: Any) -> dict[str, str]:
+    """purchase_links keyed by lowercase platform, keeping only http(s) links."""
+    if not isinstance(value, Mapping):
+        return {}
+    return {
+        str(platform).lower(): link
+        for platform, link in value.items()
+        if isinstance(link, str) and link.startswith(("https://", "http://"))
+    }
+
+
+@retry(**_RETRY)
+async def get_game_detail(game_id: UUID) -> GameDetail | None:
+    """Everything the detail panel shows about one game, or None if it isn't in the catalogue.
+
+    `owned_on` is left empty here; the router fills it from DeduplicationService.
+    """
+    shape = await catalogue_shape()
+    hosted = shape == "hosted"
+    async with connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(_GAME_DETAIL_SQL[shape], (str(game_id),))
+            row = await cur.fetchone()
+    if row is None:
+        return None
+    (gid, title, description, genres, tags, release_date, developers, publishers,
+     header_image_url, review_score, critic_score, steam_appid, platforms,
+     purchase_links) = row
+    return GameDetail(
+        game_id=_as_uuid(gid) or game_id,
+        title=title or "",
+        description=(description or "").strip() or None,
+        genres=_text_list(genres),
+        tags=_text_list(tags),
+        release_date=release_date,
+        developers=_text_list(developers),
+        publishers=_text_list(publishers),
+        header_image_url=header_image_url or None,
+        review_score=_fraction(review_score, stored_out_of_100=hosted),
+        critic_score=_fraction(critic_score, stored_out_of_100=True),
+        steam_appid=steam_appid,
+        available_platforms=[p.lower() for p in _text_list(platforms)],
+        purchase_links=_purchase_links(purchase_links),
+    )
 
 
 @retry(**_RETRY)

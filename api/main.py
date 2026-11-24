@@ -18,7 +18,7 @@ from api.config import get_settings
 from api.observability import configure_logging, init_sentry
 from api.observability import install as install_observability
 from api.request_size import RequestSizeLimitMiddleware
-from api.routers import errors, feedback, health, history, recommend, search
+from api.routers import errors, feedback, games, health, history, recommend, search
 
 log = logging.getLogger("gamegpt.startup")
 
@@ -91,6 +91,9 @@ def create_app() -> FastAPI:
         app.include_router(library_csv.router, prefix="/api")
         app.include_router(library_manual.router, prefix="/api")
         app.include_router(library_xbox.router, prefix="/api")
+    # After library_manual: its GET /api/games/search must match before
+    # GET /api/games/{game_id} reads "search" as an id.
+    app.include_router(games.router, prefix="/api")
 
     return app
 

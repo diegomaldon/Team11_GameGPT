@@ -30,7 +30,7 @@ route is served, or a served route has no section.
 | Search | [`POST /api/search`](#post-apisearch): semantic search (TM11-42) | live |
 | Search | [`POST /api/recommend`](#post-apirecommend): ranked recommendations with reasons | live |
 | History | [`GET /api/history`](#get-apihistory): past queries and their results (TM11-64) | live |
-| Detail | [`GET /api/games/{game_id}`](#get-apigamesgame_id-planned): one game's detail panel | planned (TM11-78, TM11-79) |
+| Detail | [`GET /api/games/{game_id}`](#get-apigamesgame_id): one game's detail panel (TM11-78) | live |
 | All | [Errors](#errors): the four error shapes and every error code | live |
 
 ## Conventions
@@ -629,12 +629,14 @@ come first, then shorter titles. `%` and `_` are matched literally.
 - **422**: `q` missing or too long, `limit` out of range.
 - **503** `search_failed`: anything else; the cause is only logged.
 
-## `GET /api/games/{game_id}` (planned)
+## `GET /api/games/{game_id}`
 
-**Not served yet.** The contract for the game detail panel (REQ009, use case
-2.20), agreed so TM11-78 (layout) and TM11-79 (data wiring) can build against a
-fixture first. Every field maps to a column `public.games` already has; nothing
-here needs a migration. Read-only.
+One game for the detail panel (TM11-78, REQ009, use case 2.20). The panel opens
+from a recommendation card, the library and past searches, and fetches this by
+`game_id`. Every field maps to a column `public.games` already has; nothing
+here needs a migration. Read-only. On the local `0001_init.sql` slice there are
+no platforms, critic score, header image or purchase links, so those come back
+empty.
 
 | Path | Type | Notes |
 |------|------|-------|

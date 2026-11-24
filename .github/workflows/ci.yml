@@ -193,6 +193,12 @@ jobs:
         working-directory: .
         run: python -m pytest api/tests/test_library_manual.py -v
 
+      # TM11-78. The detail panel's fields on both database shapes, missing ones
+      # empty rather than guessed, and /games/search still routing first.
+      - name: Pytest — game detail
+        working-directory: .
+        run: python -m pytest api/tests/test_game_detail.py -v
+
       # TM11-56. "Platform attribution", "reuses the title matcher" and
       # "idempotent on re-run" are acceptance criteria.
       - name: Pytest — Xbox library import

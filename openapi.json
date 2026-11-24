@@ -649,6 +649,56 @@
           }
         }
       }
+    },
+    "/api/games/{game_id}": {
+      "get": {
+        "tags": [
+          "games"
+        ],
+        "summary": "Get Game",
+        "description": "Description, genres, tags, platforms, scores and ownership for one catalogue game.",
+        "operationId": "get_game_api_games__game_id__get",
+        "parameters": [
+          {
+            "name": "game_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Game Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No catalogue game with this id."
+          },
+          "503": {
+            "description": "The catalogue couldn't be read."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -979,6 +1029,151 @@
         ],
         "title": "FeedbackRequest",
         "description": "Body for POST /api/feedback. Returns 204, persists a row."
+      },
+      "GameDetail": {
+        "properties": {
+          "game_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Game Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "genres": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Genres"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "release_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release Date"
+          },
+          "developers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Developers"
+          },
+          "publishers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Publishers"
+          },
+          "header_image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Header Image Url"
+          },
+          "review_score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Score",
+            "description": "Players' review score, 0-1 like everywhere else in this API."
+          },
+          "critic_score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Critic Score",
+            "description": "Critics' score, 0-1. Stored as 0-100."
+          },
+          "steam_appid": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Steam Appid"
+          },
+          "available_platforms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Available Platforms",
+            "description": "Where the game can be bought, lowercase: steam, xbox, epic."
+          },
+          "purchase_links": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Purchase Links",
+            "description": "Validated store links keyed by lowercase platform. {} is normal; never build a link client-side."
+          },
+          "owned_on": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Owned On",
+            "description": "Platforms the user owns it on, in badge order. [] when not owned."
+          }
+        },
+        "type": "object",
+        "required": [
+          "game_id",
+          "title"
+        ],
+        "title": "GameDetail",
+        "description": "Body returned from GET /api/games/{game_id}: one game for the detail panel (REQ009).\n\nThe contract agreed in docs/API.md. Every field but the id and title can be\nmissing; the panel says \"unavailable\" for those rather than leaving a gap,\nso nothing here is filled in with a guess."
       },
       "GameSearchResponse": {
         "properties": {
