@@ -7,17 +7,21 @@ import json
 import logging
 from datetime import datetime, timezone
 from types import SimpleNamespace
+from uuid import uuid4
 
 import httpx
 import pytest
 
+from api.models import GameCandidate
 from api.observability.logging_config import JsonFormatter
 from api.services import llm as llm_module
+from api.services.explanation_quality import check_explanation
 from api.services.llm import (
     MAX_EXPLANATION_CHARS,
     LLMService,
     _build_messages,
     _picks_to_recs,
+    _synthesize_reason,
     clamp_recommendation_count,
     normalise_explanation,
 )
@@ -44,14 +48,71 @@ async def test_keyless_fallback_produces_n_nonempty_reasons(candidates):
     assert top.review_score == candidates[0].review_score
 
 
-async def test_reason_references_query_and_traits(candidates):
+async def test_fallback_reason_quotes_the_request_and_passes_the_explanation_checks(candidates):
+    # TM11-166 AC 1: the deterministic fallback passes TM11-70's checks.
     llm = LLMService(anthropic_api_key=None, gemini_api_key=None)
     query = "cozy farming"
-    recs = await llm.rank(query, candidates, n=1)
-    reason = recs[0].reason
-    assert query in reason
-    # First candidate has genres Simulation/RPG — at least one should appear.
-    assert any(g in reason for g in candidates[0].genres)
+    recs = await llm.rank(query, candidates, n=3)
+    for rec, c in zip(recs, candidates):
+        assert f'"{query}"' in rec.reason
+        check = check_explanation(query, rec.reason, c.genres, c.tags)
+        assert check.passes, (rec.reason, check)
+
+
+async def test_fallback_reason_uses_the_description_not_the_genre_list():
+    # TM11-166 AC 2: what the game is comes from its description.
+    game = GameCandidate(
+        game_id=uuid4(), title="Half-Life 2", genres=["Shooter", "Action"],
+        description="A physics-driven sci-fi shooter where you fight an alien occupation "
+                    "with the gravity gun. Widely seen as a landmark.",
+    )
+    reason = _synthesize_reason("a story-driven game with clever puzzles", game)
+    assert reason == ('For "a story-driven game with clever puzzles": Half-Life 2 is a '
+                      "physics-driven sci-fi shooter where you fight an alien occupation "
+                      "with the gravity gun.")
+    assert "Shooter, Action" not in reason
+    assert not check_explanation("x", reason).stock_phrases
+
+
+@pytest.mark.parametrize("description, expected", [
+    ("Stardew Valley is a farming sim.", 'For "q": Stardew Valley is a farming sim.'),
+    ("Build a farm and befriend a town",
+     'For "q": Stardew Valley. Build a farm and befriend a town.'),
+])
+async def test_fallback_reason_reads_naturally_whatever_the_description_starts_with(
+    description, expected,
+):
+    game = GameCandidate(game_id=uuid4(), title="Stardew Valley", description=description)
+    assert _synthesize_reason("q", game) == expected
+
+
+@pytest.mark.parametrize("description", [None, "", "   "])
+async def test_fallback_reason_without_a_description_still_names_the_request(description):
+    # TM11-166 AC 3.
+    game = GameCandidate(game_id=uuid4(), title="Celeste", genres=["Platformer"],
+                         description=description)
+    reason = _synthesize_reason("a hard platformer", game)
+    assert reason.startswith('For "a hard platformer": Celeste')
+    assert check_explanation("a hard platformer", reason, game.genres).passes
+
+
+async def test_fallback_reason_cuts_a_long_request_and_description():
+    game = GameCandidate(game_id=uuid4(), title="G", description="word " * 200)
+    reason = _synthesize_reason("very long request " * 40, game)
+    assert len(reason) <= MAX_EXPLANATION_CHARS
+    assert reason.count("…") == 2
+
+
+async def test_top_up_and_blank_explanations_get_the_new_fallback(candidates):
+    # TM11-166 AC 4: TM11-69's top-up and a blank explanation use the same reason.
+    data = {"recommendations": [
+        {"index": 0, "title": "Stardew Valley", "explanation": ""},
+    ]}
+    recs = _picks_to_recs(data, candidates, "cozy farming", 3)
+    assert len(recs) == 3  # one parsed pick, two topped up
+    for rec in recs:
+        assert rec.reason.startswith('For "cozy farming": ')
+        assert "what you're looking for" not in rec.reason
 
 
 async def test_rank_handles_fewer_candidates_than_n(candidates):
@@ -635,3 +696,31 @@ async def test_a_game_filtered_out_before_ranking_is_rejected_when_the_model_nam
     assert recs[0].title == "Dorfromantik"
     [record] = _records(caplog, "llm.picks_rejected")
     assert record.rejected_picks == [{"index": 0, "title": owned.title}]
+
+
+@pytest.mark.parametrize("title, description", [
+    ("Rust", "A brutal multiplayer survival game where trust is the scarcest resource."),
+    ("Portal", "A portal-based puzzle game with a sarcastic AI."),
+    ("Unpacking", "A zen puzzle game about unpacking boxes into a new home."),
+])
+async def test_fallback_reason_names_the_game_when_its_title_is_only_part_of_a_word(
+    title, description,
+):
+    # PR #66 review: "Rust" isn't named by "trust", nor "Unpacking" by "unpacking".
+    game = GameCandidate(game_id=uuid4(), title=title, description=description)
+    reason = _synthesize_reason("q", game)
+    assert reason.startswith(f'For "q": {title} is ')
+
+
+async def test_fallback_reason_keeps_a_sentence_that_already_names_the_game():
+    game = GameCandidate(game_id=uuid4(), title="Portal 2",
+                         description="Portal 2 pairs you with a robot partner.")
+    assert _synthesize_reason("q", game) == 'For "q": Portal 2 pairs you with a robot partner.'
+
+
+async def test_fallback_reason_is_capped_even_with_a_very_long_title():
+    # PR #66 review: Steam names can run to 300 characters.
+    game = GameCandidate(game_id=uuid4(), title="T" * 120 + " Deluxe",
+                         description="word " * 200)
+    reason = _synthesize_reason("very long request " * 40, game)
+    assert len(reason) <= MAX_EXPLANATION_CHARS
