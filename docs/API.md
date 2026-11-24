@@ -144,6 +144,7 @@ query and its results to the user's history in the background (TM11-64).
       "reason": "Cozy, low-stress crafting and management loops you can half-watch…",
       "steam_appid": 666140,
       "review_score": 0.9,
+      "platforms": ["steam", "xbox"],
       "generated_at": "2026-11-11T15:00:02.418Z"
     }
   ]
@@ -153,6 +154,7 @@ query and its results to the user's history in the background (TM11-64).
 |-------|------|-------|
 | `query_id` | uuid | The id the query is saved under — echo it back in feedback |
 | `recommendations[]` | array | 3 items (REQ015 allows 3–5), fewer only if fewer unowned games were found; `rank` 1..n; `reason` never empty, one or two sentences; never a game the user owns, and always one the search retrieved (TM11-69) |
+| `recommendations[].platforms` | string[] | Stores the game is on, lower case (`steam`, `xbox`, `epic`); `[]` when the catalogue doesn't say. The result cards list them (TM11-75) |
 | `recommendations[].generated_at` | datetime | When the ranking was parsed (UTC); every result of one call has the same value (TM11-69) |
 | `notice` | object \| null | `null` normally. Set when the list is short or empty for a known reason (TM11-66) |
 

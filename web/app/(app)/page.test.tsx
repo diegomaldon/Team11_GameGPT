@@ -399,3 +399,79 @@ describe("TM11-77: no-results and error states from the rainy-day scenarios", ()
     expect((await screen.findByRole("alert")).textContent).toContain("Search timed out");
   });
 });
+
+describe("TM11-75: result cards on the page", () => {
+  const shuffled: RecommendResponse = {
+    query_id: "q-75",
+    query: "roguelike",
+    recommendations: [
+      { rank: 3, title: "Third Pick", reason: "Third reason.", platforms: ["steam"] },
+      { rank: 1, title: "First Pick", reason: "First reason.", platforms: ["xbox"] },
+      { rank: 2, title: "Second Pick", reason: "Second reason.", platforms: [] },
+    ],
+  };
+
+  async function search(user: ReturnType<typeof userEvent.setup>, q = "roguelike") {
+    await user.type(field(), `${q}{Enter}`);
+    await screen.findByText(/picks for your vibe/);
+  }
+
+  it("AC-02: shows the cards in the pipeline's rank order", async () => {
+    vi.mocked(recommend).mockResolvedValueOnce(shuffled);
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await search(user);
+    const titles = screen
+      .getAllByTestId("recommendation-card")
+      .map((c) => within(c).getByRole("heading").textContent);
+    expect(titles).toEqual([
+      expect.stringContaining("First Pick"),
+      expect.stringContaining("Second Pick"),
+      expect.stringContaining("Third Pick"),
+    ]);
+  });
+
+  it("AC-01: every fixture pick gets a card with its platforms", async () => {
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await search(user, "a chill game");
+    const cards = screen.getAllByTestId("recommendation-card");
+    expect(cards).toHaveLength(fixtureRecommend("x").recommendations.length);
+    expect(within(cards[0]).getByRole("list", { name: "Platforms" }).textContent).toContain("Steam");
+  });
+
+  it("AC-03: a card's title opens the detail panel, and closing returns focus to it", async () => {
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await search(user, "a chill game");
+    const [first] = fixtureRecommend("x").recommendations;
+    const opener = screen.getByRole("button", { name: `${first.title}, open details` });
+
+    await user.click(opener);
+    const dialog = screen.getByRole("dialog", { name: first.title });
+    expect(within(dialog).getByText(first.reason)).toBeTruthy();
+    expect(within(dialog).getByText("Steam, Xbox")).toBeTruthy();
+
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it("AC-04: the panel says what's missing for a game with no art, score or store data", async () => {
+    vi.mocked(recommend).mockResolvedValueOnce({
+      query_id: "q-bare",
+      query: "obscure",
+      recommendations: [{ rank: 1, title: "Bare Game", reason: "A quiet fit for your evening." }],
+    });
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await search(user, "obscure");
+    await user.click(screen.getByRole("button", { name: "Bare Game, open details" }));
+    const dialog = screen.getByRole("dialog", { name: "Bare Game" });
+    expect(dialog.textContent).toContain("No score yet");
+    expect(dialog.textContent).toContain("Not listed");
+    expect(dialog.textContent).toContain("No store link available.");
+    await user.click(within(dialog).getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});

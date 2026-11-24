@@ -205,6 +205,7 @@ def _to_recommendation(rank: int, c: GameCandidate, reason: str) -> Recommendati
         reason=reason,
         steam_appid=c.steam_appid,
         review_score=c.review_score,
+        platforms=list(c.platforms),  # TM11-75: the result card lists them
     )
 
 

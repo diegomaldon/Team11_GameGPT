@@ -57,6 +57,11 @@ class Recommendation(BaseModel):
     reason: str = Field(..., description="Why this fits the query. Never empty.")
     steam_appid: Optional[int] = None
     review_score: Optional[float] = None
+    platforms: list[str] = Field(
+        default_factory=list,
+        description="Stores the game is on, lower case (steam, xbox, epic). Empty when "
+        "the catalogue doesn't say (TM11-75).",
+    )
     generated_at: Optional[datetime] = Field(
         default=None,
         description="When the ranking that produced this result was parsed (UTC). "
