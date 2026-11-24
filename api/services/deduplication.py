@@ -12,6 +12,9 @@ steam_appid, then title, and the platform is a column on the row.
 Titles are compared by title_matching.ownership_key (TM11-57): punctuation,
 accents, trademarks, edition suffixes and remaster markers are folded away, so
 "The Witcher 3: Wild Hunt - GOTY" hides "The Witcher 3: Wild Hunt".
+
+library_fingerprint() hashes every owned_games row for the user, so the
+recommend cache (TM11-73) can tell when a library changed.
 """
 
 from __future__ import annotations
@@ -19,7 +22,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from api.db import connection
+from api.db import connection, has_db
 from api.db.schema import catalogue_shape
 from api.models import GameCandidate
 from api.services.title_matching import ownership_key
@@ -36,6 +39,22 @@ _HOSTED_OWNED_SQL = (
 )
 _LEGACY_OWNED_SQL = (
     "select game_id, steam_appid, title, platform from owned_games where user_id = %s"
+)
+# One row per owned copy, hashed in a fixed order: any add, remove or swap of a
+# game or platform changes the md5. Empty libraries hash the empty string.
+_HOSTED_FINGERPRINT_SQL = (
+    "select count(*), md5(coalesce(string_agg("
+    "o.game_id::text || ':' || o.platform_account_id::text, ',' "
+    "order by o.game_id, o.platform_account_id), '')) "
+    "from public.owned_games o where o.user_id = %s"
+)
+_LEGACY_ROW = (
+    "coalesce(game_id::text, '') || ':' || coalesce(steam_appid::text, '') || ':' "
+    "|| coalesce(title, '') || ':' || coalesce(platform, '')"
+)
+_LEGACY_FINGERPRINT_SQL = (
+    f"select count(*), md5(coalesce(string_agg({_LEGACY_ROW}, ',' order by {_LEGACY_ROW}), '')) "
+    "from owned_games where user_id = %s"
 )
 
 
@@ -126,6 +145,22 @@ class DeduplicationService:
             if platforms:
                 found.setdefault(g.game_id, set()).update(platforms)
         return found
+
+    async def library_fingerprint(self, user_id: UUID) -> str | None:
+        """A key that changes whenever the user's owned games change (TM11-73).
+
+        "<copies>:<md5 of every owned row>", from one indexed query. None when
+        there is no database, so the caller can skip caching instead of guessing.
+        """
+        if not has_db():
+            return None
+        sql = (_HOSTED_FINGERPRINT_SQL if await catalogue_shape() == "hosted"
+               else _LEGACY_FINGERPRINT_SQL)
+        async with connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(sql, (user_id,))
+                count, digest = await cur.fetchone()
+        return f"{count}:{digest}"
 
     async def filter_owned(
         self, user_id: UUID, candidates: list[GameCandidate]
