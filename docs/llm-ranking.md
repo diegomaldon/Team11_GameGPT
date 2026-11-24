@@ -155,6 +155,36 @@ provider and the exception type only. httpx error messages can contain the reque
 URL, and Gemini's key is in its query string. The tests run these lines through the
 JSON formatter to check that the counts survive redaction and the key never appears.
 
+### When ranking fails (TM11-72)
+
+Each provider gets one attempt and one retry, so a malformed answer is retried
+once before the next provider is tried. All attempts share one deadline,
+`RANK_DEADLINE_SECONDS`, which is the rank stage's 7.5 s budget from
+`STAGE_BUDGET_MS`. Each configured provider gets an equal share of the time
+left, so a hung Gemini can't use it all and leave Anthropic no turn. Each
+attempt gets what's left of its share, and none starts once it's spent. The
+Anthropic client is built with `max_retries=0`, so its SDK doesn't retry on top
+of this. A hung provider therefore degrades in about 7.5 s rather than after
+Gemini's 30 s client timeout twice over, which keeps a degraded recommend inside
+REQ040's 10 s and the web client's 15 s limit (TM11-77, PR #70). When every configured provider has
+failed, the deterministic ranker's picks (the top unowned games in retrieval
+order) are returned, and one warning says ranking degraded:
+
+```json
+{"logger":"gamegpt.llm","msg":"llm.degraded","providers":["gemini"],"attempts":2,
+ "error_types":["UpstreamError","ValueError"],"result_count":3}
+```
+
+`LLMService.rank_outcome()` returns the results with `provider` and `degraded`,
+and the pipeline turns `degraded` into a `ranking_degraded` notice on the
+response (see [API.md](API.md)). No key at all (local dev, CI) is the expected
+offline path, so it logs `llm.ranked` with `provider: "deterministic"` and no
+`llm.degraded`. To see how often it happens in production:
+
+```bash
+jq -s 'map(select(.msg == "llm.degraded")) | length' render.log
+```
+
 To total a day's spend from Render's logs:
 
 ```bash
