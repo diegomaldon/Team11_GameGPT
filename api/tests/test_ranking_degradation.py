@@ -368,7 +368,9 @@ def _picks_from_valid_body(candidates):
 
 def test_the_anthropic_client_does_not_retry_on_its_own(monkeypatch):
     # PR #67 review: the SDK retries twice by default, on top of our one retry.
-    import anthropic
+    # A stand-in module, so this runs where the SDK isn't installed (CI's API job).
+    import sys
+    import types
 
     seen = {}
 
@@ -376,6 +378,7 @@ def test_the_anthropic_client_does_not_retry_on_its_own(monkeypatch):
         def __init__(self, **kwargs):
             seen.update(kwargs)
 
-    monkeypatch.setattr(anthropic, "AsyncAnthropic", FakeClient)
+    monkeypatch.setitem(sys.modules, "anthropic",
+                        types.SimpleNamespace(AsyncAnthropic=FakeClient))
     LLMService(gemini_api_key=None, anthropic_api_key="test-anthropic-key")._anthropic()
     assert seen["max_retries"] == 0
