@@ -52,6 +52,18 @@ log = logging.getLogger("gamegpt.recommend")
 RESPONSE_CACHE: ResponseCache[RecommendOutcome] = ResponseCache()
 
 
+def _copy_of(outcome: RecommendOutcome) -> RecommendOutcome:
+    """A copy whose results can be changed without touching the cached entry.
+
+    RecommendOutcome is frozen, but its list and the Recommendations in it are
+    not (PR #68 review), so both stored and served outcomes are copies.
+    """
+    return RecommendOutcome(
+        recommendations=[r.model_copy() for r in outcome.recommendations],
+        notice=outcome.notice,
+    )
+
+
 async def _library_fingerprint(dedup: DeduplicationService, user_id: UUID) -> str | None:
     """The cache's library key, or None to skip the cache if it can't be read."""
     try:
@@ -85,7 +97,7 @@ async def recommend(
     cached = RESPONSE_CACHE.get(key) if key is not None else None
     try:
         if cached is not None:
-            outcome = cached
+            outcome = _copy_of(cached)
             log_lookup(RESPONSE_CACHE, hit=True, lookup_ms=lookup_ms)
         else:
             outcome = await pipeline.recommend_outcome(user_id, req.query, timings=timings)
@@ -93,7 +105,7 @@ async def recommend(
                 outcome.notice is None or outcome.notice.code not in UNCACHEABLE_NOTICES
             )
             if store:
-                RESPONSE_CACHE.put(key, outcome)
+                RESPONSE_CACHE.put(key, _copy_of(outcome))
             log_lookup(RESPONSE_CACHE, hit=False, cached=store,
                        lookup_ms=lookup_ms if key is not None else None)
     except Exception as exc:  # embedding / vector / dedup / LLM failure

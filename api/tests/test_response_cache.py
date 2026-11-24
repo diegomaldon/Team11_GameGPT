@@ -281,3 +281,15 @@ def test_every_lookup_logs_the_running_hit_rate(client, caplog):
     assert all(r.lookup_ms is not None for r in lines)
     # The query text never reaches the log line.
     assert not any("cozy" in str(r.__dict__.values()) for r in lines)
+
+
+def test_changing_a_served_answer_doesnt_change_the_cached_one(client):
+    # PR #68 review: a hit used to hand back the stored objects themselves.
+    _ask(client)
+    [(_, stored)] = list(recommend_router.RESPONSE_CACHE._entries.values())
+    served = recommend_router._copy_of(stored)
+    served.recommendations[0].title = "MUTATED"
+    served.recommendations.append(served.recommendations[0])
+
+    assert _ask(client)["recommendations"][0]["title"] == "Stardew Valley"
+    assert len(stored.recommendations) == 1

@@ -19,7 +19,9 @@ Entries also expire after CACHE_TTL_SECONDS, which bounds how stale an answer
 can get when the catalogue or the model changes, and the least recently used
 entry is dropped past CACHE_MAX_ENTRIES. A `ranking_degraded` outcome (TM11-72)
 is never stored: the next try should get a real ranking. The cache is per
-process; the API runs as one process on Render.
+process; the API runs as one process on Render. Two identical requests that
+arrive together both miss and both run the pipeline: there is no in-flight
+de-duplication, so a double-click costs two LLM calls, not one.
 
 Every lookup is logged as `recommend.cache` with whether it hit and the
 running hit rate, never the query text.

@@ -269,7 +269,9 @@ The same query against the same library is answered from an in-process cache
 
 `lookup_ms` is the library fingerprint read (one indexed query over the user's
 `owned_games`); `cache_stored` says whether a miss was kept (a `ranking_degraded`
-answer never is). The counters are per process and reset on deploy. The query
+answer never is). The counters are per process and reset on deploy. Two
+identical requests in flight at once both miss, so a double-click shows as two
+misses. The query
 text is never logged. Latest hit rate:
 
 ```bash
