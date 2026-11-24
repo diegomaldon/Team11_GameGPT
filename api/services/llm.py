@@ -35,9 +35,12 @@ deterministic ranker's retrieval-order results are returned as a degraded
 ranking: rank_outcome() says so, the pipeline adds a `ranking_degraded` notice,
 and `llm.degraded` is logged. With no key configured at all (local dev, CI) the
 deterministic ranker is the expected path, not a failure, so it isn't degraded.
-The whole LLM step shares one deadline (RANK_DEADLINE_SECONDS): each attempt
-gets only the time left, so a hung provider degrades in about 9 s instead of
-after 30 s per attempt, inside the web client's 15 s limit (TM11-77).
+The whole LLM step shares one deadline (RANK_DEADLINE_SECONDS, the rank stage's
+7.5 s budget). Each provider gets an equal share of the time left, so a hung
+Gemini can't use it all and leave Anthropic no try, and each attempt gets only
+what's left of that share. A hung provider therefore degrades in about 7.5 s
+instead of after 30 s per attempt, which keeps a degraded recommend under REQ040's
+10 s and the web client's 15 s limit (TM11-77).
 """
 
 from __future__ import annotations
@@ -54,6 +57,7 @@ import httpx
 
 from api.config import get_settings
 from api.models import GameCandidate, Recommendation
+from api.observability.stage_timings import STAGE_BUDGET_MS
 from api.observability.upstream import raise_for_status_safe
 from api.services.title_matching import normalise_title
 
@@ -61,10 +65,11 @@ log = logging.getLogger("gamegpt.llm")
 
 _UNSET = object()
 
-# Every provider attempt of one rank() call must finish within this (TM11-72).
-# Retrieval's p95 budget ends at 1.75 s, so this keeps a recommend under the web
-# client's 15 s timeout (TM11-77, RECOMMEND_TIMEOUT_MS) even when a provider hangs.
-RANK_DEADLINE_SECONDS = 9.0
+# Every provider attempt of one rank() call must finish within this (TM11-72): the
+# rank stage's own budget, so a degraded recommend stays inside REQ040's 10 s
+# (the earlier stages' budgets end at 1.75 s) and the web client's 15 s timeout
+# (TM11-77, RECOMMEND_TIMEOUT_MS) even when a provider hangs.
+RANK_DEADLINE_SECONDS = STAGE_BUDGET_MS["rank"] / 1000
 
 _GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
@@ -462,9 +467,11 @@ class LLMService:
         """rank(), plus which provider answered and whether ranking degraded (TM11-72).
 
         Each provider gets one attempt and one retry, so a malformed answer is
-        retried once before the next provider is tried. If every configured
-        provider fails, the deterministic ranker's retrieval-order picks come
-        back with `degraded=True` and `llm.degraded` is logged.
+        retried once before the next provider is tried. Providers split the
+        time left before the deadline equally, so the last one always gets a
+        turn. If every configured provider fails, the deterministic ranker's
+        retrieval-order picks come back with `degraded=True` and `llm.degraded`
+        is logged.
         """
         if not candidates:
             return RankOutcome(recommendations=[], provider="none")
@@ -479,9 +486,13 @@ class LLMService:
         tally = _UsageTally()
         failures: list[dict[str, str]] = []
         deadline = time.monotonic() + self._rank_deadline
-        for name, provider in providers:
+        for position, (name, provider) in enumerate(providers):
+            # An equal share of what's left: a hung first provider leaves the next
+            # one time to answer (PR #67 review).
+            providers_left = len(providers) - position
+            share_ends = time.monotonic() + (deadline - time.monotonic()) / providers_left
             for _ in range(2):  # one attempt + one retry
-                remaining = deadline - time.monotonic()
+                remaining = share_ends - time.monotonic()
                 if remaining <= 0:
                     break
                 try:
@@ -568,7 +579,11 @@ class LLMService:
         if self._anthropic_client is None:
             from anthropic import AsyncAnthropic
 
-            self._anthropic_client = AsyncAnthropic(api_key=self._anthropic_key)
+            # The SDK retries twice by default; rank_outcome does its own single
+            # retry under the deadline, so the docstring's "one retry" holds.
+            self._anthropic_client = AsyncAnthropic(
+                api_key=self._anthropic_key, max_retries=0,
+            )
         return self._anthropic_client
 
     async def _rank_with_anthropic(

@@ -323,10 +323,59 @@ async def test_a_fast_failure_still_gets_its_retry_inside_the_deadline(monkeypat
     assert outcome.degraded is False
 
 
-def test_the_default_deadline_fits_inside_the_web_clients_timeout():
-    # Retrieval's stage budgets end at 1.75 s (STAGE_BUDGET_MS) and the web client
-    # gives up at 15 s (TM11-77's RECOMMEND_TIMEOUT_MS), so ranking gets what's left.
-    from api.observability.stage_timings import STAGE_BUDGET_MS
+def test_the_default_deadline_keeps_a_degraded_recommend_inside_req040():
+    # PR #67 review: the deadline is the rank stage's own budget, so the earlier
+    # stages' budgets plus it stay within REQ040's 10 s, and well inside the web
+    # client's 15 s (TM11-77's RECOMMEND_TIMEOUT_MS).
+    from api.observability.stage_timings import STAGE_BUDGET_MS, TOTAL_BUDGET_MS
 
+    assert RANK_DEADLINE_SECONDS == STAGE_BUDGET_MS["rank"] / 1000
     before_rank_s = sum(v for k, v in STAGE_BUDGET_MS.items() if k != "rank") / 1000
-    assert before_rank_s + RANK_DEADLINE_SECONDS < 15
+    assert before_rank_s + RANK_DEADLINE_SECONDS <= TOTAL_BUDGET_MS / 1000
+
+
+@pytest.mark.asyncio
+async def test_a_hung_first_provider_still_leaves_the_next_one_time_to_answer(monkeypatch):
+    # PR #67 review: with both keys set, a hung Gemini used to spend the whole
+    # deadline, so Anthropic never got a try.
+    calls: list[str] = []
+    _hanging_gemini(monkeypatch, calls)
+    candidates = _candidates()
+
+    async def anthropic_answers(self, query, cands, n, *, tally):
+        calls.append("anthropic")
+        return _picks_from_valid_body(cands)
+
+    monkeypatch.setattr(LLMService, "_rank_with_anthropic", anthropic_answers)
+    llm = LLMService(gemini_api_key=GEMINI_KEY, anthropic_api_key="test-anthropic-key",
+                     rank_deadline_seconds=0.4)
+
+    started = time.monotonic()
+    outcome = await llm.rank_outcome("something calm", candidates, n=3)
+
+    assert outcome.provider == "anthropic"
+    assert outcome.degraded is False
+    assert calls == ["gemini", "anthropic"]
+    assert time.monotonic() - started < 1.0
+
+
+def _picks_from_valid_body(candidates):
+    from api.services.llm import _picks_to_recs
+
+    data = json.loads(_valid_body(candidates)["candidates"][0]["content"]["parts"][0]["text"])
+    return _picks_to_recs(data, candidates, "something calm", 3)
+
+
+def test_the_anthropic_client_does_not_retry_on_its_own(monkeypatch):
+    # PR #67 review: the SDK retries twice by default, on top of our one retry.
+    import anthropic
+
+    seen = {}
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            seen.update(kwargs)
+
+    monkeypatch.setattr(anthropic, "AsyncAnthropic", FakeClient)
+    LLMService(gemini_api_key=None, anthropic_api_key="test-anthropic-key")._anthropic()
+    assert seen["max_retries"] == 0

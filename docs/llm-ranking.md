@@ -152,10 +152,14 @@ JSON formatter to check that the counts survive redaction and the key never appe
 
 Each provider gets one attempt and one retry, so a malformed answer is retried
 once before the next provider is tried. All attempts share one deadline,
-`RANK_DEADLINE_SECONDS` (9 s): each gets only the time left, and once it's spent
-no more are started. A hung provider therefore degrades in about 9 s rather than
-after Gemini's 30 s client timeout twice over, which keeps a recommend inside the
-web client's 15 s limit (TM11-77, PR #70). When every configured provider has
+`RANK_DEADLINE_SECONDS`, which is the rank stage's 7.5 s budget from
+`STAGE_BUDGET_MS`. Each configured provider gets an equal share of the time
+left, so a hung Gemini can't use it all and leave Anthropic no turn. Each
+attempt gets what's left of its share, and none starts once it's spent. The
+Anthropic client is built with `max_retries=0`, so its SDK doesn't retry on top
+of this. A hung provider therefore degrades in about 7.5 s rather than after
+Gemini's 30 s client timeout twice over, which keeps a degraded recommend inside
+REQ040's 10 s and the web client's 15 s limit (TM11-77, PR #70). When every configured provider has
 failed, the deterministic ranker's picks (the top unowned games in retrieval
 order) are returned, and one warning says ranking degraded:
 

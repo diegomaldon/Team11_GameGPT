@@ -188,8 +188,8 @@ query and its results to the user's history in the background (TM11-64).
 }
 ```
 - If the LLM's answer is malformed or the call fails, it's retried once, then the
-  next configured provider is tried, all within 9 s, so a hung model can't outlast
-  the web client's 15 s timeout. If they all fail, the API still answers 200
+  next configured provider is tried, all within 7.5 s, so a hung model can't
+  outlast REQ040's 10 s or the web client's 15 s timeout. If they all fail, the API still answers 200
   with the top unowned search results in retrieval order (each with a reason)
   and `notice.code = "ranking_degraded"`, never a 502. The results are shown with
   the notice above them; nothing else changes for the client.
