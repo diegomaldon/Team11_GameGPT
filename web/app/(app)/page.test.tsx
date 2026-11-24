@@ -542,6 +542,22 @@ describe("TM11-78 AC2: the detail panel opens from a card and from history", () 
     expect(await within(recent).findByText(fixtureGetHistory(1).items[0].query)).toBeTruthy();
   });
 
+  it("a click anywhere on a card opens its panel too", async () => {
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await search(user);
+    const [first] = fixtureRecommend("x").recommendations;
+
+    await user.click(screen.getByText(first.reason));
+
+    const dialog = screen.getByRole("dialog", { name: first.title });
+    expect(await within(dialog).findByTestId("game-detail")).toBeTruthy();
+    await user.keyboard("{Escape}");
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: `${first.title}, open details` }),
+    );
+  });
+
   it("doesn't jump to the search field on / while the panel is open", async () => {
     const user = userEvent.setup();
     render(<DiscoverPage />);

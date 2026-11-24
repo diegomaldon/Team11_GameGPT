@@ -3,11 +3,14 @@
 // One ranked pick on Discover (TM11-75, REQ015): rank, cover art, title, platforms,
 // review score and the explanation, plus the Steam link and thumbs up/down.
 //
-// The title opens the game's detail panel. The box keeps TM11-142's size (84×126 art,
+// The title opens the game's detail panel, and so does a click anywhere else on the card
+// that isn't the Steam link or a vote (TM11-78), which matters most on a phone. Keyboard and
+// screen-reader users still get the one title button. The box keeps TM11-142's size (84×126 art,
 // p-5), which TM11-76's ResultsSkeleton is drawn to; change both together.
 // A game with no art gets its initials (GameArt), and one with no score or no store
 // data says so instead of leaving a gap.
 
+import { useRef } from "react";
 import type { Recommendation, Vote } from "@/lib/api/types";
 import { platformLabels, scorePct } from "@/lib/discover/recommendations";
 import { External, Star, ThumbDown, ThumbUp } from "@/components/icons";
@@ -31,11 +34,21 @@ export function RecommendationCard({
 }) {
   const pct = scorePct(rec.review_score);
   const platforms = platformLabels(rec.platforms);
+  const titleRef = useRef<HTMLButtonElement>(null);
+
+  // A click on the card's body opens the panel, as the title does. The link, the votes and
+  // the title button handle their own clicks, and a drag that selected text isn't a click.
+  function openFromCard(e: React.MouseEvent<HTMLLIElement>) {
+    if ((e.target as HTMLElement).closest("a, button")) return;
+    if (window.getSelection()?.toString()) return;
+    if (titleRef.current) onOpen(rec, titleRef.current);
+  }
 
   return (
     <li
       data-testid="recommendation-card"
-      className="animate-fade-up rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5"
+      onClick={openFromCard}
+      className="animate-fade-up cursor-pointer rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 transition-colors hover:border-[var(--border-strong)]"
       style={{ animationDelay: `${index * 60}ms` }}
     >
       <div className="flex gap-5">
@@ -59,11 +72,12 @@ export function RecommendationCard({
             <h3 className="font-display text-2xl leading-tight">
               <span className="sr-only">{`${rec.rank}. `}</span>
               <button
+                ref={titleRef}
                 type="button"
                 onClick={(e) => onOpen(rec, e.currentTarget)}
                 aria-haspopup="dialog"
                 aria-label={`${rec.title}, open details`}
-                className="text-left underline-offset-4 hover:underline focus-visible:underline"
+                className="text-left underline-offset-4 focus-visible:underline"
               >
                 {rec.title}
               </button>

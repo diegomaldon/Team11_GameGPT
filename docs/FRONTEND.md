@@ -219,8 +219,10 @@ Each pick on Discover is a `components/discover/RecommendationCard.tsx` (REQ015)
   the explanation, plus the Steam link and thumbs up/down.
 - **Order:** `rankedCards()` in `lib/discover/recommendations.ts` sorts by the
   pipeline's `rank`, not array order, and shows at most 5.
-- **Detail panel:** the title is a button that opens `GameDetailPanel`. Esc or Close
-  shuts it and focus goes back to the title. See [Game detail panel
+- **Detail panel:** the title is a button that opens `GameDetailPanel`, and so does a
+  click anywhere else on the card except the Steam link and the votes (TM11-78; a big
+  target on phones). Keyboard and screen-reader users still get the one title button.
+  Esc or Close shuts it and focus goes back to the title. See [Game detail panel
   (TM11-78)](#game-detail-panel-tm11-78) for what the panel shows.
 - **Missing data:** no art shows the title's initials (`GameArt`), no score says
   "No score yet", no platforms says "Platforms not listed", and no Steam app id drops
