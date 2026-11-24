@@ -7,16 +7,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ApiError, recommend, REQUEST_TIMEOUT_CODE } from "@/lib/api/client";
-import { fixtureRecommend } from "@/lib/api/fixtures";
+import { ApiError, getGame, getHistory, recommend, REQUEST_TIMEOUT_CODE } from "@/lib/api/client";
+import { fixtureGetGame, fixtureGetHistory, fixtureRecommend } from "@/lib/api/fixtures";
 import { EXAMPLE_PROMPTS, NO_RESULTS_MESSAGE } from "@/lib/discover/featured";
 import type { RecommendResponse } from "@/lib/api/types";
 import DiscoverPage from "./page";
+import { clearGameCache } from "@/lib/discover/gameDetailCache";
 
 vi.mock("@/lib/api/client", async (importActual) => ({
   ...(await importActual<typeof import("@/lib/api/client")>()),
   recommend: vi.fn(),
   sendFeedback: vi.fn(),
+  getHistory: vi.fn(),
+  getGame: vi.fn(),
 }));
 // The featured strips and cover art aren't under test and pull in next/image.
 vi.mock("@/components/discover/Spotlight", () => ({ Spotlight: () => null }));
@@ -36,7 +39,10 @@ function deferred<T>() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  clearGameCache(); // fetched details persist for the session (TM11-78)
   vi.mocked(recommend).mockImplementation(async (q) => fixtureRecommend(q));
+  vi.mocked(getHistory).mockImplementation(async (limit) => fixtureGetHistory(limit));
+  vi.mocked(getGame).mockImplementation(async (id) => fixtureGetGame(id));
   window.matchMedia = vi.fn().mockImplementation((query: string) => ({
     matches: query === "(min-width: 640px)",
     media: query,
@@ -468,10 +474,117 @@ describe("TM11-75: result cards on the page", () => {
     await search(user, "obscure");
     await user.click(screen.getByRole("button", { name: "Bare Game, open details" }));
     const dialog = screen.getByRole("dialog", { name: "Bare Game" });
-    expect(dialog.textContent).toContain("No score yet");
-    expect(dialog.textContent).toContain("Not listed");
-    expect(dialog.textContent).toContain("No store link available.");
+    // No game_id, so nothing to fetch (TM11-78): every field says it's unavailable.
+    expect(getGame).not.toHaveBeenCalled();
+    expect(dialog.textContent).toContain("isn't in our catalogue yet");
+    expect(within(dialog).getAllByText("Unavailable").length).toBeGreaterThanOrEqual(5);
+    expect(within(dialog).queryByRole("link")).toBeNull();
     await user.click(within(dialog).getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
+describe("TM11-78 AC2: the detail panel opens from a card and from history", () => {
+  async function search(user: ReturnType<typeof userEvent.setup>, q = "a chill game") {
+    await user.type(field(), `${q}{Enter}`);
+    await screen.findByText(/picks for your vibe/);
+  }
+
+  it("a card fetches its game's full details into the panel", async () => {
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await search(user);
+    const [first] = fixtureRecommend("x").recommendations;
+
+    await user.click(screen.getByRole("button", { name: `${first.title}, open details` }));
+
+    const dialog = screen.getByRole("dialog", { name: first.title });
+    expect(getGame).toHaveBeenCalledWith(first.game_id);
+    expect(await within(dialog).findByText(/inherited your grandfather's old farm plot/)).toBeTruthy();
+    expect(within(dialog).getByText("89 / 100")).toBeTruthy(); // critic score, not on the card
+  });
+
+  it("lists recent searches, and any of their games opens the panel", async () => {
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    const recent = await screen.findByRole("region", { name: "Recent searches" });
+    const [entry] = fixtureGetHistory(1).items;
+    expect(within(recent).getByText(entry.query)).toBeTruthy();
+
+    const opener = within(recent).getByRole("button", { name: "Dorfromantik" });
+    await user.click(opener);
+
+    const dialog = screen.getByRole("dialog", { name: "Dorfromantik" });
+    expect(getGame).toHaveBeenCalledWith("22222222-2222-4222-8222-222222222222");
+    expect(await within(dialog).findByText(/ever-growing village landscape/)).toBeTruthy();
+    await user.keyboard("{Escape}");
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it("reloads recent searches after a new search, so it shows up", async () => {
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await screen.findByRole("region", { name: "Recent searches" });
+    expect(getHistory).toHaveBeenCalledTimes(1);
+
+    await search(user);
+
+    await waitFor(() => expect(getHistory).toHaveBeenCalledTimes(2));
+  });
+
+  it("says history is unavailable when it can't be read, with a retry", async () => {
+    vi.mocked(getHistory).mockRejectedValueOnce(new ApiError("GET /api/history failed", 503));
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    const recent = await screen.findByRole("region", { name: "Recent searches" });
+
+    const alert = await within(recent).findByRole("alert");
+    expect(alert.textContent).toContain("History is temporarily unavailable");
+    await user.click(within(alert).getByRole("button", { name: "Try again" }));
+    expect(await within(recent).findByText(fixtureGetHistory(1).items[0].query)).toBeTruthy();
+  });
+
+  it("prefetches every pick's details with the results, so a card opens at once", async () => {
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await search(user);
+    const picks = fixtureRecommend("x").recommendations;
+    await waitFor(() => expect(getGame).toHaveBeenCalledTimes(picks.length));
+    expect(vi.mocked(getGame).mock.calls.map(([id]) => id)).toEqual(picks.map((p) => p.game_id));
+
+    await user.click(screen.getByRole("button", { name: `${picks[1].title}, open details` }));
+
+    expect(screen.getByTestId("game-detail")).toBeTruthy(); // no skeleton in between
+    expect(getGame).toHaveBeenCalledTimes(picks.length); // and no new request
+  });
+
+  it("a click anywhere on a card opens its panel too", async () => {
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await search(user);
+    const [first] = fixtureRecommend("x").recommendations;
+
+    await user.click(screen.getByText(first.reason));
+
+    const dialog = screen.getByRole("dialog", { name: first.title });
+    expect(await within(dialog).findByTestId("game-detail")).toBeTruthy();
+    await user.keyboard("{Escape}");
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: `${first.title}, open details` }),
+    );
+  });
+
+  it("doesn't jump to the search field on / while the panel is open", async () => {
+    const user = userEvent.setup();
+    render(<DiscoverPage />);
+    await search(user);
+    const [first] = fixtureRecommend("x").recommendations;
+    await user.click(screen.getByRole("button", { name: `${first.title}, open details` }));
+    await screen.findByTestId("game-detail");
+
+    await user.keyboard("/");
+
+    expect(document.activeElement).not.toBe(field());
+    expect(screen.getByRole("dialog")).toBeTruthy();
   });
 });

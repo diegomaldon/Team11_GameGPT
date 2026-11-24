@@ -212,12 +212,15 @@ export function Modal({
   title,
   children,
   footer,
+  size = "md",
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  /** "lg" for content that needs the width, like the game detail panel (TM11-78). */
+  size?: "md" | "lg";
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -259,22 +262,27 @@ export function Modal({
         aria-modal="true"
         aria-label={title}
         onMouseDown={(e) => e.stopPropagation()}
-        className="w-full max-w-md animate-fade-up rounded-t-3xl border border-[var(--border)] bg-[var(--surface)] shadow-lift outline-none sm:rounded-3xl"
+        className={cx(
+          "flex max-h-[92dvh] w-full animate-fade-up flex-col rounded-t-3xl border border-[var(--border)] bg-[var(--surface)] shadow-lift outline-none sm:rounded-3xl",
+          size === "lg" ? "max-w-2xl" : "max-w-md",
+        )}
       >
-        <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
-          <h2 className="font-display text-2xl">{title}</h2>
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
+          <h2 className="min-w-0 break-words font-display text-2xl">{title}</h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--ink-faint)] hover:bg-[var(--raised)] hover:text-[var(--heading)]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--ink-faint)] hover:bg-[var(--raised)] hover:text-[var(--heading)]"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="px-5 py-5">{children}</div>
+        {/* Scrolls inside the dialog: the page behind is scroll-locked, so a long body
+            would otherwise run off a short screen. */}
+        <div className="min-h-0 overflow-y-auto px-5 py-5">{children}</div>
         {footer && (
-          <div className="flex justify-end gap-2 border-t border-[var(--border)] px-5 py-4">
+          <div className="flex shrink-0 justify-end gap-2 border-t border-[var(--border)] px-5 py-4">
             {footer}
           </div>
         )}

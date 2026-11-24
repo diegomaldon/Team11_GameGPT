@@ -7,7 +7,7 @@ If a shape needs to change, the orchestrator changes it here and re-generates
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 from typing import Literal, Optional
 from uuid import UUID
@@ -371,6 +371,49 @@ class ManualAddResponse(BaseModel):
     title: str
     platform: ManualPlatform
     import_method: Literal["MANUAL"] = "MANUAL"
+
+
+# ───────────────────── /api/games/{game_id} (TM11-78) ─────────────────────
+
+
+class GameDetail(BaseModel):
+    """Body returned from GET /api/games/{game_id}: one game for the detail panel (REQ009).
+
+    The contract agreed in docs/API.md. Every field but the id and title can be
+    missing; the panel says "unavailable" for those rather than leaving a gap,
+    so nothing here is filled in with a guess.
+    """
+
+    game_id: UUID
+    title: str
+    description: Optional[str] = None
+    genres: list[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
+    release_date: Optional[date] = None
+    developers: list[str] = Field(default_factory=list)
+    publishers: list[str] = Field(default_factory=list)
+    header_image_url: Optional[str] = None
+    review_score: Optional[float] = Field(
+        default=None, ge=0, le=1,
+        description="Players' review score, 0-1 like everywhere else in this API.",
+    )
+    critic_score: Optional[float] = Field(
+        default=None, ge=0, le=1, description="Critics' score, 0-1. Stored as 0-100."
+    )
+    steam_appid: Optional[int] = None
+    available_platforms: list[str] = Field(
+        default_factory=list,
+        description="Where the game can be bought, lowercase: steam, xbox, epic.",
+    )
+    purchase_links: dict[str, str] = Field(
+        default_factory=dict,
+        description="Validated store links keyed by lowercase platform. {} is normal; "
+                    "never build a link client-side.",
+    )
+    owned_on: list[str] = Field(
+        default_factory=list,
+        description="Platforms the user owns it on, in badge order. [] when not owned.",
+    )
 
 
 # ───────────────────── /api/library/xbox (TM11-56) ─────────────────────

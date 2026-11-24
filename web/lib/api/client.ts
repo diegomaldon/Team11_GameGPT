@@ -14,7 +14,7 @@
 // server log line can name the user and be traced back to the click that caused
 // it. A fetch added outside `request()` silently loses both.
 //
-// TIME LIMITS (TM11-77): recommend, the library read and the history read give up
+// TIME LIMITS (TM11-77): recommend and the library, history and game detail reads give up
 // after RECOMMEND_TIMEOUT_MS / READ_TIMEOUT_MS and throw ApiError with
 // REQUEST_TIMEOUT_CODE, so a hung database or LLM ends in a "try again" state
 // instead of loading forever. Syncs and uploads have no limit; they can run long.
@@ -22,6 +22,7 @@ import {
   fixtureAddManualGame,
   fixtureCommitCsv,
   fixtureFeedback,
+  fixtureGetGame,
   fixtureGetHistory,
   fixtureGetLibrary,
   fixtureGetSyncJob,
@@ -40,6 +41,7 @@ import type {
   CsvPlatform,
   CsvPreviewResponse,
   FeedbackRequest,
+  GameDetail,
   GameSearchResponse,
   HistoryResponse,
   LibraryResponse,
@@ -170,6 +172,22 @@ export async function getHistory(limit = 20): Promise<HistoryResponse> {
     {},
     { timeoutMs: READ_TIMEOUT_MS },
   )) as HistoryResponse;
+}
+
+/**
+ * GET /api/games/{game_id} — one game for the detail panel (TM11-78, REQ009). A 404
+ * comes back as ApiError with code `game_not_found`.
+ */
+export async function getGame(gameId: string): Promise<GameDetail> {
+  if (USE_FIXTURES) {
+    await sleep(300);
+    return fixtureGetGame(gameId);
+  }
+  return (await request<GameDetail>(
+    `/api/games/${encodeURIComponent(gameId)}`,
+    {},
+    { timeoutMs: READ_TIMEOUT_MS },
+  )) as GameDetail;
 }
 
 /**

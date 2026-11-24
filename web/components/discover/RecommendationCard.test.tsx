@@ -109,6 +109,49 @@ describe("AC-03: the card opens the detail panel", () => {
     await user.keyboard("{Enter}");
     expect(onOpen).toHaveBeenCalledTimes(1);
   });
+
+  // TM11-78: on a phone the title is a small target, so the whole card opens the panel.
+  it("opens it from a click anywhere on the card, once, with the title as the opener", async () => {
+    const user = userEvent.setup();
+    const { onOpen } = renderCard(HADES);
+    const title = within(card()).getByRole("button", { name: "Hades, open details" });
+
+    await user.click(within(card()).getByText(HADES.reason));
+    await user.click(card());
+
+    expect(onOpen).toHaveBeenCalledTimes(2);
+    expect(onOpen).toHaveBeenLastCalledWith(HADES, title);
+  });
+
+  it("opens it only once from the title itself", async () => {
+    const user = userEvent.setup();
+    const { onOpen } = renderCard(HADES);
+    await user.click(within(card()).getByRole("button", { name: "Hades, open details" }));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it("never opens it from a vote or the Steam link", async () => {
+    const user = userEvent.setup();
+    const { onOpen, onVote } = renderCard(HADES);
+
+    await user.click(within(card()).getByRole("button", { name: "Thumbs up Hades" }));
+    within(card()).getByRole("link", { name: /view on steam/i }).click();
+
+    expect(onVote).toHaveBeenCalledTimes(1);
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it("doesn't open it when the click ends a text selection", async () => {
+    const { onOpen } = renderCard(HADES);
+    const selection = vi.spyOn(window, "getSelection").mockReturnValue({
+      toString: () => "a selected phrase",
+    } as Selection);
+
+    card().click();
+
+    expect(onOpen).not.toHaveBeenCalled();
+    selection.mockRestore();
+  });
 });
 
 describe("AC-04: renders correctly with no art or scores", () => {
