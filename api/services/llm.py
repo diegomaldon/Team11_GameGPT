@@ -28,12 +28,27 @@ TM11-70 (REQ015) asks for a plain-language reason, not restated genre tags. The
 terms and point to something concrete from the description. Before and after
 samples are in artifacts/sprint10/tm11-70-explanations.md, written by
 scripts/eval_explanations.py; the review is docs/explanation-quality.md.
+
+TM11-72 (REQ040): a provider's malformed or failed answer is retried once, then
+the next provider is tried. When every configured provider has failed, the
+deterministic ranker's retrieval-order results are returned as a degraded
+ranking: rank_outcome() says so, the pipeline adds a `ranking_degraded` notice,
+and `llm.degraded` is logged. With no key configured at all (local dev, CI) the
+deterministic ranker is the expected path, not a failure, so it isn't degraded.
+The whole LLM step shares one deadline (RANK_DEADLINE_SECONDS, the rank stage's
+7.5 s budget). Each provider gets an equal share of the time left, so a hung
+Gemini can't use it all and leave Anthropic no try, and each attempt gets only
+what's left of that share. A hung provider therefore degrades in about 7.5 s
+instead of after 30 s per attempt, which keeps a degraded recommend under REQ040's
+10 s and the web client's 15 s limit (TM11-77).
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+import time
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -42,12 +57,19 @@ import httpx
 
 from api.config import get_settings
 from api.models import GameCandidate, Recommendation
+from api.observability.stage_timings import STAGE_BUDGET_MS
 from api.observability.upstream import raise_for_status_safe
 from api.services.title_matching import normalise_title
 
 log = logging.getLogger("gamegpt.llm")
 
 _UNSET = object()
+
+# Every provider attempt of one rank() call must finish within this (TM11-72): the
+# rank stage's own budget, so a degraded recommend stays inside REQ040's 10 s
+# (the earlier stages' budgets end at 1.75 s) and the web client's 15 s timeout
+# (TM11-77, RECOMMEND_TIMEOUT_MS) even when a provider hangs.
+RANK_DEADLINE_SECONDS = STAGE_BUDGET_MS["rank"] / 1000
 
 _GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
@@ -85,19 +107,58 @@ def clamp_recommendation_count(n: int) -> int:
     return max(MIN_RECOMMENDATIONS, min(MAX_RECOMMENDATIONS, n))
 
 
+# The fallback quotes the request, so a very long one is cut to this.
+MAX_QUOTED_REQUEST_CHARS = 80
+# And keeps this much of the description's first sentence.
+MAX_FALLBACK_SENTENCE_CHARS = 200
+_LEADING_ARTICLE = re.compile(r"^(a|an|the)\s", re.IGNORECASE)
+
+
+def _clip(text: str, limit: int) -> str:
+    if len(text) <= limit:
+        return text
+    return text[:limit].rsplit(" ", 1)[0].rstrip(",;:-") + "…"
+
+
 def _synthesize_reason(query: str, candidate: GameCandidate) -> str:
-    """A non-empty explanation that references the query and the game's traits."""
-    traits = candidate.genres or candidate.tags
-    if traits:
-        trait_text = ", ".join(traits[:3])
-        return (
-            f"A strong match for \"{query}\": {candidate.title} is a "
-            f"{trait_text} game that fits what you're looking for."
+    """The reason given when the model wrote none (TM11-166, REQ015).
+
+    Used by the deterministic fallback, TM11-69's top-up and a blank or
+    unusable model explanation. It quotes the request and says what the game
+    is from its description's first sentence, so it answers the request in
+    plain language instead of reading the genre tags back ("a Simulation, RPG
+    game that fits what you're looking for", which TM11-70's checks fail).
+    """
+    request = _clip(" ".join(query.split()), MAX_QUOTED_REQUEST_CHARS)
+    sentences = _split_sentences(" ".join((candidate.description or "").split()))
+    first = _clip(sentences[0], MAX_FALLBACK_SENTENCE_CHARS) if sentences else ""
+    if not first:
+        reason = (
+            f"For \"{request}\": {candidate.title} came out closest to what you "
+            f"described in the catalogue search."
         )
-    return (
-        f"A strong match for \"{query}\": {candidate.title} lines up well "
-        f"with what you're looking for."
-    )
+    else:
+        if not first.endswith((".", "!", "?", "…")):
+            first += "."
+        if _names_title(first, candidate.title):
+            reason = f"For \"{request}\": {first}"
+        elif _LEADING_ARTICLE.match(first):
+            # "A physics-driven shooter where…" reads as "Half-Life 2 is a physics-driven…".
+            reason = f"For \"{request}\": {candidate.title} is {first[0].lower()}{first[1:]}"
+        else:
+            reason = f"For \"{request}\": {candidate.title}. {first}"
+    # A long Steam title can push it past the cap a model's explanation is held to.
+    return _clip(reason, MAX_EXPLANATION_CHARS)
+
+
+def _names_title(sentence: str, title: str) -> bool:
+    """Whether `sentence` names the game: whole words, same case (PR #66 review).
+
+    A case-insensitive substring would say "Rust" is named in "where trust is
+    scarce" and "Portal" in "portal-based", so the reason would never say which
+    game it is.
+    """
+    return re.search(rf"(?<!\w){re.escape(title)}(?!\w)", sentence) is not None
 
 
 def _ends_with_abbreviation(part: str) -> bool:
@@ -385,6 +446,17 @@ class _UsageTally:
         return self.input_tokens + self.output_tokens
 
 
+@dataclass(frozen=True)
+class RankOutcome:
+    """One rank() call's results, and whether they came from a real model (TM11-72)."""
+
+    recommendations: list[Recommendation]
+    provider: str  # "gemini", "anthropic" or "deterministic"
+    # True when a provider was configured but every attempt failed, so these are
+    # retrieval-order results the model never ranked.
+    degraded: bool = False
+
+
 def _stamp(recs: list[Recommendation]) -> list[Recommendation]:
     """Give one call's results the same generated_at (TM11-69 AC-02)."""
     generated_at = datetime.now(timezone.utc)
@@ -399,8 +471,10 @@ class LLMService:
         gemini_model=_UNSET,
         anthropic_api_key=_UNSET,
         anthropic_model=_UNSET,
+        rank_deadline_seconds: float = RANK_DEADLINE_SECONDS,
     ) -> None:
         s = get_settings()
+        self._rank_deadline = rank_deadline_seconds
         self._gemini_key = s.gemini_api_key if gemini_api_key is _UNSET else gemini_api_key
         self._gemini_model = s.gemini_model if gemini_model is _UNSET else gemini_model
         self._anthropic_key = (
@@ -422,10 +496,25 @@ class LLMService:
 
         `n` is clamped to 3-5 (REQ015). Returns Recommendations ranked 1..n, each
         with a non-empty `reason`; fewer only when there are fewer candidates.
-        Falls back to a deterministic ranking if no provider succeeds.
+        Falls back to a deterministic ranking if no provider succeeds. Use
+        rank_outcome() to also learn whether that fallback was a failure.
+        """
+        return (await self.rank_outcome(query, candidates, n)).recommendations
+
+    async def rank_outcome(
+        self, query: str, candidates: list[GameCandidate], n: int = 3
+    ) -> RankOutcome:
+        """rank(), plus which provider answered and whether ranking degraded (TM11-72).
+
+        Each provider gets one attempt and one retry, so a malformed answer is
+        retried once before the next provider is tried. Providers split the
+        time left before the deadline equally, so the last one always gets a
+        turn. If every configured provider fails, the deterministic ranker's
+        retrieval-order picks come back with `degraded=True` and `llm.degraded`
+        is logged.
         """
         if not candidates:
-            return []
+            return RankOutcome(recommendations=[], provider="none")
         n = clamp_recommendation_count(n)
 
         providers = []
@@ -435,22 +524,45 @@ class LLMService:
             providers.append(("anthropic", self._rank_with_anthropic))
 
         tally = _UsageTally()
-        for name, provider in providers:
+        failures: list[dict[str, str]] = []
+        deadline = time.monotonic() + self._rank_deadline
+        for position, (name, provider) in enumerate(providers):
+            # An equal share of what's left: a hung first provider leaves the next
+            # one time to answer (PR #67 review).
+            providers_left = len(providers) - position
+            share_ends = time.monotonic() + (deadline - time.monotonic()) / providers_left
             for _ in range(2):  # one attempt + one retry
+                remaining = share_ends - time.monotonic()
+                if remaining <= 0:
+                    break
                 try:
-                    recs = await provider(query, candidates, n, tally=tally)
+                    recs = await asyncio.wait_for(
+                        provider(query, candidates, n, tally=tally), timeout=remaining,
+                    )
                 except Exception as exc:
                     # Type only: an httpx or SDK message can carry the request URL.
-                    log.warning(
-                        "llm.attempt_failed",
-                        extra={"provider": name, "error_type": type(exc).__name__},
-                    )
+                    failure = {"provider": name, "error_type": type(exc).__name__}
+                    failures.append(failure)
+                    log.warning("llm.attempt_failed", extra=failure)
                     continue
                 self._log_ranked(name, tally, len(recs))
-                return _stamp(recs)
+                return RankOutcome(recommendations=_stamp(recs), provider=name)
         recs = _deterministic_rank(query, candidates, n)
         self._log_ranked("deterministic", tally, len(recs))
-        return _stamp(recs)
+        degraded = bool(providers)
+        if degraded:
+            log.warning(
+                "llm.degraded",
+                extra={
+                    "providers": [name for name, _ in providers],
+                    "attempts": len(failures),
+                    "error_types": sorted({f["error_type"] for f in failures}),
+                    "result_count": len(recs),
+                },
+            )
+        return RankOutcome(
+            recommendations=_stamp(recs), provider="deterministic", degraded=degraded,
+        )
 
     @staticmethod
     def _log_ranked(provider: str, tally: _UsageTally, result_count: int) -> None:
@@ -507,7 +619,11 @@ class LLMService:
         if self._anthropic_client is None:
             from anthropic import AsyncAnthropic
 
-            self._anthropic_client = AsyncAnthropic(api_key=self._anthropic_key)
+            # The SDK retries twice by default; rank_outcome does its own single
+            # retry under the deadline, so the docstring's "one retry" holds.
+            self._anthropic_client = AsyncAnthropic(
+                api_key=self._anthropic_key, max_retries=0,
+            )
         return self._anthropic_client
 
     async def _rank_with_anthropic(

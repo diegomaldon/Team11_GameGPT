@@ -70,7 +70,7 @@ class Recommendation(BaseModel):
 
 
 class RecommendNotice(BaseModel):
-    """Why a recommend call came back with fewer results than asked for (TM11-66).
+    """Why a recommend call's results are short, empty or unranked (TM11-66, TM11-72).
 
     `code` is for the client to branch on; `message` is safe to show as is.
     """
@@ -78,7 +78,8 @@ class RecommendNotice(BaseModel):
     code: str = Field(
         ...,
         description="Machine-readable reason. 'all_owned': every match is already in "
-        "the user's library.",
+        "the user's library. 'ranking_degraded': the LLM failed, so the results are "
+        "the closest search matches, unranked (TM11-72).",
         examples=["all_owned"],
     )
     message: str = Field(..., description="A sentence the client can show the user.")
@@ -94,7 +95,8 @@ class RecommendResponse(BaseModel):
     recommendations: list[Recommendation]
     notice: Optional[RecommendNotice] = Field(
         default=None,
-        description="Set when the results are short or empty for a known reason (TM11-66).",
+        description="Set when the results are short, empty or unranked for a known "
+        "reason (TM11-66, TM11-72).",
     )
 
 

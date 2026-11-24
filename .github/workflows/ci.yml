@@ -273,6 +273,14 @@ jobs:
         working-directory: .
         run: python -m pytest api/tests/test_llm.py -v
 
+      # TM11-72. Malformed output retried once, a second failure answering with
+      # search-order results and a ranking_degraded notice, degraded mode logged,
+      # and the recommend API with the LLM stubbed to fail. Gemini is faked at the
+      # HTTP layer; no key, model or database.
+      - name: Pytest — ranking retry and degradation
+        working-directory: .
+        run: python -m pytest api/tests/test_ranking_degradation.py -v
+
       # TM11-70. REQ015 explanations answer the request, not restated genre
       # tags: the prompt rule and the checks behind the before/after review. No
       # model; the live samples are scripts/eval_explanations.py.
@@ -291,6 +299,13 @@ jobs:
       - name: Pytest — recommend latency
         working-directory: .
         run: python -m pytest -v api/tests/test_stage_timings.py api/tests/test_latency_report.py
+
+      # TM11-73. The same query and library served from cache, a library change
+      # missing it, and the hit rate logged. The pipeline and the library
+      # fingerprint are faked; no database.
+      - name: Pytest — response cache
+        working-directory: .
+        run: python -m pytest api/tests/test_response_cache.py -v
 
       # TM11-21. openapi.json is what the web types are generated from, so a
       # route or model change that isn't exported to it fails here.

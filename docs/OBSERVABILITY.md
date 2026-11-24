@@ -256,6 +256,31 @@ jq -c 'select(.msg == "recommend.timings") | {total_ms, rank_ms, failed_stage, r
   render-logs.txt | sort -t: -k2 -n | tail -5
 ```
 
+## Response cache — TM11-73
+
+The same query against the same library is answered from an in-process cache
+(`api/services/response_cache.py`) without running the pipeline, so a hit has no
+`recommend.timings` line. Every recommend call logs one line on `gamegpt.cache`:
+
+```json
+{"logger":"gamegpt.cache","msg":"recommend.cache","cache_hit":true,"cache_stored":null,
+ "lookup_ms":14.2,"cache_lookups":40,"cache_hits":11,"cache_hit_rate":0.275,"cache_entries":29}
+```
+
+`lookup_ms` is the library fingerprint read (one indexed query over the user's
+`owned_games`); `cache_stored` says whether a miss was kept (a `ranking_degraded`
+answer never is). The counters are per process and reset on deploy. Two
+identical requests in flight at once both miss, so a double-click shows as two
+misses. The query
+text is never logged. Latest hit rate:
+
+```bash
+jq -c 'select(.msg == "recommend.cache") | {cache_hit_rate, cache_lookups}' render-logs.txt | tail -1
+```
+
+If the fingerprint can't be read, `recommend.cache_unavailable` is logged and the
+request runs the pipeline as if there were no cache.
+
 ---
 
 ## LLM token usage — TM11-69
@@ -268,6 +293,9 @@ provider that answered (`deterministic` when no key is set) and the call's summe
 tokens. The field names and a `jq` one-liner to total spend are in
 [llm-ranking.md](llm-ranking.md#token-usage). `llm.attempt_failed` carries the
 exception type only, because an httpx message can carry Gemini's keyed URL.
+When every configured provider fails, one `llm.degraded` warning (TM11-72) lists
+the providers tried, the attempt count and the error types, and the user gets
+search-order results with a `ranking_degraded` notice instead of an error.
 
 ## Verifying it
 

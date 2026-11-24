@@ -177,6 +177,25 @@ query and its results to the user's history in the background (TM11-64).
   `message` is safe to show as is. New codes may be added, so treat an unknown
   code as "show the message".
 
+**200, ranking failed** (TM11-72)
+```json
+{
+  "query_id": "9b2f4c1e-7d3a-4e8b-a6f0-2c5d8e1b4a73",
+  "query": "something calm to unwind",
+  "recommendations": [ { "rank": 1, "title": "Unpacking", "reason": "…" } ],
+  "notice": {
+    "code": "ranking_degraded",
+    "message": "Our ranking model is unavailable right now, so these are the closest matches from search, not a ranked list. Try again shortly for ranked picks."
+  }
+}
+```
+- If the LLM's answer is malformed or the call fails, it's retried once, then the
+  next configured provider is tried, all within 7.5 s, so a hung model can't
+  outlast REQ040's 10 s or the web client's 15 s timeout. If they all fail, the API still answers 200
+  with the top unowned search results in retrieval order (each with a reason)
+  and `notice.code = "ranking_degraded"`, never a 502. The results are shown with
+  the notice above them; nothing else changes for the client.
+
 - The response is sent first. The query and its results are then saved in one
   transaction as a background task, so a slow or failed write never delays or
   breaks a recommendation; a failed save is logged with the `query_id`. The id
@@ -187,6 +206,13 @@ query and its results to the user's history in the background (TM11-64).
   games, and the token usage log lines are in [llm-ranking.md](llm-ranking.md).
 - Latency: ~7s on the first call after boot (model warm-up), then dominated by
   LLM latency; **< 10 s** warm.
+- **Repeated queries are cached** (TM11-73). The same query from the same user,
+  ignoring case and extra spaces, against an unchanged library is answered from
+  memory for up to 10 minutes, without searching or calling the LLM. Any change
+  to the library (import, sync, adding or removing a game, unlinking a platform)
+  changes the cache key, so it's never answered from an older library. A cached
+  answer still gets its own `query_id` and history row; `generated_at` is when
+  that ranking was first made. A `ranking_degraded` answer is never cached.
 - A 200 carries a `Server-Timing` header with each stage's time in ms (TM11-68), for
   example `parse;dur=0.2, embed;dur=48.1, retrieve;dur=402.7, filter;dur=180.3,
   rank;dur=2310.5, total;dur=2941.8`. Per-stage budgets are in
