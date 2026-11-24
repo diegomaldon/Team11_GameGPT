@@ -107,19 +107,58 @@ def clamp_recommendation_count(n: int) -> int:
     return max(MIN_RECOMMENDATIONS, min(MAX_RECOMMENDATIONS, n))
 
 
+# The fallback quotes the request, so a very long one is cut to this.
+MAX_QUOTED_REQUEST_CHARS = 80
+# And keeps this much of the description's first sentence.
+MAX_FALLBACK_SENTENCE_CHARS = 200
+_LEADING_ARTICLE = re.compile(r"^(a|an|the)\s", re.IGNORECASE)
+
+
+def _clip(text: str, limit: int) -> str:
+    if len(text) <= limit:
+        return text
+    return text[:limit].rsplit(" ", 1)[0].rstrip(",;:-") + "…"
+
+
 def _synthesize_reason(query: str, candidate: GameCandidate) -> str:
-    """A non-empty explanation that references the query and the game's traits."""
-    traits = candidate.genres or candidate.tags
-    if traits:
-        trait_text = ", ".join(traits[:3])
-        return (
-            f"A strong match for \"{query}\": {candidate.title} is a "
-            f"{trait_text} game that fits what you're looking for."
+    """The reason given when the model wrote none (TM11-166, REQ015).
+
+    Used by the deterministic fallback, TM11-69's top-up and a blank or
+    unusable model explanation. It quotes the request and says what the game
+    is from its description's first sentence, so it answers the request in
+    plain language instead of reading the genre tags back ("a Simulation, RPG
+    game that fits what you're looking for", which TM11-70's checks fail).
+    """
+    request = _clip(" ".join(query.split()), MAX_QUOTED_REQUEST_CHARS)
+    sentences = _split_sentences(" ".join((candidate.description or "").split()))
+    first = _clip(sentences[0], MAX_FALLBACK_SENTENCE_CHARS) if sentences else ""
+    if not first:
+        reason = (
+            f"For \"{request}\": {candidate.title} came out closest to what you "
+            f"described in the catalogue search."
         )
-    return (
-        f"A strong match for \"{query}\": {candidate.title} lines up well "
-        f"with what you're looking for."
-    )
+    else:
+        if not first.endswith((".", "!", "?", "…")):
+            first += "."
+        if _names_title(first, candidate.title):
+            reason = f"For \"{request}\": {first}"
+        elif _LEADING_ARTICLE.match(first):
+            # "A physics-driven shooter where…" reads as "Half-Life 2 is a physics-driven…".
+            reason = f"For \"{request}\": {candidate.title} is {first[0].lower()}{first[1:]}"
+        else:
+            reason = f"For \"{request}\": {candidate.title}. {first}"
+    # A long Steam title can push it past the cap a model's explanation is held to.
+    return _clip(reason, MAX_EXPLANATION_CHARS)
+
+
+def _names_title(sentence: str, title: str) -> bool:
+    """Whether `sentence` names the game: whole words, same case (PR #66 review).
+
+    A case-insensitive substring would say "Rust" is named in "where trust is
+    scarce" and "Portal" in "portal-based", so the reason would never say which
+    game it is.
+    """
+    return re.search(rf"(?<!\w){re.escape(title)}(?!\w)", sentence) is not None
 
 
 def _ends_with_abbreviation(part: str) -> bool:
