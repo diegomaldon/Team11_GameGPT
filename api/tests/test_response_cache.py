@@ -293,3 +293,18 @@ def test_changing_a_served_answer_doesnt_change_the_cached_one(client):
 
     assert _ask(client)["recommendations"][0]["title"] == "Stardew Valley"
     assert len(stored.recommendations) == 1
+
+
+def test_a_served_copy_doesnt_share_nested_lists_with_the_cache():
+    # A shallow model_copy() would share a Recommendation's own lists, such as
+    # TM11-75's `platforms` (#71), between the cached entry and every hit.
+    class WithPlatforms(Recommendation):
+        platforms: list[str] = []
+
+    stored = RecommendOutcome(recommendations=[
+        WithPlatforms(rank=1, title="Hades", reason="Fast.", platforms=["steam"]),
+    ])
+    served = recommend_router._copy_of(stored)
+    served.recommendations[0].platforms.append("xbox")
+
+    assert stored.recommendations[0].platforms == ["steam"]

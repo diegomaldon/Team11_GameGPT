@@ -56,10 +56,11 @@ def _copy_of(outcome: RecommendOutcome) -> RecommendOutcome:
     """A copy whose results can be changed without touching the cached entry.
 
     RecommendOutcome is frozen, but its list and the Recommendations in it are
-    not (PR #68 review), so both stored and served outcomes are copies.
+    not (PR #68 review), so both stored and served outcomes are copies. Deep
+    ones: a Recommendation holds lists of its own (TM11-75 adds `platforms`).
     """
     return RecommendOutcome(
-        recommendations=[r.model_copy() for r in outcome.recommendations],
+        recommendations=[r.model_copy(deep=True) for r in outcome.recommendations],
         notice=outcome.notice,
     )
 
